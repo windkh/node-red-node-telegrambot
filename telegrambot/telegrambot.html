@@ -1,0 +1,123 @@
+<!-- Created by Karl-Heinz Wind -->
+
+
+<!-- ------------------------------------------------------------------------------------------ -->
+<script type="text/javascript">
+    RED.nodes.registerType('telegram userbot config', {
+        category: 'config',
+        defaults: {
+			botname: { value: "", required: true },
+            verboselogging: { value: false, required: false },
+        },
+        credentials: {
+			apiid: { value: "", required: true },
+            apihash: { value: "", required: true },
+            session: { type: "text" },
+			phonenumber: { value: "", required: true },
+        },
+        label: function () {
+            return this.botname;
+        },
+        oneditprepare: function() {
+        }
+    });
+</script>
+
+<script type="text/x-red" data-template-name="telegram userbot config">
+    <div class="form-row" style="min-width: 700px">
+        <div class="form-row">
+            <label for="node-config-input-botname"><i class="fa fa-telegram"></i> Name</label>
+            <input type="text" id="node-config-input-botname" placeholder="(Name)">
+        </div>
+        <div class="form-row">
+			<div class="form-row">
+				<label for="node-config-input-apiid"><i class="fa fa-key"></i> ApiID</label>
+				<input type="text" id="node-config-input-apiid" placeholder="(Enter the ID here)">
+			</div>
+			<div class="form-tips" style="width: auto"><b>Tip:</b> If you don't have an application ID yet, you can create a new one here: <a href="https://my.telegram.org/auth">Telegram</a>.</div>
+    	</div>
+		
+		<div class="form-row">
+			<label for="node-config-input-apihash"><i class="fa fa-key"></i> ApiHash</label>
+			<input type="text" id="node-config-input-apihash" placeholder="(Enter the hash here)">
+		</div>
+
+        <div class="form-row">
+			<div class="form-row">
+				<label for="node-config-input-session"><i class="fa fa-link"></i> Session</label>
+				<input type="text" id="node-config-input-session" placeholder="(Enter the session here)">
+			</div>
+			<div class="form-tips" style="width: auto"><b>Tip:</b> If you don't have a session string yet, you can create a new one here: <a href="https://tgsnake.js.org/login">Login</a>.</div>
+    	</div>
+	
+		<div class="form-row">
+			<label for="node-config-input-phonenumber"><i class="fa fa-phone"></i> Phone-Number</label>
+			<input type="text" id="node-config-input-phonenumber" placeholder="(+49...)">
+		</div>
+	    
+        <hr align="middle"/>
+
+        <div class="form-row">
+            <label for="node-config-input-verboselogging"><i class="fa fa-search"></i> Verbose Logging</label>
+            <input type="checkbox" id="node-config-input-verboselogging" style="display: inline-block; width: auto; vertical-align: top;">
+        </div>
+        
+        <div class="form-tips" style="width: auto"><b>Tip:</b> When verbose logging is turned on additional log messages will be printed to the node-red console.</div>
+
+        <hr align="middle"/> 
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="telegram userbot config">
+    <p>A configuration node that holds the configuration of the telegram bot.</p>
+
+    <h3>Details</h3>
+    <p>TODO</p>
+</script>
+
+
+
+<!-- ------------------------------------------------------------------------------------------ -->
+<script type="text/javascript">
+    RED.nodes.registerType('telegram userbot receiver', {
+        category: 'telegram',
+        color: '#3BABDD',
+        defaults: {
+            name: { value: "" },
+            bot: { value:"", type: "telegram userbot config", required: true }
+        },
+        inputs: 0,
+        outputs: 1,
+        icon: "telegram.png",
+        paletteLabel: "userbot",
+        label: function () {
+            return this.name || "Telegram userbot";
+        },
+        labelStyle: function() {
+            return this.name?"node_label_italic":"";
+        },
+        oneditprepare: function() {
+        }
+    });
+</script>
+
+<script type="text/x-red" data-template-name="telegram userbot receiver">
+    <div class="form-row">
+        <label for="node-input-bot"><i class="fa fa-telegram"></i> Bot</label>
+        <input type="text" id="node-input-bot" placeholder="Bot">
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="telegram userbot receiver">
+    <p>A telegram node that triggers the output when some message is received from the chat.</p>
+    <p>The node receives all messages received from the telegram server.</p>
+    
+    <h3>Outputs</h3> 
+    <p>1. Standard Ouput: Message is sent to output.</p>   
+</script>
+
+<!-- ------------------------------------------------------------------------------------------ -->
