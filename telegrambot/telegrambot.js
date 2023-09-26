@@ -8,17 +8,15 @@ module.exports = function (RED) {
     function TelegramConfigNode(n) {
         RED.nodes.createNode(this, n);
 
-        let self = this;
+        // let self = this;
 
-        this.onStarted = function () {
-        };
+        this.onStarted = function () {};
         RED.events.on('flows:started', this.onStarted);
 
         this.on('close', function (removed, done) {
             RED.events.removeListener('flows:started', this.onStarted);
             done();
         });
-		
     }
     RED.nodes.registerType('telegram userbot config', TelegramConfigNode, {
         credentials: {
@@ -29,14 +27,13 @@ module.exports = function (RED) {
         },
     });
 
-    
     // --------------------------------------------------------------------------------------------
     // The receiver node receives messages.
     function TelegramReceiverNode(config) {
         RED.nodes.createNode(this, config);
         let node = this;
         this.bot = config.bot;
-        
+
         this.on('close', function (removed, done) {
             node.status({});
             done();
