@@ -1,6 +1,6 @@
 {
   "name": "node-red-node-telegrambot",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Telegram userbot nodes for Node-RED",
   "dependencies": {
     "telegram": "^2.18.38"
