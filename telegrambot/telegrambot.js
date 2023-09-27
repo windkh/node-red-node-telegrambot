@@ -24,7 +24,7 @@ module.exports = function (RED) {
             this.phoneNumber = this.credentials.phonenumber || '';
         }
 
-        this.createTelegramClient = async function (apiId, apiHash, session, phonenumber, logLevel, done) {
+        this.createTelegramClient = async function createTelegramClient(apiId, apiHash, session, phonenumber, logLevel) {
             let client;
             if (apiId !== undefined && apiId !== '') {
                 const stringSession = new StringSession(session);
@@ -32,9 +32,9 @@ module.exports = function (RED) {
                 client = new TelegramClient(stringSession, ID, apiHash, {
                     connectionRetries: 5,
                 });
-    
+
                 client.setLogLevel(logLevel);
-    
+
                 await client.start({
                     phoneNumber: phonenumber, // TODO: check if we need this
                     onError: (err) => console.log(err),
@@ -42,7 +42,7 @@ module.exports = function (RED) {
             }
 
             return client;
-        }
+        };
 
         // Activates the client or returns the already activated bot.
         this.getTelegramClient = async function () {
@@ -52,7 +52,7 @@ module.exports = function (RED) {
 
             return this.client;
         };
-        
+
         this.onStarted = function () {};
         RED.events.on('flows:started', this.onStarted);
 
@@ -78,8 +78,22 @@ module.exports = function (RED) {
         this.bot = config.bot;
         this.config = RED.nodes.getNode(this.bot);
 
-        const start = async () => 
-        {
+        const eventHandler = async function (event) {
+            const message = event.message;
+            const sender = await message.getSender();
+            const chat = await message.getChat();
+            let msg = {
+                payload: {
+                    sender: sender,
+                    chat: chat,
+                    message: message,
+                    originalUpdate: event.originalUpdate,
+                },
+            };
+            node.send(msg);
+        };
+
+        const start = async () => {
             let client = await node.config.getTelegramClient();
             if (client) {
                 node.status({
@@ -88,20 +102,6 @@ module.exports = function (RED) {
                     text: 'connected',
                 });
 
-                async function eventHandler(event) {
-                    const message = event.message;
-                    const sender = await message.getSender();
-                    const chat = await message.getChat();
-                    let msg = {
-                        payload : {
-                            sender : sender,
-                            chat : chat,
-                            message : message,
-                            originalUpdate : event.originalUpdate
-                        },
-                    }
-                    node.send(msg);
-                }
                 client.addEventHandler(eventHandler, new NewMessage({}));
 
                 // client.addEventHandler((update) => {

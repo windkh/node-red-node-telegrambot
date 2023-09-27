@@ -11,3 +11,5 @@ rules:
   prettier/prettier:  [error, {endOfLine: auto}]
   quotes: [warn, single]
   no-var: error
+parserOptions:
+  ecmaVersion: 8
