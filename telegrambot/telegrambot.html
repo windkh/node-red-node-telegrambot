@@ -42,8 +42,9 @@
                         if(data.session){
                             debugger
                             $("#node-config-input-session").val(data.session);
-                            $("#loginbuttontip").text("Login successful");
-                            $("#node-config-input-phonecode").val(''); // TODO: hide ohone code?
+                            $("#loginbuttontip").text("Click Login button to request code for login: code will be sent via your phone.");
+                            $("#node-config-input-phonecode").val('');
+                            $("#loginpanel").hide();
                         }
                         
                         if(data.error){
@@ -110,7 +111,7 @@
 </script>
 
 <script type="text/x-red" data-template-name="telegram userbot config">
-    <div class="form-row" style="min-width: 700px">
+    <div class="form-row">
         <div class="form-row">
             <label for="node-config-input-botname"><i class="fa fa-telegram"></i> Name</label>
             <input type="text" id="node-config-input-botname" placeholder="(Name)">
@@ -126,7 +127,7 @@
 				<input type="text" id="node-config-input-apiid" placeholder="(Enter the ID here)">
 			</div>
             <div class="form-row">
-                <label for="node-config-input-apihash"><i class="fa fa-key"></i> ApiHash</label>
+                <label for="node-config-input-apihash"><i class="fa fa-hashtag"></i> ApiHash</label>
                 <input type="text" id="node-config-input-apihash" placeholder="(Enter the hash here)">
             </div>
 			<div class="form-tips" style="width: auto"><b>Tip:</b> If you don't have an application ID yet, you can create a new one here: <a href="https://my.telegram.org/auth">Telegram</a>.</div>
@@ -144,7 +145,7 @@
         <div class="form-row hidden" id="loginpanel" style="background: var(--red-ui-tertiary-background)">
             <hr align="middle"/>        
             <div class="form-row">
-                <input id='loginbutton' type='button' value='Login' style="width: auto"/>
+                <input id='loginbutton' type='button' value=' Login ' style="width: auto"/></i></input>
                 <div class="form-tips" id='loginbuttontip' style="width: auto">
                     Click Login button to request code for login: code will be sent via your phone.</div>
             </div>
@@ -158,6 +159,7 @@
                 <label for="node-config-input-password"><i class="fa fa-lock"></i> Password</label>
                 <input type="text" id="node-config-input-password" placeholder="(Only needed if Two-Step-Verification is on)">
             </div>
+            <hr align="middle"/>
         </div>
 
         <hr align="middle"/>

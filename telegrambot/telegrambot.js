@@ -148,6 +148,11 @@ module.exports = function (RED) {
         this.config = n;
         this.client = null;
         this.logLevel = 'warn'; // 'none', 'error', 'warn','info', 'debug'
+        this.verbose = n.verboselogging;
+
+        if (this.verbose) {
+            this.logLevel = 'info';
+        }
 
         // let self = this;
         if (this.credentials !== undefined) {
