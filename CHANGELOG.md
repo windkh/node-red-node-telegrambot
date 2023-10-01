@@ -1,6 +1,9 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.0.4]
+### Added sender node and examples 
+
 ## [0.0.3]
 ### Added simple login button in config node to ease login. 
 

@@ -3,7 +3,7 @@
 module.exports = function (RED) {
     'use strict';
 
-    const { TelegramClient } = require('telegram');
+    const { Api, TelegramClient } = require('telegram');
     const { StringSession } = require('telegram/sessions');
     const { NewMessage } = require('telegram/events');
 
@@ -201,7 +201,7 @@ module.exports = function (RED) {
             done();
         });
     }
-    RED.nodes.registerType('telegram userbot config', TelegramConfigNode, {
+    RED.nodes.registerType('telegram client config', TelegramConfigNode, {
         credentials: {
             apiid: { type: 'text' },
             apihash: { type: 'text' },
@@ -261,12 +261,70 @@ module.exports = function (RED) {
             done();
         });
     }
-    RED.nodes.registerType('telegram userbot receiver', TelegramReceiverNode);
-};
+    RED.nodes.registerType('telegram client receiver', TelegramReceiverNode);
 
-// TODO:
-// await client.sendMessage(sender, {
-//    message: `hi your id is ${message.senderId}`,
-//});
-// const entity = await client.getEntity('Windhose');
-// await client.sendMessage(entity, { message: 'Hello!' });
+    // --------------------------------------------------------------------------------------------
+    // The sender node sends messages.
+    function TelegramSenderNode(config) {
+        RED.nodes.createNode(this, config);
+        let node = this;
+        this.bot = config.bot;
+        this.config = RED.nodes.getNode(this.bot);
+
+        const start = async () => {
+            let client = await node.config.getTelegramClient();
+            if (client) {
+                node.status({
+                    fill: 'green',
+                    shape: 'ring',
+                    text: 'connected',
+                });
+            }
+        };
+        start();
+
+        this.processMessage = function (client, msg, nodeSend, nodeDone) {
+            if (msg.payload !== undefined) {
+                let api = msg.payload.api;
+                let func = msg.payload.func;
+                let args = msg.payload.args || {};
+
+                if (api !== undefined && func !== undefined) {
+                    (async () => {
+                        try {
+                            const result = await client.invoke(new Api[api][func](args));
+                            msg.payload = result;
+                            nodeSend(msg);
+                        } catch (error) {
+                            nodeDone(error);
+                        }
+                    })();
+                } else {
+                    nodeDone('msg.payload: api or func is missing.');
+                }
+            }
+
+            // TODO:
+            // await client.sendMessage(sender, {
+            //    message: `hi your id is ${message.senderId}`,
+            //});
+            // const entity = await client.getEntity('Windhose');
+            // await client.sendMessage(entity, { message: 'Hello!' });
+        };
+
+        this.on('input', async function (msg, nodeSend, nodeDone) {
+            if (msg.payload) {
+                let client = await node.config.getTelegramClient();
+                if (client) {
+                    this.processMessage(client, msg, nodeSend, nodeDone);
+                }
+            }
+        });
+
+        this.on('close', function (removed, done) {
+            node.status({});
+            done();
+        });
+    }
+    RED.nodes.registerType('telegram client sender', TelegramSenderNode);
+};

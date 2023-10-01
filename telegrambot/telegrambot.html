@@ -3,7 +3,7 @@
 
 <!-- ------------------------------------------------------------------------------------------ -->
 <script type="text/javascript">
-    RED.nodes.registerType('telegram userbot config', {
+    RED.nodes.registerType('telegram client config', {
         category: 'config',
         defaults: {
 			botname: { value: "", required: true },
@@ -110,7 +110,7 @@
     });
 </script>
 
-<script type="text/x-red" data-template-name="telegram userbot config">
+<script type="text/x-red" data-template-name="telegram client config">
     <div class="form-row">
         <div class="form-row">
             <label for="node-config-input-botname"><i class="fa fa-telegram"></i> Name</label>
@@ -175,7 +175,7 @@
     </div>
 </script>
 
-<script type="text/x-red" data-help-name="telegram userbot config">
+<script type="text/x-red" data-help-name="telegram client config">
     <p>A configuration node that holds the configuration of the telegram bot.</p>
 
     <h3>Details</h3>
@@ -186,19 +186,19 @@
 
 <!-- ------------------------------------------------------------------------------------------ -->
 <script type="text/javascript">
-    RED.nodes.registerType('telegram userbot receiver', {
+    RED.nodes.registerType('telegram client receiver', {
         category: 'telegram',
         color: '#3BABDD',
         defaults: {
             name: { value: "" },
-            bot: { value:"", type: "telegram userbot config", required: true }
+            bot: { value:"", type: "telegram client config", required: true }
         },
         inputs: 0,
         outputs: 1,
         icon: "telegram.png",
-        paletteLabel: "userbot",
+        paletteLabel: "client",
         label: function () {
-            return this.name || "Telegram userbot";
+            return this.name || "Telegram client";
         },
         labelStyle: function() {
             return this.name?"node_label_italic":"";
@@ -208,7 +208,7 @@
     });
 </script>
 
-<script type="text/x-red" data-template-name="telegram userbot receiver">
+<script type="text/x-red" data-template-name="telegram client receiver">
     <div class="form-row">
         <label for="node-input-bot"><i class="fa fa-telegram"></i> Bot</label>
         <input type="text" id="node-input-bot" placeholder="Bot">
@@ -219,12 +219,59 @@
     </div>
 </script>
 
-<script type="text/x-red" data-help-name="telegram userbot receiver">
+<script type="text/x-red" data-help-name="telegram client receiver">
     <p>A telegram node that triggers the output when some message is received from the chat.</p>
     <p>The node receives all messages received from the telegram server.</p>
     
     <h3>Outputs</h3> 
     <p>1. Standard Ouput: Message is sent to output.</p>   
+</script>
+
+<!-- ------------------------------------------------------------------------------------------ -->
+
+<script type="text/javascript">
+    RED.nodes.registerType('telegram client sender', {
+        category: 'telegram',
+        color: '#3BABDD',
+        defaults: {
+            name: { value: "" },
+            bot: { value:"", type: "telegram client config", required: true }
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "telegram.png",
+        paletteLabel: "client",
+        label: function () {
+            return this.name || "Telegram client";
+        },
+        labelStyle: function() {
+            return this.name?"node_label_italic":"";
+        },
+        oneditprepare: function() {
+        }
+    });
+</script>
+
+<script type="text/x-red" data-template-name="telegram client sender">
+    <div class="form-row">
+        <label for="node-input-bot"><i class="fa fa-telegram"></i> Bot</label>
+        <input type="text" id="node-input-bot" placeholder="Bot">
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="telegram client sender">
+    <p>A telegram node that sends messaged to a chat.</p>
+    <p>The node receives data and sends it to the telegram server.</p>
+
+    <h3>Inputs</h3> 
+    <p>TODO:</p>   
+
+    <h3>Inputs</h3> 
+    <p></p>   
 </script>
 
 <!-- ------------------------------------------------------------------------------------------ -->
