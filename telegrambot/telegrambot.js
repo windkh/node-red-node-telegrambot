@@ -8,6 +8,130 @@ module.exports = function (RED) {
     const { NewMessage } = require('telegram/events');
 
     // --------------------------------------------------------------------------------------------
+    let getPhoneCodeResolve;
+    let getPhoneCodeReject;
+    let getPasswordResolve;
+    let getPasswordReject;
+
+    function createPhoneCodePromise() {
+        let getPhoneCode = new Promise((resolve, reject) => {
+            getPhoneCodeResolve = resolve;
+            getPhoneCodeReject = reject;
+        });
+
+        return getPhoneCode;
+    }
+
+    function createPasswordPromise() {
+        let getPassword = new Promise((resolve, reject) => {
+            getPasswordResolve = resolve;
+            getPasswordReject = reject;
+        });
+
+        return getPassword;
+    }
+
+    async function loginUser(parameters, getPhoneCode, getPassword, sessionCreated, error) {
+        try {
+            let apiId = Number(parameters.apiId);
+            let apiHash = parameters.apiHash;
+            let phoneNumber = parameters.phoneNumber;
+            let password = parameters.password;
+            if (password === undefined || password === '') {
+                password = async () => await getPassword;
+            }
+
+            if (apiId !== undefined && apiHash !== undefined && phoneNumber !== undefined) {
+                const stringSession = new StringSession('');
+                const client = new TelegramClient(stringSession, apiId, apiHash, {
+                    connectionRetries: 5,
+                });
+
+                client.setLogLevel('debug');
+
+                let authParams = {
+                    phoneNumber: phoneNumber,
+                    phoneCode: async () => await getPhoneCode,
+                    password: password,
+                    onError: (err) => {
+                        console.log(err);
+                        if (err.errorMessage === 'PHONE_CODE_INVALID') {
+                        }
+                        return true; // abort
+                    },
+                };
+                await client.start(authParams);
+
+                let session = client.session.save();
+                sessionCreated(session);
+            } else {
+                error('Parameters are missing: apiId, apiHash, phoneNumber');
+            }
+        } catch (err) {
+            error(err);
+        }
+    }
+
+    RED.httpAdmin.get('/node-red-node-telegrambot-setphonecode', function (req, res) {
+        let parameters = req.query;
+
+        if (getPhoneCodeResolve !== undefined && getPhoneCodeResolve !== null) {
+            getPhoneCodeResolve(parameters.phoneCode);
+            getPhoneCodeResolve = null;
+            getPhoneCodeReject = null;
+        }
+
+        //  if (err.errorMessage === "RESTART_AUTH") {
+    });
+
+    RED.httpAdmin.get('/node-red-node-telegrambot-setpassword', function (req, res) {
+        let parameters = req.query;
+
+        if (getPasswordResolve !== undefined && getPasswordResolve !== null) {
+            getPasswordResolve(parameters.password);
+            getPasswordResolve = null;
+            getPasswordReject = null;
+        }
+    });
+
+    RED.httpAdmin.get('/node-red-node-telegrambot-loginuser', function (req, res) {
+        let parameters = req.query;
+
+        let getPhoneCode = createPhoneCodePromise();
+        let getPassword = createPasswordPromise();
+
+        try {
+            loginUser(
+                parameters,
+                getPhoneCode,
+                getPassword,
+                (session) => {
+                    let data = { session: session };
+                    res.json(data);
+                },
+                (error) => {
+                    let message;
+                    if (error.code !== undefined) {
+                        message = 'Error ' + error.code + ' (' + error.errorMessage + '): ' + error.message;
+                    } else if (error.message !== undefined) {
+                        message = error.message;
+                    } else {
+                        message = error;
+                    }
+
+                    let data = {
+                        type: 'error',
+                        error: message,
+                    };
+                    res.json(data);
+                }
+            );
+        } catch {
+            // TODO:
+        }
+    });
+
+    // --------------------------------------------------------------------------------------------
     // The configuration node
     function TelegramConfigNode(n) {
         RED.nodes.createNode(this, n);
@@ -33,11 +157,13 @@ module.exports = function (RED) {
                     connectionRetries: 5,
                 });
 
-                client.setLogLevel(logLevel);
+                // client.setLogLevel(logLevel);
 
                 await client.start({
-                    phoneNumber: phonenumber, // TODO: check if we need this
-                    onError: (err) => console.log(err),
+                    onError: (err) => {
+                        console.log(err);
+                        return true; // true means that it should be stopped.
+                    },
                 });
             }
 
