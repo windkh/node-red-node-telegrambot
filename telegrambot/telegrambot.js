@@ -47,7 +47,7 @@ module.exports = function (RED) {
                     connectionRetries: 5,
                 });
 
-                client.setLogLevel('debug');
+                // client.setLogLevel('debug');
 
                 let authParams = {
                     phoneNumber: phoneNumber,
@@ -55,8 +55,8 @@ module.exports = function (RED) {
                     password: password,
                     onError: (err) => {
                         console.log(err);
-                        if (err.errorMessage === 'PHONE_CODE_INVALID') {
-                        }
+                        // if (err.errorMessage === 'PHONE_CODE_INVALID') {
+                        // }
                         return true; // abort
                     },
                 };
@@ -76,22 +76,31 @@ module.exports = function (RED) {
         let parameters = req.query;
 
         if (getPhoneCodeResolve !== undefined && getPhoneCodeResolve !== null) {
-            getPhoneCodeResolve(parameters.phoneCode);
-            getPhoneCodeResolve = null;
-            getPhoneCodeReject = null;
+            let phoneCode = parameters.phoneCode;
+            if (phoneCode !== '') {
+                getPhoneCodeResolve(phoneCode);
+            } else {
+                //  if (err.errorMessage === "RESTART_AUTH") {
+                getPhoneCodeReject(phoneCode);
+            }
         }
 
-        //  if (err.errorMessage === "RESTART_AUTH") {
+        res.json('ok');
     });
 
     RED.httpAdmin.get('/node-red-node-telegrambot-setpassword', function (req, res) {
         let parameters = req.query;
 
         if (getPasswordResolve !== undefined && getPasswordResolve !== null) {
-            getPasswordResolve(parameters.password);
-            getPasswordResolve = null;
-            getPasswordReject = null;
+            let password = parameters.password;
+            if (password !== '') {
+                getPasswordResolve(password);
+            } else {
+                getPasswordReject(password);
+            }
         }
+
+        res.json('ok');
     });
 
     RED.httpAdmin.get('/node-red-node-telegrambot-loginuser', function (req, res) {
@@ -126,7 +135,7 @@ module.exports = function (RED) {
                     res.json(data);
                 }
             );
-        } catch {
+        } catch (allErrors) {
             // TODO:
         }
     });
@@ -138,7 +147,7 @@ module.exports = function (RED) {
 
         this.config = n;
         this.client = null;
-        this.logLevel = 'debug';
+        this.logLevel = 'warn'; // 'none', 'error', 'warn','info', 'debug'
 
         // let self = this;
         if (this.credentials !== undefined) {
@@ -148,7 +157,7 @@ module.exports = function (RED) {
             this.phoneNumber = this.credentials.phonenumber || '';
         }
 
-        this.createTelegramClient = async function createTelegramClient(apiId, apiHash, session, phonenumber, logLevel) {
+        this.createTelegramClient = async function createTelegramClient(apiId, apiHash, session, logLevel) {
             let client;
             if (apiId !== undefined && apiId !== '') {
                 const stringSession = new StringSession(session);
@@ -157,7 +166,7 @@ module.exports = function (RED) {
                     connectionRetries: 5,
                 });
 
-                // client.setLogLevel(logLevel);
+                client.setLogLevel(logLevel);
 
                 await client.start({
                     onError: (err) => {
