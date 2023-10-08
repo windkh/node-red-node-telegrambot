@@ -8,6 +8,7 @@
         defaults: {
 			botname: { value: "", required: true },
             verboselogging: { value: false, required: false },
+            loginmode: { value: "user", required: true },
         },
         credentials: {
 		    apiid: { value: 0, required: true, validate:function(v) { return ((v === "") || (RED.validators.number(v) && (v >= 0) && (v <= 4294967295))) }},
@@ -15,30 +16,51 @@
             session: { value: "", required: true, validate:function(v) { return v.length > 0;}},
 	        phonenumber: { value: "", required: true },
             password: { value: "", required: false },
+            bottoken: { type: "text" }
       	},
         label: function () {
             return this.botname;
         },
         oneditprepare: function() {
+                 // polling or webhook
+            var updateLoginMode = function() {
+                var mode = $("#node-config-input-loginmode").val();
+                if (mode == "user") {
+                    $("#phonenumber").show();
+                    $("#password").show();
+                    $("#bottoken").hide();
+                } else {
+                    $("#phonenumber").hide();
+                    $("#password").hide();
+                    $("#bottoken").show();
+                }
+            };
+            updateLoginMode();
+            $("#node-config-input-loginmode").change(updateLoginMode);
+
             var login = function() {       
                 
                 let apiId = $("#node-config-input-apiid").val();
                 let apiHash = $("#node-config-input-apihash").val();
                 let phoneNumber = $("#node-config-input-phonenumber").val();
                 let password = $("#node-config-input-password").val();
-                
-                if (apiId !== '' && apiHash !== '' && phoneNumber !== '') {
+                let botToken = $("#node-config-input-bottoken").val();
+                let loginMode = $("#node-config-input-loginmode").val();
+
+                if (apiId !== '' && apiHash) {
                     let parameters = {
                         apiId : apiId,
                         apiHash : apiHash,
                         phoneNumber : phoneNumber,
-                        password : password
+                        password : password,
+                        botToken : botToken,
+                        loginMode : loginMode
                     }
 
                     $("#loginbuttontip").text("Login started: enter code in field below.");
                     $("#node-config-input-phonecode").val('');
                     $("#node-config-input-session").val('');
-                    $.getJSON('node-red-node-telegrambot-loginuser', parameters, function(data) {
+                    $.getJSON('node-red-node-telegrambot-login', parameters, function(data) {
                         if(data.session){
                             debugger
                             $("#node-config-input-session").val(data.session);
@@ -118,9 +140,22 @@
         </div>
 
         <div class="form-row">
-            <div class="form-row">
+            <label for="node-config-input-loginmode"><i class="fa fa-link"></i> Login Mode</label>
+            <select id="node-config-input-loginmode">
+                <option value="user">User</option>
+                <option value="bot">Bot</option>
+            </select>
+        </div>
+
+        <div class="form-row">
+            <div class="form-row hidden" id="phonenumber">
                 <label for="node-config-input-phonenumber"><i class="fa fa-mobile"></i> Phone-Number</label>
                 <input type="text" id="node-config-input-phonenumber" placeholder="(+49...)">
+            </div>  
+            <div class="form-row hidden" id="bottoken">
+                <label for="node-config-input-bottoken"><i class="fa fa-key"></i> Bot-Token</label>
+                <input type="text" id="node-config-input-bottoken" placeholder="(Enter the bot token from botfather here)">
+                <div class="form-tips" style="width: auto"><b>Tip:</b> If you don't have a token yet, you can create a new one here: <a href="https://t.me/BotFather">@BotFather</a>.</div>
             </div>    
 			<div class="form-row">
 				<label for="node-config-input-apiid"><i class="fa fa-key"></i> ApiID</label>
@@ -155,7 +190,7 @@
                 <input type="text" id="node-config-input-phonecode" placeholder="(Enter phone code here)">
             </div>
 
-            <div class="form-row">
+            <div class="form-row hidden" id="password">
                 <label for="node-config-input-password"><i class="fa fa-lock"></i> Password</label>
                 <input type="text" id="node-config-input-password" placeholder="(Only needed if Two-Step-Verification is on)">
             </div>

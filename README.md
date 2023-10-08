@@ -13,7 +13,7 @@
 ...
 
 
-This package contains a node which act as a Telegram Client. It is based on gramjs which implements the mtproto mobild protocol. (see https://core.telegram.org/mtproto). Unlike node-red-contrib-telegrambot it does not support the telegram bot api. The package can be used to create so-called userbots or selfbots which to automate things under your own user-name. However you should be aware of the fact, that if you cause flooding and other havoc telegram will quickly ban your account either for 24h or even forever. It is recommended to use a test account while developing.
+This package contains a node which act as a Telegram Client. It is based on gramjs which implements the mtproto mobile protocol. (see https://core.telegram.org/mtproto). Unlike node-red-contrib-telegrambot it does not support the telegram bot api. The package can be used to create so-called userbots or selfbots which to automate things under your own user-name. However you should be aware of the fact, that if you cause flooding and other havoc telegram will quickly ban your account either for 24h or even forever. It is recommended to use a test account while developing.
 
 
 # Thanks for your donation
@@ -53,6 +53,7 @@ Changes can be followed [here](/CHANGELOG.md).
 ## Basics
 ### Authentication
 The *Telegram client receiver* node receives messages from like a telegram client. You need to login with a phone-number and an API ID and API Hash in order to be able to receive message under your own user name.
+In addition to that you can also login using a bot token retrieved from @botfather.
 
 You can create an API ID and Hash when you login to your telegram account here https://my.telegram.org/auth
 Then go to 'API Development Tools' and create your API ID and API Hash. Both are required when configuring your nodes. The nodes login only once to create a so-called session string. This string can be created from within
@@ -60,7 +61,7 @@ the config node or as an alternative you can also create it online here https://
 This session string is used instead of interactive login (where you need to enter a phone-code and your password if set).
 
 ### Receiver Node
-The *Telegram client receiver* node receives message which are sent to your account. Just add a debug node to the
+The *Telegram client receiver* node receives message which are sent to your account or bot. Just add a debug node to the
 output and investigate the objects in `msg.payload`.
 
 ### Sender Node

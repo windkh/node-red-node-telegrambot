@@ -31,12 +31,15 @@ module.exports = function (RED) {
         return getPassword;
     }
 
-    async function loginUser(parameters, getPhoneCode, getPassword, sessionCreated, error) {
+    async function login(parameters, getPhoneCode, getPassword, sessionCreated, error) {
         try {
             let apiId = Number(parameters.apiId);
             let apiHash = parameters.apiHash;
             let phoneNumber = parameters.phoneNumber;
+            let botToken = parameters.botToken;
             let password = parameters.password;
+            let loginMode = parameters.loginMode;
+
             if (password === undefined || password === '') {
                 password = async () => await getPassword;
             }
@@ -49,17 +52,27 @@ module.exports = function (RED) {
 
                 // client.setLogLevel('debug');
 
-                let authParams = {
-                    phoneNumber: phoneNumber,
-                    phoneCode: async () => await getPhoneCode,
-                    password: password,
-                    onError: (err) => {
-                        console.log(err);
-                        // if (err.errorMessage === 'PHONE_CODE_INVALID') {
-                        // }
-                        return true; // abort
-                    },
-                };
+                let authParams;
+                if (loginMode === 'user') {
+                    authParams = {
+                        phoneNumber: phoneNumber,
+                        phoneCode: async () => await getPhoneCode,
+                        password: password,
+                        onError: (err) => {
+                            console.log(err);
+                            // if (err.errorMessage === 'PHONE_CODE_INVALID') {
+                            // }
+                            return true; // abort
+                        },
+                    };
+                } else if (loginMode === 'bot') {
+                    authParams = {
+                        botAuthToken: botToken,
+                    };
+                } else {
+                    throw 'LoginMode ' + loginMode + ' is not supported';
+                }
+
                 await client.start(authParams);
 
                 let session = client.session.save();
@@ -103,14 +116,14 @@ module.exports = function (RED) {
         res.json('ok');
     });
 
-    RED.httpAdmin.get('/node-red-node-telegrambot-loginuser', function (req, res) {
+    RED.httpAdmin.get('/node-red-node-telegrambot-login', function (req, res) {
         let parameters = req.query;
 
         let getPhoneCode = createPhoneCodePromise();
         let getPassword = createPasswordPromise();
 
         try {
-            loginUser(
+            login(
                 parameters,
                 getPhoneCode,
                 getPassword,
@@ -149,6 +162,10 @@ module.exports = function (RED) {
         this.client = null;
         this.logLevel = 'warn'; // 'none', 'error', 'warn','info', 'debug'
         this.verbose = n.verboselogging;
+        this.loginMode = n.loginmode;
+        if (!this.loginMode) {
+            this.loginMode = 'user';
+        }
 
         if (this.verbose) {
             this.logLevel = 'info';
@@ -162,7 +179,7 @@ module.exports = function (RED) {
             this.phoneNumber = this.credentials.phonenumber || '';
         }
 
-        this.createTelegramClient = async function createTelegramClient(node, apiId, apiHash, session, phoneNumber, logLevel) {
+        this.createTelegramClient = async function createTelegramClient(node, apiId, apiHash, session, phoneNumber, botToken, logLevel) {
             let client;
             try {
                 if (apiId !== undefined && apiId !== '' && session !== undefined && session !== '') {
@@ -174,13 +191,21 @@ module.exports = function (RED) {
 
                     client.setLogLevel(logLevel);
 
-                    let authParams = {
-                        phoneNumber: phoneNumber,
-                        onError: (err) => {
-                            console.log(err);
-                            return true; // abort
-                        },
-                    };
+                    let authParams;
+                    if (botToken === undefined) {
+                        authParams = {
+                            phoneNumber: phoneNumber,
+                            onError: (err) => {
+                                console.log(err);
+                                return true; // abort
+                            },
+                        };
+                    } else {
+                        authParams = {
+                            botAuthToken: botToken,
+                        };
+                    }
+
                     await client.start(authParams);
                 } else {
                     node.warn('No session: login first.');
@@ -195,7 +220,7 @@ module.exports = function (RED) {
         // Activates the client or returns the already activated bot.
         this.getTelegramClient = async function (node) {
             if (!this.client) {
-                this.client = await this.createTelegramClient(node, this.apiId, this.apiHash, this.session, this.phoneNumber, this.logLevel);
+                this.client = await this.createTelegramClient(node, this.apiId, this.apiHash, this.session, this.phoneNumber, this.botToken, this.logLevel);
             }
 
             return this.client;
@@ -242,15 +267,19 @@ module.exports = function (RED) {
         };
 
         const start = async () => {
-            let client = await node.config.getTelegramClient(node);
-            if (client) {
-                node.status({
-                    fill: 'green',
-                    shape: 'ring',
-                    text: 'connected',
-                });
+            if (node.config) {
+                let client = await node.config.getTelegramClient(node);
+                if (client) {
+                    node.status({
+                        fill: 'green',
+                        shape: 'ring',
+                        text: 'connected',
+                    });
 
-                client.addEventHandler(eventHandler, new NewMessage({}));
+                    client.addEventHandler(eventHandler, new NewMessage({}));
+                }
+            } else {
+                // no config node?
             }
         };
         start();
@@ -271,13 +300,17 @@ module.exports = function (RED) {
         this.config = RED.nodes.getNode(this.bot);
 
         const start = async () => {
-            let client = await node.config.getTelegramClient(node);
-            if (client) {
-                node.status({
-                    fill: 'green',
-                    shape: 'ring',
-                    text: 'connected',
-                });
+            if (node.config) {
+                let client = await node.config.getTelegramClient(node);
+                if (client) {
+                    node.status({
+                        fill: 'green',
+                        shape: 'ring',
+                        text: 'connected',
+                    });
+                }
+            } else {
+                // no config node?
             }
         };
         start();
@@ -314,9 +347,13 @@ module.exports = function (RED) {
 
         this.on('input', async function (msg, nodeSend, nodeDone) {
             if (msg.payload) {
-                let client = await node.config.getTelegramClient(node);
-                if (client) {
-                    this.processMessage(client, msg, nodeSend, nodeDone);
+                if (node.config) {
+                    let client = await node.config.getTelegramClient(node);
+                    if (client) {
+                        this.processMessage(client, msg, nodeSend, nodeDone);
+                    }
+                } else {
+                    // no config node?
                 }
             }
         });
