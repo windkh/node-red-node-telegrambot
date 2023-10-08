@@ -196,9 +196,9 @@
         inputs: 0,
         outputs: 1,
         icon: "telegram.png",
-        paletteLabel: "client",
+        paletteLabel: "client receiver",
         label: function () {
-            return this.name || "Telegram client";
+            return this.name || "Telegram client receiver";
         },
         labelStyle: function() {
             return this.name?"node_label_italic":"";
@@ -220,11 +220,11 @@
 </script>
 
 <script type="text/x-red" data-help-name="telegram client receiver">
-    <p>A telegram node that triggers the output when some message is received from the chat.</p>
+    <p>A telegram node that triggers the output when some message event is received from the chat.</p>
     <p>The node receives all messages received from the telegram server.</p>
     
     <h3>Outputs</h3> 
-    <p>1. Standard Ouput: Message is sent to output.</p>   
+    <p>1. Standard Output: Event message is sent to output.</p>   
 </script>
 
 <!-- ------------------------------------------------------------------------------------------ -->
@@ -240,9 +240,9 @@
         inputs: 1,
         outputs: 1,
         icon: "telegram.png",
-        paletteLabel: "client",
+        paletteLabel: "client sender",
         label: function () {
-            return this.name || "Telegram client";
+            return this.name || "Telegram client sender";
         },
         labelStyle: function() {
             return this.name?"node_label_italic":"";
@@ -268,9 +268,17 @@
     <p>The node receives data and sends it to the telegram server.</p>
 
     <h3>Inputs</h3> 
-    <p>TODO:</p>   
-
-    <h3>Inputs</h3> 
+    <p>1. Standard Input: receives a message object containing the following fields:</p>
+    <p>The <code>msg.payload</code> must be an object that contains the following properties:</p>
+        <ul>
+        <li><code>api</code> the api to call e.g. "messages" (see https://gram.js.org/tl/messages/SendMessage)</li>
+        <li><code>func</code> the function of the api to call e.g. "SendMessage" (see https://gram.js.org/tl/messages/SendMessage)</li>
+        <li><code>args</code> arguments of the function.</li>
+        </ul>
+    <h3>Outputs</h3>
+    <p>1. Standard Output: returns the result of the api call.</p>
+    <h3>Details</h3>
+        <p>Please refer to the examples in the examples folder and the readme.</p>
     <p></p>   
 </script>
 

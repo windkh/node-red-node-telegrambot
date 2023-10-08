@@ -1,6 +1,9 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.1.0]
+### Added readme and examples, tested echo flow
+
 ## [0.0.5]
 ### Added sender node and examples 
 

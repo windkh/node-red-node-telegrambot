@@ -162,32 +162,40 @@ module.exports = function (RED) {
             this.phoneNumber = this.credentials.phonenumber || '';
         }
 
-        this.createTelegramClient = async function createTelegramClient(apiId, apiHash, session, logLevel) {
+        this.createTelegramClient = async function createTelegramClient(node, apiId, apiHash, session, phoneNumber, logLevel) {
             let client;
-            if (apiId !== undefined && apiId !== '') {
-                const stringSession = new StringSession(session);
-                const ID = Number(apiId);
-                client = new TelegramClient(stringSession, ID, apiHash, {
-                    connectionRetries: 5,
-                });
+            try {
+                if (apiId !== undefined && apiId !== '' && session !== undefined && session !== '') {
+                    const stringSession = new StringSession(session);
+                    const ID = Number(apiId);
+                    client = new TelegramClient(stringSession, ID, apiHash, {
+                        connectionRetries: 5,
+                    });
 
-                client.setLogLevel(logLevel);
+                    client.setLogLevel(logLevel);
 
-                await client.start({
-                    onError: (err) => {
-                        console.log(err);
-                        return true; // true means that it should be stopped.
-                    },
-                });
+                    let authParams = {
+                        phoneNumber: phoneNumber,
+                        onError: (err) => {
+                            console.log(err);
+                            return true; // abort
+                        },
+                    };
+                    await client.start(authParams);
+                } else {
+                    node.warn('No session: login first.');
+                }
+            } catch (error) {
+                node.warn(error);
             }
 
             return client;
         };
 
         // Activates the client or returns the already activated bot.
-        this.getTelegramClient = async function () {
+        this.getTelegramClient = async function (node) {
             if (!this.client) {
-                this.client = await this.createTelegramClient(this.apiId, this.apiHash, this.session, this.phoneNumber, this.logLevel);
+                this.client = await this.createTelegramClient(node, this.apiId, this.apiHash, this.session, this.phoneNumber, this.logLevel);
             }
 
             return this.client;
@@ -234,7 +242,7 @@ module.exports = function (RED) {
         };
 
         const start = async () => {
-            let client = await node.config.getTelegramClient();
+            let client = await node.config.getTelegramClient(node);
             if (client) {
                 node.status({
                     fill: 'green',
@@ -243,15 +251,6 @@ module.exports = function (RED) {
                 });
 
                 client.addEventHandler(eventHandler, new NewMessage({}));
-
-                // client.addEventHandler((update) => {
-                //     let msg = {
-                //         payload : {
-                //             update : update,
-                //         }
-                //     }
-                //     node.send(msg);
-                // });
             }
         };
         start();
@@ -272,7 +271,7 @@ module.exports = function (RED) {
         this.config = RED.nodes.getNode(this.bot);
 
         const start = async () => {
-            let client = await node.config.getTelegramClient();
+            let client = await node.config.getTelegramClient(node);
             if (client) {
                 node.status({
                     fill: 'green',
@@ -292,7 +291,8 @@ module.exports = function (RED) {
                 if (api !== undefined && func !== undefined) {
                     (async () => {
                         try {
-                            const result = await client.invoke(new Api[api][func](args));
+                            let request = new Api[api][func](args);
+                            const result = await client.invoke(request);
                             msg.payload = result;
                             nodeSend(msg);
                         } catch (error) {
@@ -314,7 +314,7 @@ module.exports = function (RED) {
 
         this.on('input', async function (msg, nodeSend, nodeDone) {
             if (msg.payload) {
-                let client = await node.config.getTelegramClient();
+                let client = await node.config.getTelegramClient(node);
                 if (client) {
                     this.processMessage(client, msg, nodeSend, nodeDone);
                 }
