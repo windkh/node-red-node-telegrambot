@@ -168,7 +168,7 @@ module.exports = function (RED) {
         }
 
         if (this.verbose) {
-            this.logLevel = 'info';
+            this.logLevel = 'debug';
         }
 
         // let self = this;
@@ -250,6 +250,7 @@ module.exports = function (RED) {
         let node = this;
         this.bot = config.bot;
         this.config = RED.nodes.getNode(this.bot);
+        this.eventHandlerAdded = false;
 
         const eventHandler = async function (event) {
             const message = event.message;
@@ -266,7 +267,20 @@ module.exports = function (RED) {
             node.send(msg);
         };
 
-        const start = async () => {
+        this.stop = async () => {
+            if (node.eventHandlerAdded) {
+                client.removeEventHandler(eventHandler, new NewMessage({}));
+                node.eventHandlerAdded = false;
+            }
+
+            node.status({
+                fill: 'green',
+                shape: 'ring',
+                text: 'disconnected',
+            });
+        };
+
+        this.start = async () => {
             if (node.config) {
                 let client = await node.config.getTelegramClient(node);
                 if (client) {
@@ -277,14 +291,16 @@ module.exports = function (RED) {
                     });
 
                     client.addEventHandler(eventHandler, new NewMessage({}));
+                    node.eventHandlerAdded = true;
                 }
             } else {
                 // no config node?
             }
         };
-        start();
+        this.start();
 
         this.on('close', function (removed, done) {
+            node.stop();
             node.status({});
             done();
         });
@@ -299,7 +315,7 @@ module.exports = function (RED) {
         this.bot = config.bot;
         this.config = RED.nodes.getNode(this.bot);
 
-        const start = async () => {
+        this.start = async () => {
             if (node.config) {
                 let client = await node.config.getTelegramClient(node);
                 if (client) {
@@ -313,7 +329,7 @@ module.exports = function (RED) {
                 // no config node?
             }
         };
-        start();
+        this.start();
 
         this.processMessage = function (client, msg, nodeSend, nodeDone) {
             if (msg.payload !== undefined) {
