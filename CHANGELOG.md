@@ -1,6 +1,9 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+# [0.1.2] - 2023-10-09
+### added raw events
+
 # [0.1.1] - 2023-10-08
 ### login with bot token added - [#1](https://github.com/windkh/node-red-node-telegrambot/issues/1) 
 

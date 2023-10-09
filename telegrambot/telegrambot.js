@@ -207,6 +207,7 @@ module.exports = function (RED) {
                     }
 
                     await client.start(authParams);
+                    await client.connect();
                 } else {
                     node.warn('No session: login first.');
                 }
@@ -250,27 +251,44 @@ module.exports = function (RED) {
         let node = this;
         this.bot = config.bot;
         this.config = RED.nodes.getNode(this.bot);
-        this.eventHandlerAdded = false;
+        this.sendRawEvents = config.sendrawevents || false;
+        this.rawEventHandlerAdded = false;
+        this.newMessageEventHandlerAdded = false;
 
-        const eventHandler = async function (event) {
-            const message = event.message;
-            const sender = await message.getSender();
-            const chat = await message.getChat();
+        this.rawEventHandler = async (event) => {
+            let msg = {
+                payload: event,
+            };
+            node.send(msg);
+        };
+
+        this.newMessageEventHandler = async (event) => {
+            let message = event.message;
             let msg = {
                 payload: {
-                    sender: sender,
-                    chat: chat,
                     message: message,
-                    originalUpdate: event.originalUpdate,
+                    sender: await message.getSender(),
+                    chat: await message.getChat(),
+                    event: event,
                 },
             };
             node.send(msg);
         };
 
         this.stop = async () => {
-            if (node.eventHandlerAdded) {
-                client.removeEventHandler(eventHandler, new NewMessage({}));
-                node.eventHandlerAdded = false;
+            if (node.config) {
+                let client = await node.config.getTelegramClient(node);
+                if (client) {
+                    if (node.rawEventHandlerAdded) {
+                        client.removeEventHandler(node.rawEventHandler);
+                        node.rawEventHandlerAdded = false;
+                    }
+
+                    if (node.newMessageEventHandlerAdded) {
+                        client.removeEventHandler(node.newMessageEventHandler, new NewMessage({}));
+                        node.newMessageEventHandlerAdded = false;
+                    }
+                }
             }
 
             node.status({
@@ -290,8 +308,13 @@ module.exports = function (RED) {
                         text: 'connected',
                     });
 
-                    client.addEventHandler(eventHandler, new NewMessage({}));
-                    node.eventHandlerAdded = true;
+                    if (node.sendRawEvents) {
+                        client.addEventHandler(node.rawEventHandler);
+                        node.rawEventHandlerAdded = true;
+                    } else {
+                        client.addEventHandler(node.newMessageEventHandler, new NewMessage({}));
+                        node.newMessageEventHandlerAdded = true;
+                    }
                 }
             } else {
                 // no config node?

@@ -226,7 +226,8 @@
         color: '#3BABDD',
         defaults: {
             name: { value: "" },
-            bot: { value:"", type: "telegram client config", required: true }
+            bot: { value:"", type: "telegram client config", required: true },
+            sendrawevents: { value: false, required: false },
         },
         inputs: 0,
         outputs: 1,
@@ -252,6 +253,16 @@
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
         <input type="text" id="node-input-name" placeholder="Name">
     </div>
+
+    <hr align="middle"/> 
+
+    <div class="form-row">
+        <label for="node-config-input-sendrawevents"><i class="fa fa-filter"></i> Send raw events</label>
+        <input type="checkbox" id="node-config-input-sendrawevents" style="display: inline-block; width: auto; vertical-align: top;">
+    </div>
+    
+    <div class="form-tips" style="width: auto"><b>Tip:</b> When raw events is turned on, all events are sent to the output without further filtering.</div>
+
 </script>
 
 <script type="text/x-red" data-help-name="telegram client receiver">
