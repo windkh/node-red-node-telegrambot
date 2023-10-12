@@ -9,6 +9,17 @@
 			botname: { value: "", required: true },
             verboselogging: { value: false, required: false },
             loginmode: { value: "user", required: true },
+            
+            useproxy: { value: false, required: false },
+            usewss: { value: false, required: false },
+            host: { value: "", required: false },
+            sockstype: { value: "5", required: false },
+            port: { value: 6667, required: false, validate:function(v) { return ((v === "") || (RED.validators.number(v) && (v >= 0) && (v <= 2147483))) }},
+            username: { value: "anonymous", required: false },
+            password: { value: "", required: false },
+            secret: { value: "", required: false },
+            mtproxy: { value: false, required: false },
+            timeout: { value: 2, required: false, validate:function(v) { return ((v === "") || (RED.validators.number(v) && (v >= 0) && (v <= 2147483))) }},
         },
         credentials: {
 		    apiid: { value: 0, required: true, validate:function(v) { return ((v === "") || (RED.validators.number(v) && (v >= 0) && (v <= 4294967295))) }},
@@ -22,7 +33,7 @@
             return this.botname;
         },
         oneditprepare: function() {
-                 // polling or webhook
+            // polling or webhook
             var updateLoginMode = function() {
                 var mode = $("#node-config-input-loginmode").val();
                 if (mode == "user") {
@@ -38,14 +49,43 @@
             updateLoginMode();
             $("#node-config-input-loginmode").change(updateLoginMode);
 
+
+            // proxy  on / off
+            var useproxy = function() {
+                var mode = $("#node-config-input-useproxy").prop('checked');
+                if (mode === false) {
+                    $("#useproxy").hide();
+                } else {
+                    $("#useproxy").show();
+                }
+            };
+            useproxy();
+            $("#node-config-input-useproxy").change(useproxy);
+
+
             var login = function() {       
-                
                 let apiId = $("#node-config-input-apiid").val();
                 let apiHash = $("#node-config-input-apihash").val();
                 let phoneNumber = $("#node-config-input-phonenumber").val();
                 let password = $("#node-config-input-password").val();
                 let botToken = $("#node-config-input-bottoken").val();
                 let loginMode = $("#node-config-input-loginmode").val();
+                let useProxy = $("#node-config-input-useproxy").val();
+                let useWSS = $("#node-config-input-usewss").val();
+                let proxy; 
+                
+                if (useProxy) {
+                    proxy = {
+                        ip: $("#node-config-input-host").val(),
+                        socksType: Number($("#node-config-input-sockstype").val()),
+                        port: Number($("#node-config-input-port").val()),
+                        username: $("#node-config-input-username").val(),
+                        password: $("#node-config-input-password").val(),
+                        secret: $("#node-config-input-secret").val(),
+                        MTProxy: $("#node-config-input-mtproxy").val(),
+                        timeout: Number($("#node-config-input-timeout").val()),
+                    };
+                }
 
                 if (apiId !== '' && apiHash) {
                     let parameters = {
@@ -54,7 +94,9 @@
                         phoneNumber : phoneNumber,
                         password : password,
                         botToken : botToken,
-                        loginMode : loginMode
+                        loginMode : loginMode,
+                        proxy : proxy,
+                        useWSS : useWSS,
                     }
 
                     $("#loginbuttontip").text("Login started: enter code in field below.");
@@ -199,6 +241,60 @@
 
         <hr align="middle"/>
 
+        <div class="form-row">
+            <label for="node-config-input-useproxy"><i class="fa fa-lock"></i> Use Proxy</label>
+            <input type="checkbox" id="node-config-input-useproxy" style="display: inline-block; width: auto; vertical-align: top;">
+        </div>
+        <div class="form-row hidden" id="useproxy" style="background: var(--red-ui-tertiary-background)">
+            <label style="width: auto"><i class="fa fa-cogs"></i> Proxy Options:</label>
+          
+            <div class="form-row" style="background: #fff; margin-left: 20px">   
+                <div class="form-row">
+                    <label for="node-config-input-mtproxy"><i class="fa fa-telegram"></i> MT-Proxy</label>
+                    <input type="checkbox" id="node-config-input-mtproxy" style="display: inline-block; width: auto; vertical-align: top;">
+                </div>  
+                <div class="form-row">
+                    <label for="node-config-input-sockstype"><i class="fa fa-user-secret"></i> Socks Type</label>
+                    <select id="node-config-input-sockstype">
+                        <option value="4">socks4</option>
+                        <option value="5">socks5</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label for="node-config-input-host"><i class="fa fa-desktop"></i> Host</label>
+                    <input type="text" id="node-config-input-host" placeholder="(IP or hostname of the proxy.)">
+                </div>
+                <div class="form-row">
+                    <label for="node-config-input-port"><i class="fa fa-random"></i> Port</label>
+                    <input type="text" id="node-config-input-port" placeholder="(Port of the proxy.)">
+                </div>
+                <div class="form-row">
+                    <label for="node-config-input-username"><i class="fa fa-user"></i> Username</label>
+                    <input type="text" id="node-config-input-username" placeholder="(Username of the socks proxy.)">
+                </div>
+                <div class="form-row">
+                    <label for="node-config-input-password"><i class="fa fa-key"></i> Password</label>
+                    <input type="text" id="node-config-input-password" placeholder="(Password of the socks proxy.)">
+                </div>
+                <div class="form-row">
+                    <label for="node-config-input-secret"><i class="fa fa-user-secret"></i> Secret</label>
+                    <input type="text" id="node-config-input-secret" placeholder="(Secret of the mtproxy.)">
+                </div>
+                <div class="form-row">
+                    <label for="node-config-input-timeout"><i class="fa fa-clock-o"></i> Timeout s</label>
+                    <input type="text" id="node-config-input-timeout" placeholder="(Connect timeout in seconds e.g.: 2)">
+                </div>
+                <div class="form-row">
+                    <label for="node-config-input-usewss"><i class="fa fa-lock"></i> Use WSS</label>
+                    <input type="checkbox" id="node-config-input-usewss" style="display: inline-block; width: auto; vertical-align: top;">
+                </div>
+            </div>
+
+            <div class="form-tips" style="width: auto"><b>Tip:</b> SOCKS proxy support is optional can can only be used with a valid proxy server, port, username and password.</div>
+        </div>
+
+        <hr align="middle"/> 
+   
         <div class="form-row">
             <label for="node-config-input-verboselogging"><i class="fa fa-search"></i> Verbose Logging</label>
             <input type="checkbox" id="node-config-input-verboselogging" style="display: inline-block; width: auto; vertical-align: top;">

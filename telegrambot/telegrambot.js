@@ -39,6 +39,8 @@ module.exports = function (RED) {
             let botToken = parameters.botToken;
             let password = parameters.password;
             let loginMode = parameters.loginMode;
+            let proxy = parameters.proxy;
+            let useWSS = parameters.useWSS;
 
             if (password === undefined || password === '') {
                 password = async () => await getPassword;
@@ -46,11 +48,16 @@ module.exports = function (RED) {
 
             if (apiId !== undefined && apiHash !== undefined && phoneNumber !== undefined) {
                 const stringSession = new StringSession('');
-                const client = new TelegramClient(stringSession, apiId, apiHash, {
-                    connectionRetries: 5,
-                });
 
-                // client.setLogLevel('debug');
+                let clientParams = {
+                    connectionRetries: 5,
+                    proxy: proxy,
+                    useWSS: useWSS,
+                };
+
+                const client = new TelegramClient(stringSession, apiId, apiHash, clientParams);
+
+                client.setLogLevel('warn');
 
                 let authParams;
                 if (loginMode === 'user') {
@@ -162,6 +169,23 @@ module.exports = function (RED) {
         this.client = null;
         this.logLevel = 'warn'; // 'none', 'error', 'warn','info', 'debug'
         this.verbose = n.verboselogging;
+        this.useProxy = n.useproxy || false;
+        this.useWSS = n.usewss || false;
+        this.proxy;
+
+        if (this.useProxy) {
+            this.proxy = {
+                ip: n.host,
+                socksType: Number(n.sockstype),
+                port: Number(n.port),
+                username: n.username,
+                password: n.password,
+                secret: n.secret,
+                MTProxy: n.mtproxy,
+                timeout: Number(n.timeout),
+            };
+        }
+
         this.loginMode = n.loginmode;
         if (!this.loginMode) {
             this.loginMode = 'user';
@@ -179,15 +203,19 @@ module.exports = function (RED) {
             this.phoneNumber = this.credentials.phonenumber || '';
         }
 
-        this.createTelegramClient = async function createTelegramClient(node, apiId, apiHash, session, phoneNumber, botToken, logLevel) {
+        this.createTelegramClient = async function createTelegramClient(node, apiId, apiHash, session, phoneNumber, botToken, logLevel, proxy, useWSS) {
             let client;
             try {
                 if (apiId !== undefined && apiId !== '' && session !== undefined && session !== '') {
                     const stringSession = new StringSession(session);
                     const ID = Number(apiId);
-                    client = new TelegramClient(stringSession, ID, apiHash, {
+
+                    let clientParams = {
                         connectionRetries: 5,
-                    });
+                        proxy: proxy,
+                        useWSS: useWSS,
+                    };
+                    client = new TelegramClient(stringSession, ID, apiHash, clientParams);
 
                     client.setLogLevel(logLevel);
 
@@ -221,7 +249,17 @@ module.exports = function (RED) {
         // Activates the client or returns the already activated bot.
         this.getTelegramClient = async function (node) {
             if (!this.client) {
-                this.client = await this.createTelegramClient(node, this.apiId, this.apiHash, this.session, this.phoneNumber, this.botToken, this.logLevel);
+                this.client = await this.createTelegramClient(
+                    node,
+                    this.apiId,
+                    this.apiHash,
+                    this.session,
+                    this.phoneNumber,
+                    this.botToken,
+                    this.logLevel,
+                    this.proxy,
+                    this.useWSS
+                );
             }
 
             return this.client;
@@ -292,7 +330,7 @@ module.exports = function (RED) {
             }
 
             node.status({
-                fill: 'green',
+                fill: 'red',
                 shape: 'ring',
                 text: 'disconnected',
             });
@@ -324,7 +362,7 @@ module.exports = function (RED) {
 
         this.on('close', function (removed, done) {
             node.stop();
-            node.status({});
+            // node.status({});
             done();
         });
     }
@@ -353,6 +391,14 @@ module.exports = function (RED) {
             }
         };
         this.start();
+
+        this.stop = async () => {
+            node.status({
+                fill: 'red',
+                shape: 'ring',
+                text: 'disconnected',
+            });
+        };
 
         this.processMessage = function (client, msg, nodeSend, nodeDone) {
             if (msg.payload !== undefined) {
@@ -398,7 +444,8 @@ module.exports = function (RED) {
         });
 
         this.on('close', function (removed, done) {
-            node.status({});
+            node.stop();
+            // node.status({});
             done();
         });
     }
