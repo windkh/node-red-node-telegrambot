@@ -1,6 +1,9 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+# [0.1.4] - 2023-10-15
+### added further filters - [#3](https://github.com/windkh/node-red-node-telegrambot/issues/3) 
+
 # [0.1.3] - 2023-10-12
 ### added proxy support - [#2](https://github.com/windkh/node-red-node-telegrambot/issues/2) 
 

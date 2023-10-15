@@ -6,6 +6,10 @@ module.exports = function (RED) {
     const { Api, TelegramClient } = require('telegram');
     const { StringSession } = require('telegram/sessions');
     const { NewMessage } = require('telegram/events');
+    const { DeletedMessage } = require('telegram/events/DeletedMessage');
+    const { EditedMessage } = require('telegram/events/EditedMessage');
+    const { Album } = require('telegram/events/Album');
+    const { CallbackQuery } = require('telegram/events/CallbackQuery');
 
     // --------------------------------------------------------------------------------------------
     let getPhoneCodeResolve;
@@ -290,11 +294,22 @@ module.exports = function (RED) {
         this.bot = config.bot;
         this.config = RED.nodes.getNode(this.bot);
         this.sendRawEvents = config.sendrawevents || false;
+        this.sendNewMessage = config.sendnewmessage || false;
+        this.sendDeletedMessage = config.senddeletedmessage || false;
+        this.sendEditedMessage = config.sendeditedmessage || false;
+        this.sendAlbum = config.sendalbum || false;
+        this.sendCallbackQuery = config.sendcallbackquery || false;
+
         this.rawEventHandlerAdded = false;
         this.newMessageEventHandlerAdded = false;
+        this.deletedMessageEventHandlerAdded = false;
+        this.editedMessageEventHandlerAdded = false;
+        this.albumEventHandlerAdded = false;
+        this.callbackQueryEventHandlerAdded = false;
 
         this.rawEventHandler = async (event) => {
             let msg = {
+                type: 'Raw',
                 payload: event,
             };
             node.send(msg);
@@ -304,9 +319,60 @@ module.exports = function (RED) {
             let message = event.message;
             let msg = {
                 payload: {
+                    type: 'NewMessage',
+                    message: message,
+                    originalUpdate: message.originalUpdate,
+                    sender: await message.getSender(),
+                    chat: await message.getChat(),
+                    event: event,
+                },
+            };
+            node.send(msg);
+        };
+
+        this.deletedMessageEventHandler = async (event) => {
+            let msg = {
+                payload: {
+                    type: 'DeletedMessage',
+                    // peer, chatPeer ?
+                    deletedIds: event.deletedIds,
+                    event: event,
+                },
+            };
+            node.send(msg);
+        };
+
+        this.editedMessageEventHandler = async (event) => {
+            let message = event.message;
+            let msg = {
+                payload: {
+                    type: 'EditedMessage',
                     message: message,
                     sender: await message.getSender(),
                     chat: await message.getChat(),
+                    event: event,
+                },
+            };
+            node.send(msg);
+        };
+
+        this.albumEventHandler = async (event) => {
+            let msg = {
+                payload: {
+                    type: 'Album',
+                    messages: event.messages,
+                    originalUpdates: event.originalUpdates,
+                    event: event,
+                },
+            };
+            node.send(msg);
+        };
+
+        this.callbackQueryEventHandler = async (event) => {
+            let msg = {
+                payload: {
+                    type: 'CallbackQuery',
+                    query: event.query,
                     event: event,
                 },
             };
@@ -326,6 +392,26 @@ module.exports = function (RED) {
                         client.removeEventHandler(node.newMessageEventHandler, new NewMessage({}));
                         node.newMessageEventHandlerAdded = false;
                     }
+
+                    if (node.deletedMessageEventHandlerAdded) {
+                        client.removeEventHandler(node.deletedMessageEventHandler, new DeletedMessage({}));
+                        node.deletedMessageEventHandlerAdded = false;
+                    }
+
+                    if (node.editedMessageEventHandlerAdded) {
+                        client.removeEventHandler(node.editedMessageEventHandler, new EditedMessage({}));
+                        node.editedMessageEventHandlerAdded = false;
+                    }
+
+                    if (node.albumEventHandlerAdded) {
+                        client.removeEventHandler(node.albumEventHandler, new Album({}));
+                        node.albumEventHandlerAdded = false;
+                    }
+
+                    if (node.callbackQueryEventHandlerAdded) {
+                        client.removeEventHandler(node.callbackQueryEventHandler, new CallbackQuery({}));
+                        node.callbackQueryEventHandlerAdded = false;
+                    }
                 }
             }
 
@@ -340,19 +426,47 @@ module.exports = function (RED) {
             if (node.config) {
                 let client = await node.config.getTelegramClient(node);
                 if (client) {
+                    if (node.sendRawEvents) {
+                        client.addEventHandler(node.rawEventHandler);
+                        node.rawEventHandlerAdded = true;
+                    }
+
+                    if (node.sendNewMessage) {
+                        client.addEventHandler(node.newMessageEventHandler, new NewMessage({}));
+                        node.newMessageEventHandlerAdded = true;
+                    }
+
+                    if (node.sendDeletedMessage) {
+                        client.addEventHandler(node.deletedMessageEventHandler, new DeletedMessage({}));
+                        node.deletedMessageEventHandlerAdded = true;
+                    }
+
+                    if (node.sendEditedMessage) {
+                        client.addEventHandler(node.editedMessageEventHandler, new EditedMessage({}));
+                        node.editedMessageEventHandlerAdded = true;
+                    }
+
+                    if (node.sendAlbum) {
+                        client.addEventHandler(node.albumEventHandler, new Album({}));
+                        node.albumEventHandlerAdded = true;
+                    }
+
+                    if (node.sendCallbackQuery) {
+                        client.addEventHandler(node.callbackQueryEventHandler, new CallbackQuery({}));
+                        node.callbackQueryEventHandlerAdded = true;
+                    }
+
                     node.status({
                         fill: 'green',
                         shape: 'ring',
                         text: 'connected',
                     });
-
-                    if (node.sendRawEvents) {
-                        client.addEventHandler(node.rawEventHandler);
-                        node.rawEventHandlerAdded = true;
-                    } else {
-                        client.addEventHandler(node.newMessageEventHandler, new NewMessage({}));
-                        node.newMessageEventHandlerAdded = true;
-                    }
+                } else {
+                    node.status({
+                        fill: 'red',
+                        shape: 'ring',
+                        text: 'disconnected',
+                    });
                 }
             } else {
                 // no config node?
@@ -384,6 +498,12 @@ module.exports = function (RED) {
                         fill: 'green',
                         shape: 'ring',
                         text: 'connected',
+                    });
+                } else {
+                    node.status({
+                        fill: 'red',
+                        shape: 'ring',
+                        text: 'disconnected',
                     });
                 }
             } else {

@@ -324,6 +324,11 @@
             name: { value: "" },
             bot: { value:"", type: "telegram client config", required: true },
             sendrawevents: { value: false, required: false },
+            sendnewmessage: { value: false, required: false },
+            sendeditedmessage: { value: false, required: false },
+            senddeletedmessage: { value: false, required: false },
+            sendalbum: { value: false, required: false },
+            sendcallbackquery: { value: false, required: false },
         },
         inputs: 0,
         outputs: 1,
@@ -353,11 +358,35 @@
     <hr align="middle"/> 
 
     <div class="form-row">
-        <label for="node-config-input-sendrawevents"><i class="fa fa-filter"></i> Send raw events</label>
-        <input type="checkbox" id="node-config-input-sendrawevents" style="display: inline-block; width: auto; vertical-align: top;">
+        <label for="node-input-sendnewmessage"><i class="fa fa-filter"></i> New messages</label>
+        <input type="checkbox" id="node-input-sendnewmessage" style="display: inline-block; width: 50%; vertical-align: top;">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-senddeletedmessage"><i class="fa fa-filter"></i> Deleted messages</label>
+        <input type="checkbox" id="node-input-senddeletedmessage" style="display: inline-block; width: 50%; vertical-align: top;">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-sendeditedmessage"><i class="fa fa-filter"></i> Edited messages</label>
+        <input type="checkbox" id="node-input-sendeditedmessage" style="display: inline-block; width: 50%; vertical-align: top;">
     </div>
     
-    <div class="form-tips" style="width: auto"><b>Tip:</b> When raw events is turned on, all events are sent to the output without further filtering.</div>
+    <div class="form-row">
+        <label for="node-input-sendalbum"><i class="fa fa-filter"></i> Albums (list of mesages)</label>
+        <input type="checkbox" id="node-input-sendalbum" style="display: inline-block; width: 50%; vertical-align: top;">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-sendcallbackquery"><i class="fa fa-filter"></i> Callback query</label>
+        <input type="checkbox" id="node-input-sendcallbackquery" style="display: inline-block; width: 50%; vertical-align: top;">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-sendrawevents"><i class="fa fa-filter"></i> Raw events</label>
+        <input type="checkbox" id="node-input-sendrawevents" style="display: inline-block; width: 50%; vertical-align: top;">
+        <div class="form-tips" style="width: auto"><b>Tip:</b> When raw events is turned on, all events are sent to the output without further filtering.</div>
+    </div>
 
 </script>
 
