@@ -526,11 +526,20 @@ module.exports = function (RED) {
                 let func = msg.payload.func;
                 let args = msg.payload.args || {};
 
-                if (api !== undefined && func !== undefined) {
+                if (func !== undefined) {
                     (async () => {
                         try {
-                            let request = new Api[api][func](args);
-                            const result = await client.invoke(request);
+                            let result;
+                            if (api === undefined || api === '') {
+                                // sendMessage, forwardMessages, editMessage, deleteMessages, pinMessage, unpinMessage, markAsRead, sendFile
+                                // args must be an array
+                                result = client[func](...args);
+                            } else {
+                                // args must be an object
+                                let request = new Api[api][func](args);
+                                result = await client.invoke(request);
+                            }
+
                             msg.payload = result;
                             nodeSend(msg);
                         } catch (error) {
