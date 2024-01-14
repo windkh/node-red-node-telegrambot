@@ -12,6 +12,10 @@
             
             useproxy: { value: false, required: false },
             usewss: { value: false, required: false },
+            devicemodel: { value: "", required: false },
+            systemversion: { value: "", required: false },
+            appversion: { value: "", required: false },
+
             host: { value: "", required: false },
             sockstype: { value: "5", required: false },
             port: { value: 6667, required: false, validate:function(v) { return ((v === "") || (RED.validators.number(v) && (v >= 0) && (v <= 2147483))) }},
@@ -34,8 +38,8 @@
         },
         oneditprepare: function() {
             // polling or webhook
-            var updateLoginMode = function() {
-                var mode = $("#node-config-input-loginmode").val();
+            let updateLoginMode = function() {
+                let mode = $("#node-config-input-loginmode").val();
                 if (mode == "user") {
                     $("#phonenumber").show();
                     $("#password").show();
@@ -51,8 +55,8 @@
 
 
             // proxy  on / off
-            var useproxy = function() {
-                var mode = $("#node-config-input-useproxy").prop('checked');
+            let useproxy = function() {
+                let mode = $("#node-config-input-useproxy").prop('checked');
                 if (mode === false) {
                     $("#useproxy").hide();
                 } else {
@@ -63,15 +67,18 @@
             $("#node-config-input-useproxy").change(useproxy);
 
 
-            var login = function() {       
+            let login = function() {    
                 let apiId = $("#node-config-input-apiid").val();
                 let apiHash = $("#node-config-input-apihash").val();
                 let phoneNumber = $("#node-config-input-phonenumber").val();
                 let password = $("#node-config-input-password").val();
                 let botToken = $("#node-config-input-bottoken").val();
                 let loginMode = $("#node-config-input-loginmode").val();
-                let useProxy = $("#node-config-input-useproxy").val();
-                let useWSS = $("#node-config-input-usewss").val();
+                let useProxy = $("#node-config-input-useproxy").prop('checked');
+                let useWSS = $("#node-config-input-usewss").prop('checked');
+                let devicemodel = $("#node-config-input-devicemodel").val();
+                let systemversion = $("#node-config-input-systemversion").val();
+                let appversion = $("#node-config-input-appversion").val();
                 let proxy; 
                 
                 if (useProxy) {
@@ -82,7 +89,7 @@
                         username: $("#node-config-input-username").val(),
                         password: $("#node-config-input-password").val(),
                         secret: $("#node-config-input-secret").val(),
-                        MTProxy: $("#node-config-input-mtproxy").val(),
+                        MTProxy: $("#node-config-input-mtproxy").prop('checked'),
                         timeout: Number($("#node-config-input-timeout").val()),
                     };
                 }
@@ -97,6 +104,9 @@
                         loginMode : loginMode,
                         proxy : proxy,
                         useWSS : useWSS,
+                        devicemodel : devicemodel,
+                        systemversion : systemversion,
+                        appversion : appversion,
                     }
 
                     $("#loginbuttontip").text("Login started: enter code in field below.");
@@ -104,7 +114,6 @@
                     $("#node-config-input-session").val('');
                     $.getJSON('node-red-node-telegrambot-login', parameters, function(data) {
                         if(data.session){
-                            debugger
                             $("#node-config-input-session").val(data.session);
                             $("#loginbuttontip").text("Click Login button to request code for login: code will be sent via your phone.");
                             $("#node-config-input-phonecode").val('');
@@ -119,7 +128,7 @@
                 }
             }
 
-            var setPhoneCode = function() {  
+            let setPhoneCode = function() {  
                 let phoneCode = $("#node-config-input-phonecode").val();
                 if(phoneCode != ''){
                     $("#loginbuttontip").text("Signing in using phone code ....");
@@ -132,7 +141,7 @@
                 }
             }
 
-            var setPassword = function() {  
+            let setPassword = function() {  
                 let password = $("#node-config-input-password").val();
                 if(password != ''){
                     $("#loginbuttontip").text("Signing in using password ....");
@@ -145,7 +154,7 @@
                 }
             }
 
-            var showLoginButton = function() {  
+            let showLoginButton = function() {  
                 let session = $("#node-config-input-session").val();
                 if(session === ''){
                     $("#loginpanel").show();
@@ -208,7 +217,21 @@
                 <input type="text" id="node-config-input-apihash" placeholder="(Enter the hash here)">
             </div>
 			<div class="form-tips" style="width: auto"><b>Tip:</b> If you don't have an application ID yet, you can create a new one here: <a href="https://my.telegram.org/auth">Telegram</a>.</div>
-    	</div>
+    	
+            <!-- optional client configuration parameters -->
+            <div class="form-row">
+                <label for="node-config-input-devicemodel"><i class="fa fa-caret-right"></i> Device Model</label>
+                <input type="text" id="node-config-input-devicemodel" placeholder="(Optional: device model)">
+            </div>
+            <div class="form-row">
+                <label for="node-config-input-systemversion"><i class="fa fa-caret-right"></i> System Version</label>
+                <input type="text" id="node-config-input-systemversion" placeholder="(Optional: system version)">
+            </div>
+            <div class="form-row">
+                <label for="node-config-input-appversion"><i class="fa fa-caret-right"></i> App Version</label>
+                <input type="text" id="node-config-input-appversion" placeholder="(Optional: app version)">
+            </div>
+        </div>
 		
         <div class="form-row">
 			<div class="form-row">
@@ -239,7 +262,7 @@
             <hr align="middle"/>
         </div>
 
-        <hr align="middle"/>
+        <hr align="middle"/> 
 
         <div class="form-row">
             <label for="node-config-input-useproxy"><i class="fa fa-lock"></i> Use Proxy</label>

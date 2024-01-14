@@ -45,6 +45,9 @@ module.exports = function (RED) {
             let loginMode = parameters.loginMode;
             let proxy = parameters.proxy;
             let useWSS = parameters.useWSS;
+            let deviceModel = parameters.devicemodel || "";
+            let systemVersion = parameters.systemversion || "";
+            let appVersion = parameters.appversion || ""; 
 
             if (password === undefined || password === '') {
                 password = async () => await getPassword;
@@ -58,6 +61,17 @@ module.exports = function (RED) {
                     proxy: proxy,
                     useWSS: useWSS,
                 };
+
+                // optional login parameters.
+                if (deviceModel !== "") {
+                    clientParams.deviceModel = deviceModel;
+                }
+                if (systemVersion !== "") {
+                    clientParams.systemVersion = systemVersion;
+                }
+                if (appVersion !== "") {
+                    clientParams.appVersion = appVersion;
+                }
 
                 const client = new TelegramClient(stringSession, apiId, apiHash, clientParams);
 
@@ -176,6 +190,9 @@ module.exports = function (RED) {
         this.useProxy = n.useproxy || false;
         this.useWSS = n.usewss || false;
         this.proxy;
+        let deviceModel = n.devicemodel || "";
+        let systemVersion = n.systemversion || "";
+        let appVersion = n.appversion || ""; 
 
         if (this.useProxy) {
             this.proxy = {
@@ -219,6 +236,18 @@ module.exports = function (RED) {
                         proxy: proxy,
                         useWSS: useWSS,
                     };
+    
+                    // optional login parameters.
+                    if (deviceModel !== "") {
+                        clientParams.deviceModel = deviceModel;
+                    }
+                    if (systemVersion !== "") {
+                        clientParams.systemVersion = systemVersion;
+                    }
+                    if (appVersion !== "") {
+                        clientParams.appVersion = appVersion;
+                    }
+                    
                     client = new TelegramClient(stringSession, ID, apiHash, clientParams);
 
                     client.setLogLevel(logLevel);

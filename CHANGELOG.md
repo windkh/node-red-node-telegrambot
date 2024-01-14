@@ -1,6 +1,9 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+# [0.1.5] - 2024-01-14
+### added devicemodel, systemversion appversion as optional parameters - [#7](https://github.com/windkh/node-red-node-telegrambot/issues/7) 
+
 # [0.1.4] - 2023-10-15
 ### added further filters - [#3](https://github.com/windkh/node-red-node-telegrambot/issues/3) 
 ### added client api - [#5](https://github.com/windkh/node-red-node-telegrambot/issues/5) 
