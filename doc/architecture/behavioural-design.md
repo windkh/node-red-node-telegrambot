@@ -29,6 +29,21 @@ Connecting is best effort. A missing session warns `No session: login first.`; a
 warned and the caller gets `undefined`. Nodes then report `disconnected` and stay loaded, so a Telegram
 outage or a stale session does not break the flow.
 
+## Teardown (redeploy)
+
+The config node destroys the client on close and clears its cache, so a redeploy does not leave a live
+session behind. `destroy()` is required rather than `disconnect()`: GramJS runs its update loop as
+`while (!client._destroyed)` and only `destroy()` sets that flag, so after a plain disconnect the loop
+reconnects and the session survives. See [ADR 0003](adr/0003-destroy-the-client-on-close.md).
+
+The teardown is best effort in the same way the connect is: a failure is warned and the close still
+completes, because a Telegram outage must not block a redeploy.
+
+Receivers unsubscribe on close, reading the _cached_ client rather than asking for one — requesting a
+client during shutdown would log in again just to tear it down. Node-RED closes nodes in an unspecified
+order, so either the receiver unsubscribes from a still-live client, or the config node got there first
+and there is nothing left to unsubscribe.
+
 ## Receiving
 
 The receiver subscribes only to the event types enabled on the node, and records each subscription it

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+# [0.1.10] - 2026-07-29
+
+### fixed the telegram client never being torn down, so every redeploy left another live session connected and subscribed - likely cause of duplicated messages after a redeploy - [#16](https://github.com/windkh/node-red-node-telegrambot/issues/16)
+
+### fixed the receiver node logging in again while shutting down, because stop() went through getTelegramClient which creates a client when none is cached - [#16](https://github.com/windkh/node-red-node-telegrambot/issues/16)
+
 # [0.1.9] - 2026-07-29
 
 ### fixed the sender node silently dropping messages when the payload, the config node or the client was missing - now each case is reported so it reaches a Catch node - [#15](https://github.com/windkh/node-red-node-telegrambot/issues/15)

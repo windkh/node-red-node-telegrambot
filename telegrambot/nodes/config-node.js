@@ -9,6 +9,10 @@ module.exports = function (RED) {
     function TelegramConfigNode(n) {
         RED.nodes.createNode(this, n);
 
+        // Note: createTelegramClient and getTelegramClient take a `node` parameter of their own that
+        // shadows this one — theirs is the *calling* receiver or sender, used for its warn channel.
+        const node = this;
+
         this.config = n;
         this.client = null;
         this.logLevel = 'warn'; // 'none', 'error', 'warn','info', 'debug'
@@ -97,12 +101,40 @@ module.exports = function (RED) {
             return this.client;
         };
 
+        // Tears the client down so a redeploy does not leave a live session behind.
+        //
+        // destroy() rather than disconnect(): GramJS runs its update loop as
+        // `while (!client._destroyed)` and only destroy() sets that flag. After a plain disconnect the
+        // loop keeps going, reconnects through `_sender.reconnect()` and carries on pinging, so the
+        // session would survive every redeploy. destroy() also clears the registered event builders
+        // and drops the borrowed senders.
+        this.closeTelegramClient = async function () {
+            const client = node.client;
+            // Cleared first so a concurrent getTelegramClient builds a fresh one instead of handing
+            // out the client being torn down.
+            node.client = null;
+
+            if (client) {
+                await client.destroy();
+            }
+        };
+
         this.onStarted = function () {};
         RED.events.on('flows:started', this.onStarted);
 
         this.on('close', function (removed, done) {
-            RED.events.removeListener('flows:started', this.onStarted);
-            done();
+            RED.events.removeListener('flows:started', node.onStarted);
+
+            (async () => {
+                try {
+                    await node.closeTelegramClient();
+                } catch (error) {
+                    // A Telegram outage must not block a redeploy, so report and carry on.
+                    node.warn(error);
+                } finally {
+                    done();
+                }
+            })();
         });
     }
 

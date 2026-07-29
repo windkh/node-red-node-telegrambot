@@ -469,11 +469,15 @@ describe('receiver node subscriptions', () => {
         return {
             added,
             removed,
+            destroyed: 0,
             addEventHandler(handler, builder) {
                 added.push(builder === undefined ? 'Raw' : builder.constructor.name);
             },
             removeEventHandler(handler, builder) {
                 removed.push(builder === undefined ? 'Raw' : builder.constructor.name);
+            },
+            async destroy() {
+                this.destroyed += 1;
             },
         };
     }
@@ -490,6 +494,9 @@ describe('receiver node subscriptions', () => {
 
         const n1 = helper.getNode('n1');
         const client = createClientRecorder();
+        // Both, because that is what the real config node does: getTelegramClient caches the client
+        // on `config.client`, and stop() reads the cache rather than creating one during shutdown.
+        n1.config.client = client;
         n1.config.getTelegramClient = async () => client;
 
         const statuses = [];
@@ -554,5 +561,87 @@ describe('receiver node subscriptions', () => {
         await node.stop();
 
         assert.deepStrictEqual(client.removed, ['NewMessage']);
+    });
+
+    it('never creates a client while stopping', async () => {
+        const flow = [configNode, { id: 'n1', type: 'telegram client receiver', bot: 'c1', sendnewmessage: true }];
+        await helper.load(telegramBotNode, flow);
+
+        // A receiver that never connected: the cache is empty, so stop() must find nothing and must
+        // not fall back to getTelegramClient, which would log in just to tear the client down again.
+        const n1 = helper.getNode('n1');
+        let created = 0;
+        n1.config.getTelegramClient = async () => {
+            created += 1;
+            return undefined;
+        };
+
+        await n1.stop();
+
+        assert.strictEqual(created, 0, 'stop() must not call getTelegramClient');
+    });
+
+    it('tolerates the config node having already destroyed the client', async () => {
+        const { node, client } = await subscribe({ sendnewmessage: true });
+
+        // Node-RED closes nodes in an unspecified order, so the config node may go first.
+        await node.config.closeTelegramClient();
+        await node.stop();
+
+        assert.deepStrictEqual(client.removed, [], 'there is nothing left to unsubscribe');
+        assert.strictEqual(client.destroyed, 1, 'the config node destroyed it');
+    });
+});
+
+describe('config node teardown', () => {
+    before(async () => {
+        await new Promise((resolve) => helper.startServer(resolve));
+    });
+
+    afterEach(async () => {
+        await helper.unload();
+    });
+
+    after(async () => {
+        await new Promise((resolve) => helper.stopServer(resolve));
+    });
+
+    it('destroys the cached client and clears it', async () => {
+        await helper.load(telegramBotNode, [configNode]);
+
+        const c1 = helper.getNode('c1');
+        let destroyed = 0;
+        c1.client = { destroy: async () => (destroyed += 1) };
+
+        await c1.closeTelegramClient();
+
+        assert.strictEqual(destroyed, 1, 'destroy() must be called — disconnect() leaves the update loop running');
+        assert.strictEqual(c1.client, null, 'the cache must be cleared so a redeploy builds a fresh client');
+    });
+
+    it('does nothing when no client was ever built', async () => {
+        await helper.load(telegramBotNode, [configNode]);
+
+        const c1 = helper.getNode('c1');
+        c1.client = null;
+
+        await assert.doesNotReject(() => c1.closeTelegramClient());
+    });
+
+    it('completes the close even when destroy rejects', async () => {
+        await helper.load(telegramBotNode, [configNode]);
+
+        const c1 = helper.getNode('c1');
+        c1.client = {
+            destroy: async () => {
+                throw new Error('connection already gone');
+            },
+        };
+
+        // A failing teardown must not stall a redeploy: the close handler reports and still calls
+        // done(), so Node.close() — which resolves once every close callback has finished — settles.
+        await assert.doesNotReject(() => c1.close());
+
+        assert.strictEqual(c1.client, null);
     });
 });

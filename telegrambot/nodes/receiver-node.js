@@ -103,38 +103,41 @@ module.exports = function (RED) {
         };
 
         this.stop = async () => {
-            if (node.config) {
-                const client = await node.config.getTelegramClient(node);
-                if (client) {
-                    if (node.rawEventHandlerAdded) {
-                        client.removeEventHandler(node.rawEventHandler);
-                        node.rawEventHandlerAdded = false;
-                    }
+            // Deliberately the cached client, not getTelegramClient(): that would *create* one, so
+            // closing a receiver that never connected would log in to Telegram just to tear it down.
+            // Node-RED closes nodes in an unspecified order, so the config node may already have
+            // destroyed the client — then there is simply nothing left to unsubscribe.
+            const client = node.config && node.config.client;
 
-                    if (node.newMessageEventHandlerAdded) {
-                        client.removeEventHandler(node.newMessageEventHandler, new NewMessage({}));
-                        node.newMessageEventHandlerAdded = false;
-                    }
+            if (client) {
+                if (node.rawEventHandlerAdded) {
+                    client.removeEventHandler(node.rawEventHandler);
+                    node.rawEventHandlerAdded = false;
+                }
 
-                    if (node.deletedMessageEventHandlerAdded) {
-                        client.removeEventHandler(node.deletedMessageEventHandler, new DeletedMessage({}));
-                        node.deletedMessageEventHandlerAdded = false;
-                    }
+                if (node.newMessageEventHandlerAdded) {
+                    client.removeEventHandler(node.newMessageEventHandler, new NewMessage({}));
+                    node.newMessageEventHandlerAdded = false;
+                }
 
-                    if (node.editedMessageEventHandlerAdded) {
-                        client.removeEventHandler(node.editedMessageEventHandler, new EditedMessage({}));
-                        node.editedMessageEventHandlerAdded = false;
-                    }
+                if (node.deletedMessageEventHandlerAdded) {
+                    client.removeEventHandler(node.deletedMessageEventHandler, new DeletedMessage({}));
+                    node.deletedMessageEventHandlerAdded = false;
+                }
 
-                    if (node.albumEventHandlerAdded) {
-                        client.removeEventHandler(node.albumEventHandler, new Album({}));
-                        node.albumEventHandlerAdded = false;
-                    }
+                if (node.editedMessageEventHandlerAdded) {
+                    client.removeEventHandler(node.editedMessageEventHandler, new EditedMessage({}));
+                    node.editedMessageEventHandlerAdded = false;
+                }
 
-                    if (node.callbackQueryEventHandlerAdded) {
-                        client.removeEventHandler(node.callbackQueryEventHandler, new CallbackQuery({}));
-                        node.callbackQueryEventHandlerAdded = false;
-                    }
+                if (node.albumEventHandlerAdded) {
+                    client.removeEventHandler(node.albumEventHandler, new Album({}));
+                    node.albumEventHandlerAdded = false;
+                }
+
+                if (node.callbackQueryEventHandlerAdded) {
+                    client.removeEventHandler(node.callbackQueryEventHandler, new CallbackQuery({}));
+                    node.callbackQueryEventHandlerAdded = false;
                 }
             }
 
@@ -198,9 +201,17 @@ module.exports = function (RED) {
         this.start();
 
         this.on('close', function (removed, done) {
-            node.stop();
-            // node.status({});
-            done();
+            // stop() is async, so awaiting it is what makes the unsubscribe actually finish before
+            // Node-RED considers this node closed.
+            (async () => {
+                try {
+                    await node.stop();
+                } catch (error) {
+                    node.warn(error);
+                } finally {
+                    done();
+                }
+            })();
         });
     }
 
