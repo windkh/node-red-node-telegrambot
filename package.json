@@ -52,7 +52,7 @@
         "eslint": "^10.0.0",
         "eslint-config-prettier": "^10.0.0",
         "globals": "^17.0.0",
-        "node-red": "^4.1.11",
+        "node-red": "^5.0.1",
         "node-red-node-test-helper": "^0.3.4",
         "prettier": "^3.0.0"
     }
