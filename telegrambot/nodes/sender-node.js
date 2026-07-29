@@ -47,31 +47,42 @@ module.exports = function (RED) {
             if (msg.payload !== undefined) {
                 const api = msg.payload.api;
                 const func = msg.payload.func;
-                const args = msg.payload.args || {};
+                const useApi = api !== undefined && api !== '';
 
-                if (func !== undefined) {
-                    (async () => {
-                        try {
-                            let result;
-                            if (api === undefined || api === '') {
-                                // sendMessage, forwardMessages, editMessage, deleteMessages, pinMessage, unpinMessage, markAsRead, sendFile
-                                // args must be an array
-                                result = client[func](...args);
-                            } else {
-                                // args must be an object
-                                const request = new Api[api][func](args);
-                                result = await client.invoke(request);
-                            }
-
-                            msg.payload = result;
-                            nodeSend(msg);
-                        } catch (error) {
-                            nodeDone(error);
-                        }
-                    })();
-                } else {
+                if (func === undefined) {
                     nodeDone('msg.payload: api or func is missing.');
+                    return;
                 }
+
+                // The two calling conventions take different argument shapes, so they need
+                // different defaults: a raw API request is constructed from one options object,
+                // a client method is called with spread arguments.
+                const args = msg.payload.args || (useApi ? {} : []);
+
+                if (!useApi && !Array.isArray(args)) {
+                    nodeDone('msg.payload.args must be an array when msg.payload.api is not set.');
+                    return;
+                }
+
+                (async () => {
+                    try {
+                        let result;
+                        if (useApi) {
+                            // args must be an object
+                            const request = new Api[api][func](args);
+                            result = await client.invoke(request);
+                        } else {
+                            // sendMessage, forwardMessages, editMessage, deleteMessages, pinMessage, unpinMessage, markAsRead, sendFile
+                            // args must be an array
+                            result = await client[func](...args);
+                        }
+
+                        msg.payload = result;
+                        nodeSend(msg);
+                    } catch (error) {
+                        nodeDone(error);
+                    }
+                })();
             }
 
             // TODO:

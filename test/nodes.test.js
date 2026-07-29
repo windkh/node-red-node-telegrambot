@@ -98,26 +98,90 @@ describe('telegram client nodes', () => {
         ];
         await helper.load(telegramBotNode, flow);
 
+        // Every GramJS client method is async, so the fake has to be too — a synchronous fake would
+        // pass even if the node forgot to await the call.
         const calls = [];
         const client = {
-            sendMessage: (...args) => {
+            sendMessage: async (...args) => {
                 calls.push(args);
                 return 'result';
             },
         };
 
-        const sent = [];
         const msg = { payload: { func: 'sendMessage', args: ['chat', { message: 'hi' }] } };
-        helper.getNode('n1').processMessage(
-            client,
-            msg,
-            (out) => sent.push(out),
-            () => {}
-        );
+        const sent = await new Promise((resolve) => {
+            helper.getNode('n1').processMessage(client, msg, resolve, () => {});
+        });
 
         assert.deepStrictEqual(calls, [['chat', { message: 'hi' }]]);
-        assert.strictEqual(sent.length, 1);
-        assert.strictEqual(sent[0].payload, 'result');
+        assert.strictEqual(sent.payload, 'result', 'the resolved value must land in msg.payload');
+    });
+
+    it('reports a rejecting client method through nodeDone', async () => {
+        const flow = [
+            configNode,
+            { id: 'n1', type: 'telegram client sender', bot: 'c1', wires: [['n2']] },
+            { id: 'n2', type: 'helper' },
+        ];
+        await helper.load(telegramBotNode, flow);
+
+        const failure = new Error('CHAT_WRITE_FORBIDDEN');
+        const client = {
+            sendMessage: async () => {
+                throw failure;
+            },
+        };
+
+        const msg = { payload: { func: 'sendMessage', args: ['chat'] } };
+        const error = await new Promise((resolve) => {
+            helper.getNode('n1').processMessage(client, msg, () => {}, resolve);
+        });
+
+        assert.strictEqual(error, failure, 'the original error must reach nodeDone unchanged');
+    });
+
+    it('calls a client method with no arguments when args is omitted', async () => {
+        const flow = [
+            configNode,
+            { id: 'n1', type: 'telegram client sender', bot: 'c1', wires: [['n2']] },
+            { id: 'n2', type: 'helper' },
+        ];
+        await helper.load(telegramBotNode, flow);
+
+        const calls = [];
+        const client = {
+            getMe: async (...args) => {
+                calls.push(args);
+                return 'me';
+            },
+        };
+
+        const sent = await new Promise((resolve) => {
+            helper.getNode('n1').processMessage({ ...client }, { payload: { func: 'getMe' } }, resolve, () => {});
+        });
+
+        assert.deepStrictEqual(calls, [[]], 'args must default to an empty array, not an empty object');
+        assert.strictEqual(sent.payload, 'me');
+    });
+
+    it('rejects a non-array args on the client-method path with a readable error', async () => {
+        const flow = [
+            configNode,
+            { id: 'n1', type: 'telegram client sender', bot: 'c1', wires: [['n2']] },
+            { id: 'n2', type: 'helper' },
+        ];
+        await helper.load(telegramBotNode, flow);
+
+        const errors = [];
+        const msg = { payload: { func: 'sendMessage', args: { peer: 'chat' } } };
+        helper.getNode('n1').processMessage(
+            {},
+            msg,
+            () => {},
+            (error) => errors.push(error)
+        );
+
+        assert.deepStrictEqual(errors, ['msg.payload.args must be an array when msg.payload.api is not set.']);
     });
 
     it('reports an error when msg.payload names no function', async () => {

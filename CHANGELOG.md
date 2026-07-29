@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+# [0.1.8] - 2026-07-29
+
+### fixed the sender node not awaiting client methods, which put a pending Promise into msg.payload and hid every error from Catch nodes - [#14](https://github.com/windkh/node-red-node-telegrambot/issues/14)
+
+### fixed msg.payload.args defaulting to an object on the client-method path, which threw a TypeError instead of calling the method with no arguments - [#14](https://github.com/windkh/node-red-node-telegrambot/issues/14)
+
 # [0.1.7] - 2026-07-29
 
 ### changed minimum nodejs version to 20
