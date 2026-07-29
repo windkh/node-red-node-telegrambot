@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+# [0.1.7] - 2026-07-29
+
+### changed minimum nodejs version to 20
+
+### split the monolithic node file into telegrambot/nodes/ and telegrambot/lib/ — no behaviour change
+
+### added a test suite (node:test + node-red-node-test-helper) and architecture docs
+
 # [0.1.5] - 2024-01-14
 
 ### added devicemodel, systemversion appversion as optional parameters - [#7](https://github.com/windkh/node-red-node-telegrambot/issues/7)
