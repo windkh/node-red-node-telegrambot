@@ -1,46 +1,59 @@
 {
-  "name": "node-red-node-telegrambot",
-  "version": "0.1.6",
-  "description": "Telegram userbot nodes for Node-RED",
-  "dependencies": {
-    "telegram": "^2.18.38"
-  },
-  "scripts": {
-    "lint": "eslint telegrambot/*.js",
-    "postlint": "echo ✅ lint valid"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "npm run lint"
+    "name": "node-red-node-telegrambot",
+    "version": "0.1.6",
+    "description": "Telegram userbot nodes for Node-RED",
+    "dependencies": {
+        "telegram": "^2.18.38"
+    },
+    "scripts": {
+        "lint": "eslint .",
+        "postlint": "echo ✅ lint valid",
+        "lint:fix": "eslint . --fix",
+        "format": "prettier --write .",
+        "format:check": "prettier --check .",
+        "test": "node --test --test-force-exit --test-timeout=30000 --test-concurrency=1",
+        "coverage": "c8 npm test",
+        "coverage:check": "c8 --check-coverage npm test"
+    },
+    "c8": {
+        "include": [
+            "telegrambot/**/*.js"
+        ],
+        "lines": 80,
+        "statements": 80,
+        "functions": 80,
+        "branches": 80
+    },
+    "node-red": {
+        "version": ">=1.3.7",
+        "nodes": {
+            "telegrambot": "telegrambot/telegrambot.js"
+        }
+    },
+    "engines": {
+        "node": ">=20.0.0"
+    },
+    "keywords": [
+        "node-red",
+        "telegram",
+        "bot",
+        "userbot",
+        "selfbot"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/windkh/node-red-node-telegrambot"
+    },
+    "author": "Karl-Heinz Wind",
+    "license": "MIT",
+    "devDependencies": {
+        "@eslint/js": "^10.0.0",
+        "c8": "^10.0.0",
+        "eslint": "^10.0.0",
+        "eslint-config-prettier": "^10.0.0",
+        "globals": "^17.0.0",
+        "node-red": "^4.1.11",
+        "node-red-node-test-helper": "^0.3.4",
+        "prettier": "^3.0.0"
     }
-  },
-  "node-red": {
-    "version": ">=1.3.7",
-    "nodes": {
-      "telegrambot": "telegrambot/telegrambot.js"
-    }
-  },
-  "engines": {
-    "node": ">=12.0.0"
-  },
-  "keywords": [
-    "node-red",
-    "telegram",
-    "bot",
-    "userbot",
-    "selfbot"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/windkh/node-red-node-telegrambot"
-  },
-  "author": "Karl-Heinz Wind",
-  "license": "MIT",
-  "devDependencies": {
-    "eslint": "^8.20.0",
-    "eslint-config-prettier": "^8.5.0",
-    "eslint-plugin-prettier": "^4.2.1",
-    "husky": "^8.0.1",
-    "prettier": "^2.7.1"
-  }
 }
