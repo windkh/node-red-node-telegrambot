@@ -515,20 +515,27 @@ describe('receiver node subscriptions', () => {
     });
 
     // Records add/removeEventHandler instead of connecting. The second argument is the GramJS event
-    // builder, whose class name identifies which Telegram event a subscription is for.
+    // builder, whose class name identifies which Telegram event a subscription is for. `addedBuilders`
+    // keeps the instances so tests can check which filters actually reached them.
     function createClientRecorder() {
         const added = [];
         const removed = [];
+        const addedBuilders = [];
+        const removedBuilders = [];
 
         return {
             added,
             removed,
+            addedBuilders,
+            removedBuilders,
             destroyed: 0,
             addEventHandler(handler, builder) {
                 added.push(builder === undefined ? 'Raw' : builder.constructor.name);
+                addedBuilders.push(builder);
             },
             removeEventHandler(handler, builder) {
                 removed.push(builder === undefined ? 'Raw' : builder.constructor.name);
+                removedBuilders.push(builder);
             },
             async destroy() {
                 this.destroyed += 1;
@@ -633,6 +640,82 @@ describe('receiver node subscriptions', () => {
         await n1.stop();
 
         assert.strictEqual(created, 0, 'stop() must not call getTelegramClient');
+    });
+
+    it('subscribes with no filter options when none are configured', async () => {
+        const { client } = await subscribe({ sendnewmessage: true, sendcallbackquery: true, sendalbum: true });
+
+        // Backwards compatibility: an existing receiver has no filter properties stored and must
+        // behave exactly as it did when every builder was constructed with `{}`.
+        for (const builder of client.addedBuilders) {
+            assert.deepStrictEqual(builder.chats, undefined);
+            assert.deepStrictEqual(builder.fromUsers, undefined);
+        }
+    });
+
+    it('passes the configured filters to the builders that accept them', async () => {
+        const { client } = await subscribe({
+            sendnewmessage: true,
+            sendeditedmessage: true,
+            senddeletedmessage: true,
+            sendalbum: true,
+            sendcallbackquery: true,
+            chats: 'alice, bob',
+            direction: 'incoming',
+            fromusers: 'carol',
+            pattern: '^ping$',
+        });
+
+        const byType = new Map(client.added.map((name, index) => [name, client.addedBuilders[index]]));
+
+        // NewMessage and EditedMessage take everything.
+        for (const type of ['NewMessage', 'EditedMessage']) {
+            assert.deepStrictEqual(byType.get(type).chats, ['alice', 'bob'], type);
+            assert.deepStrictEqual(byType.get(type).fromUsers, ['carol'], type);
+            assert.strictEqual(byType.get(type).incoming, true, type);
+            assert.ok(byType.get(type).pattern instanceof RegExp, type);
+        }
+
+        // CallbackQuery takes chats and pattern but not the message-only options.
+        assert.deepStrictEqual(byType.get('CallbackQuery').chats, ['alice', 'bob']);
+        assert.strictEqual(byType.get('CallbackQuery').fromUsers, undefined);
+
+        // DeletedMessage and Album take chats only.
+        for (const type of ['DeletedMessage', 'Album']) {
+            assert.deepStrictEqual(byType.get(type).chats, ['alice', 'bob'], type);
+            assert.strictEqual(byType.get(type).fromUsers, undefined, type);
+        }
+    });
+
+    it('removes handlers with builders carrying the same filters', async () => {
+        const { node, client } = await subscribe({ sendnewmessage: true, chats: 'alice' });
+
+        await node.stop();
+
+        assert.deepStrictEqual(client.removedBuilders[0].chats, ['alice']);
+    });
+
+    it('refuses to subscribe when the pattern does not compile', async () => {
+        const flow = [
+            configNode,
+            { id: 'n1', type: 'telegram client receiver', bot: 'c1', sendnewmessage: true, pattern: '([' },
+        ];
+        await helper.load(telegramBotNode, flow);
+
+        const n1 = helper.getNode('n1');
+        assert.strictEqual(n1.filters, undefined, 'a filter that did not compile must not be used');
+
+        const client = createClientRecorder();
+        n1.config.client = client;
+        n1.config.getTelegramClient = async () => client;
+
+        const statuses = [];
+        n1.status = (status) => statuses.push(status);
+        await n1.start();
+
+        // Forwarding everything because the filter failed would be worse than forwarding nothing.
+        assert.deepStrictEqual(client.added, [], 'nothing may be subscribed');
+        assert.deepStrictEqual(statuses.at(-1), { fill: 'red', shape: 'ring', text: 'invalid filter' });
     });
 
     it('tolerates the config node having already destroyed the client', async () => {

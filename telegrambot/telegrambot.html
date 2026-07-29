@@ -398,6 +398,25 @@
             senddeletedmessage: { value: false, required: false },
             sendalbum: { value: false, required: false },
             sendcallbackquery: { value: false, required: false },
+            chats: { value: '', required: false },
+            blacklistchats: { value: false, required: false },
+            direction: { value: 'any', required: false },
+            fromusers: { value: '', required: false },
+            pattern: {
+                value: '',
+                required: false,
+                validate: function (v) {
+                    let valid = true;
+                    if (v !== '') {
+                        try {
+                            new RegExp(v);
+                        } catch (error) {
+                            valid = false;
+                        }
+                    }
+                    return valid;
+                },
+            },
         },
         inputs: 0,
         outputs: 1,
@@ -455,14 +474,72 @@
         <input type="checkbox" id="node-input-sendrawevents" style="display: inline-block; width: 50%; vertical-align: top;">
         <div class="form-tips" style="width: auto"><b>Tip:</b> When raw events is turned on, all events are sent to the output without further filtering.</div>
     </div>
+
+    <hr align="middle"/>
+
+    <div class="form-row">
+        <label style="width: auto"><i class="fa fa-filter"></i> Filters (leave empty for no filtering):</label>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-chats"><i class="fa fa-comments"></i> Chats</label>
+        <input type="text" id="node-input-chats" placeholder="(Comma separated usernames or ids. Empty = all chats.)">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-blacklistchats"><i class="fa fa-ban"></i> Exclude</label>
+        <input type="checkbox" id="node-input-blacklistchats" style="display: inline-block; width: 50%; vertical-align: top;">
+        <div class="form-tips" style="width: auto"><b>Tip:</b> Treat the chat list as an exclude list instead of an include list.</div>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-direction"><i class="fa fa-exchange"></i> Direction</label>
+        <select id="node-input-direction">
+            <option value="any">any</option>
+            <option value="incoming">incoming only</option>
+            <option value="outgoing">outgoing only</option>
+        </select>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-fromusers"><i class="fa fa-user"></i> From users</label>
+        <input type="text" id="node-input-fromusers" placeholder="(Comma separated usernames or ids of senders.)">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-pattern"><i class="fa fa-search"></i> Pattern</label>
+        <input type="text" id="node-input-pattern" placeholder="(Regular expression the message text must match.)">
+    </div>
 </script>
 
 <script type="text/x-red" data-help-name="telegram client receiver">
     <p>A telegram node that triggers the output when some message event is received from the chat.</p>
-    <p>The node receives all messages received from the telegram server.</p>
+    <p>Select which event types to subscribe to, and optionally narrow them down with the filters.</p>
 
     <h3>Outputs</h3>
     <p>1. Standard Output: Event message is sent to output.</p>
+
+    <h3>Filters</h3>
+    <p>Filtering is done by Telegram's event builders, not downstream, so traffic you are not
+    interested in never reaches the flow at all. Leave a field empty to not filter on it.</p>
+    <ul>
+        <li><b>Chats</b> &mdash; comma separated usernames or ids. With <b>Exclude</b> ticked the list
+        becomes an exclude list.</li>
+        <li><b>Direction</b> &mdash; only incoming or only outgoing messages. These are mutually
+        exclusive in Telegram, which is why this is one choice rather than two checkboxes.</li>
+        <li><b>From users</b> &mdash; filters by <i>sender</i>, independently of the chat.</li>
+        <li><b>Pattern</b> &mdash; a regular expression the message text must match.</li>
+    </ul>
+    <p>Not every filter applies to every event type, because Telegram's builders differ:</p>
+    <ul>
+        <li><b>New messages</b> and <b>Edited messages</b> support all of them.</li>
+        <li><b>Callback query</b> supports Chats, Exclude and Pattern.</li>
+        <li><b>Deleted messages</b> and <b>Albums</b> support Chats and Exclude only.</li>
+        <li><b>Raw events</b> support none &mdash; raw updates arrive before Telegram resolves
+        entities, so there is nothing to match a chat against.</li>
+    </ul>
+    <p>An invalid <b>Pattern</b> is rejected in the editor. If one reaches the runtime anyway, the node
+    reports an error and subscribes to nothing rather than silently forwarding everything.</p>
 </script>
 
 <!-- ------------------------------------------------------------------------------------------ -->

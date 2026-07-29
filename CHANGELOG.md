@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+# [0.1.12] - 2026-07-29
+
+### added filters to the receiver node: chats (with an exclude option), direction, from users and a text pattern. Filtering happens in Telegram's event builders, so unwanted traffic never reaches the flow. Leaving the fields empty keeps the previous behaviour - [#18](https://github.com/windkh/node-red-node-telegrambot/issues/18)
+
 # [0.1.11] - 2026-07-29
 
 ### fixed the bot token and the two-step-verification password never being stored, because the editor declared credentials the runtime did not - bot token login now works at runtime - [#17](https://github.com/windkh/node-red-node-telegrambot/issues/17)

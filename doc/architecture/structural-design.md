@@ -13,6 +13,7 @@ telegrambot/
     telegram-client.js      runtime connect from a stored session string
     client-params.js        TelegramClient constructor options, shared by both of the above
     auth-prompt.js          deferred phone-code / password promises
+    event-filters.js        receiver filter config -> per-builder GramJS options
   telegrambot.html          editor definitions and help for all three nodes
   icons/
 ```

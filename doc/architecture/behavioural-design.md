@@ -47,8 +47,14 @@ and there is nothing left to unsubscribe.
 ## Receiving
 
 The receiver subscribes only to the event types enabled on the node, and records each subscription it
-made. On close it removes exactly those handlers again — the GramJS event builder passed to
-`removeEventHandler` has to match the one used to subscribe.
+made. On close it removes exactly those handlers again.
+
+Narrowing happens inside Telegram's event builders rather than downstream, so traffic the node is not
+interested in never reaches the flow and never costs a `getSender()` / `getChat()` round trip. The
+builders accept different option sets, so `lib/event-filters.js` produces one options object per group —
+see [ADR 0005](adr/0005-receiver-event-filters.md). Raw events cannot be filtered at all. A filter that
+does not compile leaves the node subscribed to nothing, showing `invalid filter`, rather than silently
+forwarding everything.
 
 Every event becomes one message. `msg.payload.type` names the event (`NewMessage`, `DeletedMessage`,
 `EditedMessage`, `Album`, `CallbackQuery`) alongside the raw `event`. For `NewMessage` and

@@ -69,6 +69,30 @@ This session string is used instead of interactive login (where you need to ente
 The _Telegram client receiver_ node receives message which are sent to your account or bot. Just add a debug node to the
 output and investigate the objects in `msg.payload`.
 
+#### Filters
+
+Tick the event types you want, and optionally narrow them down. Filtering is done by Telegram's event
+builders, so traffic you are not interested in never reaches the flow at all — which matters on a busy
+account, because every message that does arrive costs a sender and chat lookup.
+
+| Field          | Effect                                                                                |
+| -------------- | ------------------------------------------------------------------------------------- |
+| **Chats**      | Comma separated usernames or ids. Empty means every chat.                             |
+| **Exclude**    | Turns the chat list into an exclude list.                                             |
+| **Direction**  | `incoming only` or `outgoing only`. Mutually exclusive in Telegram, hence one choice. |
+| **From users** | Comma separated senders, independent of the chat.                                     |
+| **Pattern**    | A regular expression the message text must match.                                     |
+
+Not every filter applies to every event type, because Telegram's builders differ:
+
+- **New messages** and **Edited messages** support all of them.
+- **Callback query** supports Chats, Exclude and Pattern.
+- **Deleted messages** and **Albums** support Chats and Exclude only.
+- **Raw events** support none — raw updates arrive before Telegram resolves entities, so there is
+  nothing to match a chat against.
+
+Leaving every field empty reproduces the behaviour of earlier versions: no filtering.
+
 ### Sender Node
 
 The _Telegram client sender_ node is able to call nearly all functions provides by gramjs.
