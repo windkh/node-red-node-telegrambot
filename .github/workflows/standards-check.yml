@@ -13,4 +13,6 @@ jobs:
             - uses: actions/setup-node@v7
               with:
                   node-version: 20.x
-            - run: npx --yes node-red-standards audit
+            # node-red-standards is not published to npm — install it from the repo, the same way
+            # it is invoked locally. `npx --yes node-red-standards` fails with E404.
+            - run: npx --yes github:windkh/node-red-standards audit
