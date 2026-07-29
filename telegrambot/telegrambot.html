@@ -1,332 +1,353 @@
 <!-- Created by Karl-Heinz Wind -->
 
-
 <!-- ------------------------------------------------------------------------------------------ -->
 <script type="text/javascript">
     RED.nodes.registerType('telegram client config', {
         category: 'config',
         defaults: {
-			botname: { value: "", required: true },
+            botname: { value: '', required: true },
             verboselogging: { value: false, required: false },
-            loginmode: { value: "user", required: true },
-            
+            loginmode: { value: 'user', required: true },
+
             useproxy: { value: false, required: false },
             usewss: { value: false, required: false },
-            devicemodel: { value: "", required: false },
-            systemversion: { value: "", required: false },
-            appversion: { value: "", required: false },
+            devicemodel: { value: '', required: false },
+            systemversion: { value: '', required: false },
+            appversion: { value: '', required: false },
 
-            host: { value: "", required: false },
-            sockstype: { value: "5", required: false },
-            port: { value: 6667, required: false, validate:function(v) { return ((v === "") || (RED.validators.number(v) && (v >= 0) && (v <= 2147483))) }},
-            username: { value: "anonymous", required: false },
-            password: { value: "", required: false },
-            secret: { value: "", required: false },
+            host: { value: '', required: false },
+            sockstype: { value: '5', required: false },
+            port: {
+                value: 6667,
+                required: false,
+                validate: function (v) {
+                    return v === '' || (RED.validators.number(v) && v >= 0 && v <= 2147483);
+                },
+            },
+            username: { value: 'anonymous', required: false },
+            password: { value: '', required: false },
+            secret: { value: '', required: false },
             mtproxy: { value: false, required: false },
-            timeout: { value: 2, required: false, validate:function(v) { return ((v === "") || (RED.validators.number(v) && (v >= 0) && (v <= 2147483))) }},
+            timeout: {
+                value: 2,
+                required: false,
+                validate: function (v) {
+                    return v === '' || (RED.validators.number(v) && v >= 0 && v <= 2147483);
+                },
+            },
         },
         credentials: {
-		    apiid: { value: 0, required: true, validate:function(v) { return ((v === "") || (RED.validators.number(v) && (v >= 0) && (v <= 4294967295))) }},
-            apihash: { value: "", required: true },
-            session: { value: "", required: true, validate:function(v) { return v.length > 0;}},
-	        phonenumber: { value: "", required: true },
-            password: { value: "", required: false },
-            bottoken: { type: "text" }
-      	},
+            apiid: {
+                value: 0,
+                required: true,
+                validate: function (v) {
+                    return v === '' || (RED.validators.number(v) && v >= 0 && v <= 4294967295);
+                },
+            },
+            apihash: { value: '', required: true },
+            session: {
+                value: '',
+                required: true,
+                validate: function (v) {
+                    return v.length > 0;
+                },
+            },
+            phonenumber: { value: '', required: true },
+            password: { value: '', required: false },
+            bottoken: { type: 'text' },
+        },
         label: function () {
             return this.botname;
         },
-        oneditprepare: function() {
+        oneditprepare: function () {
             // polling or webhook
-            let updateLoginMode = function() {
-                let mode = $("#node-config-input-loginmode").val();
-                if (mode == "user") {
-                    $("#phonenumber").show();
-                    $("#password").show();
-                    $("#bottoken").hide();
+            let updateLoginMode = function () {
+                let mode = $('#node-config-input-loginmode').val();
+                if (mode == 'user') {
+                    $('#phonenumber').show();
+                    $('#password').show();
+                    $('#bottoken').hide();
                 } else {
-                    $("#phonenumber").hide();
-                    $("#password").hide();
-                    $("#bottoken").show();
+                    $('#phonenumber').hide();
+                    $('#password').hide();
+                    $('#bottoken').show();
                 }
             };
             updateLoginMode();
-            $("#node-config-input-loginmode").change(updateLoginMode);
-
+            $('#node-config-input-loginmode').change(updateLoginMode);
 
             // proxy  on / off
-            let useproxy = function() {
-                let mode = $("#node-config-input-useproxy").prop('checked');
+            let useproxy = function () {
+                let mode = $('#node-config-input-useproxy').prop('checked');
                 if (mode === false) {
-                    $("#useproxy").hide();
+                    $('#useproxy').hide();
                 } else {
-                    $("#useproxy").show();
+                    $('#useproxy').show();
                 }
             };
             useproxy();
-            $("#node-config-input-useproxy").change(useproxy);
+            $('#node-config-input-useproxy').change(useproxy);
 
+            let login = function () {
+                let apiId = $('#node-config-input-apiid').val();
+                let apiHash = $('#node-config-input-apihash').val();
+                let phoneNumber = $('#node-config-input-phonenumber').val();
+                let password = $('#node-config-input-password').val();
+                let botToken = $('#node-config-input-bottoken').val();
+                let loginMode = $('#node-config-input-loginmode').val();
+                let useProxy = $('#node-config-input-useproxy').prop('checked');
+                let useWSS = $('#node-config-input-usewss').prop('checked');
+                let devicemodel = $('#node-config-input-devicemodel').val();
+                let systemversion = $('#node-config-input-systemversion').val();
+                let appversion = $('#node-config-input-appversion').val();
+                let proxy;
 
-            let login = function() {    
-                let apiId = $("#node-config-input-apiid").val();
-                let apiHash = $("#node-config-input-apihash").val();
-                let phoneNumber = $("#node-config-input-phonenumber").val();
-                let password = $("#node-config-input-password").val();
-                let botToken = $("#node-config-input-bottoken").val();
-                let loginMode = $("#node-config-input-loginmode").val();
-                let useProxy = $("#node-config-input-useproxy").prop('checked');
-                let useWSS = $("#node-config-input-usewss").prop('checked');
-                let devicemodel = $("#node-config-input-devicemodel").val();
-                let systemversion = $("#node-config-input-systemversion").val();
-                let appversion = $("#node-config-input-appversion").val();
-                let proxy; 
-                
                 if (useProxy) {
                     proxy = {
-                        ip: $("#node-config-input-host").val(),
-                        socksType: Number($("#node-config-input-sockstype").val()),
-                        port: Number($("#node-config-input-port").val()),
-                        username: $("#node-config-input-username").val(),
-                        password: $("#node-config-input-password").val(),
-                        secret: $("#node-config-input-secret").val(),
-                        MTProxy: $("#node-config-input-mtproxy").prop('checked'),
-                        timeout: Number($("#node-config-input-timeout").val()),
+                        ip: $('#node-config-input-host').val(),
+                        socksType: Number($('#node-config-input-sockstype').val()),
+                        port: Number($('#node-config-input-port').val()),
+                        username: $('#node-config-input-username').val(),
+                        password: $('#node-config-input-password').val(),
+                        secret: $('#node-config-input-secret').val(),
+                        MTProxy: $('#node-config-input-mtproxy').prop('checked'),
+                        timeout: Number($('#node-config-input-timeout').val()),
                     };
                 }
 
                 if (apiId !== '' && apiHash) {
                     let parameters = {
-                        apiId : apiId,
-                        apiHash : apiHash,
-                        phoneNumber : phoneNumber,
-                        password : password,
-                        botToken : botToken,
-                        loginMode : loginMode,
-                        proxy : proxy,
-                        useWSS : useWSS,
-                        devicemodel : devicemodel,
-                        systemversion : systemversion,
-                        appversion : appversion,
-                    }
+                        apiId: apiId,
+                        apiHash: apiHash,
+                        phoneNumber: phoneNumber,
+                        password: password,
+                        botToken: botToken,
+                        loginMode: loginMode,
+                        proxy: proxy,
+                        useWSS: useWSS,
+                        devicemodel: devicemodel,
+                        systemversion: systemversion,
+                        appversion: appversion,
+                    };
 
-                    $("#loginbuttontip").text("Login started: enter code in field below.");
-                    $("#node-config-input-phonecode").val('');
-                    $("#node-config-input-session").val('');
-                    $.getJSON('node-red-node-telegrambot-login', parameters, function(data) {
-                        if(data.session){
-                            $("#node-config-input-session").val(data.session);
-                            $("#loginbuttontip").text("Click Login button to request code for login: code will be sent via your phone.");
-                            $("#node-config-input-phonecode").val('');
-                            $("#loginpanel").hide();
+                    $('#loginbuttontip').text('Login started: enter code in field below.');
+                    $('#node-config-input-phonecode').val('');
+                    $('#node-config-input-session').val('');
+                    $.getJSON('node-red-node-telegrambot-login', parameters, function (data) {
+                        if (data.session) {
+                            $('#node-config-input-session').val(data.session);
+                            $('#loginbuttontip').text(
+                                'Click Login button to request code for login: code will be sent via your phone.'
+                            );
+                            $('#node-config-input-phonecode').val('');
+                            $('#loginpanel').hide();
                         }
-                        
-                        if(data.error){
-                            $("#node-config-input-session").val('');
-                            $("#loginbuttontip").text("Login failed: " + data.error);
+
+                        if (data.error) {
+                            $('#node-config-input-session').val('');
+                            $('#loginbuttontip').text('Login failed: ' + data.error);
                         }
                     });
                 }
-            }
+            };
 
-            let setPhoneCode = function() {  
-                let phoneCode = $("#node-config-input-phonecode").val();
-                if(phoneCode != ''){
-                    $("#loginbuttontip").text("Signing in using phone code ....");
+            let setPhoneCode = function () {
+                let phoneCode = $('#node-config-input-phonecode').val();
+                if (phoneCode != '') {
+                    $('#loginbuttontip').text('Signing in using phone code ....');
                     let parameters = {
-                        phoneCode : phoneCode
-                    }
-                    $.getJSON('node-red-node-telegrambot-setphonecode', parameters, function(data) {
-                        ; // TODO:
+                        phoneCode: phoneCode,
+                    };
+                    $.getJSON('node-red-node-telegrambot-setphonecode', parameters, function (data) {
+                        // TODO:
                     });
                 }
-            }
+            };
 
-            let setPassword = function() {  
-                let password = $("#node-config-input-password").val();
-                if(password != ''){
-                    $("#loginbuttontip").text("Signing in using password ....");
+            let setPassword = function () {
+                let password = $('#node-config-input-password').val();
+                if (password != '') {
+                    $('#loginbuttontip').text('Signing in using password ....');
                     let parameters = {
-                        password : password
-                    }
-                    $.getJSON('node-red-node-telegrambot-setpassword', parameters, function(data) {
-                        ; // TODO:
+                        password: password,
+                    };
+                    $.getJSON('node-red-node-telegrambot-setpassword', parameters, function (data) {
+                        // TODO:
                     });
                 }
-            }
+            };
 
-            let showLoginButton = function() {  
-                let session = $("#node-config-input-session").val();
-                if(session === ''){
-                    $("#loginpanel").show();
+            let showLoginButton = function () {
+                let session = $('#node-config-input-session').val();
+                if (session === '') {
+                    $('#loginpanel').show();
+                } else {
+                    $('#loginpanel').hide();
                 }
-                else
-                {
-                    $("#loginpanel").hide();
-                }
-            }
+            };
 
             // Entering the fields will not trigger anything: please use login button
             // $('#node-config-input-apiid').change(login);
             // $('#node-config-input-apihash').change(login);
             // $('#node-config-input-phonenumber').change(login);
-      
+
             $('#node-config-input-phonecode').change(setPhoneCode);
             $('#node-config-input-password').change(setPassword);
             $('#node-config-input-session').change(showLoginButton);
 
-            $( '#loginbutton' ).click( function() {
-                login();    
+            $('#loginbutton').click(function () {
+                login();
             });
 
             showLoginButton();
-        }
+        },
     });
 </script>
 
 <script type="text/x-red" data-template-name="telegram client config">
+     <div class="form-row">
+         <div class="form-row">
+             <label for="node-config-input-botname"><i class="fa fa-telegram"></i> Name</label>
+             <input type="text" id="node-config-input-botname" placeholder="(Name)">
+         </div>
+
+         <div class="form-row">
+             <label for="node-config-input-loginmode"><i class="fa fa-link"></i> Login Mode</label>
+             <select id="node-config-input-loginmode">
+                 <option value="user">User</option>
+                 <option value="bot">Bot</option>
+             </select>
+         </div>
+
+         <div class="form-row">
+             <div class="form-row hidden" id="phonenumber">
+                 <label for="node-config-input-phonenumber"><i class="fa fa-mobile"></i> Phone-Number</label>
+                 <input type="text" id="node-config-input-phonenumber" placeholder="(+49...)">
+             </div>
+             <div class="form-row hidden" id="bottoken">
+                 <label for="node-config-input-bottoken"><i class="fa fa-key"></i> Bot-Token</label>
+                 <input type="text" id="node-config-input-bottoken" placeholder="(Enter the bot token from botfather here)">
+                 <div class="form-tips" style="width: auto"><b>Tip:</b> If you don't have a token yet, you can create a new one here: <a href="https://t.me/BotFather">@BotFather</a>.</div>
+             </div>
     <div class="form-row">
-        <div class="form-row">
-            <label for="node-config-input-botname"><i class="fa fa-telegram"></i> Name</label>
-            <input type="text" id="node-config-input-botname" placeholder="(Name)">
-        </div>
-
-        <div class="form-row">
-            <label for="node-config-input-loginmode"><i class="fa fa-link"></i> Login Mode</label>
-            <select id="node-config-input-loginmode">
-                <option value="user">User</option>
-                <option value="bot">Bot</option>
-            </select>
-        </div>
-
-        <div class="form-row">
-            <div class="form-row hidden" id="phonenumber">
-                <label for="node-config-input-phonenumber"><i class="fa fa-mobile"></i> Phone-Number</label>
-                <input type="text" id="node-config-input-phonenumber" placeholder="(+49...)">
-            </div>  
-            <div class="form-row hidden" id="bottoken">
-                <label for="node-config-input-bottoken"><i class="fa fa-key"></i> Bot-Token</label>
-                <input type="text" id="node-config-input-bottoken" placeholder="(Enter the bot token from botfather here)">
-                <div class="form-tips" style="width: auto"><b>Tip:</b> If you don't have a token yet, you can create a new one here: <a href="https://t.me/BotFather">@BotFather</a>.</div>
-            </div>    
-			<div class="form-row">
-				<label for="node-config-input-apiid"><i class="fa fa-key"></i> ApiID</label>
-				<input type="text" id="node-config-input-apiid" placeholder="(Enter the ID here)">
-			</div>
-            <div class="form-row">
-                <label for="node-config-input-apihash"><i class="fa fa-hashtag"></i> ApiHash</label>
-                <input type="text" id="node-config-input-apihash" placeholder="(Enter the hash here)">
-            </div>
-			<div class="form-tips" style="width: auto"><b>Tip:</b> If you don't have an application ID yet, you can create a new one here: <a href="https://my.telegram.org/auth">Telegram</a>.</div>
-    	
-            <!-- optional client configuration parameters -->
-            <div class="form-row">
-                <label for="node-config-input-devicemodel"><i class="fa fa-caret-right"></i> Device Model</label>
-                <input type="text" id="node-config-input-devicemodel" placeholder="(Optional: device model)">
-            </div>
-            <div class="form-row">
-                <label for="node-config-input-systemversion"><i class="fa fa-caret-right"></i> System Version</label>
-                <input type="text" id="node-config-input-systemversion" placeholder="(Optional: system version)">
-            </div>
-            <div class="form-row">
-                <label for="node-config-input-appversion"><i class="fa fa-caret-right"></i> App Version</label>
-                <input type="text" id="node-config-input-appversion" placeholder="(Optional: app version)">
-            </div>
-        </div>
-		
-        <div class="form-row">
-			<div class="form-row">
-				<label for="node-config-input-session"><i class="fa fa-link"></i> Session</label>
-				<input type="text" id="node-config-input-session" placeholder="(Enter the session here)">
-			</div>
-			<div class="form-tips" style="width: auto">
-                <b>Tip:</b> If you don't have a session string yet, enter your phone code and password (if set) below. As an alternative you can create it online: <a href="https://tgsnake.js.org/login">Login</a>.</div>
-    	</div>
-	
-        <div class="form-row hidden" id="loginpanel" style="background: var(--red-ui-tertiary-background)">
-            <hr align="middle"/>        
-            <div class="form-row">
-                <input id='loginbutton' type='button' value=' Login ' style="width: auto"/></i></input>
-                <div class="form-tips" id='loginbuttontip' style="width: auto">
-                    Click Login button to request code for login: code will be sent via your phone.</div>
-            </div>
-
-            <div class="form-row">
-                <label for="node-config-input-phonecode"><i class="fa fa-sign-in"></i> Phone-Code</label>
-                <input type="text" id="node-config-input-phonecode" placeholder="(Enter phone code here)">
-            </div>
-
-            <div class="form-row hidden" id="password">
-                <label for="node-config-input-password"><i class="fa fa-lock"></i> Password</label>
-                <input type="text" id="node-config-input-password" placeholder="(Only needed if Two-Step-Verification is on)">
-            </div>
-            <hr align="middle"/>
-        </div>
-
-        <hr align="middle"/> 
-
-        <div class="form-row">
-            <label for="node-config-input-useproxy"><i class="fa fa-lock"></i> Use Proxy</label>
-            <input type="checkbox" id="node-config-input-useproxy" style="display: inline-block; width: auto; vertical-align: top;">
-        </div>
-        <div class="form-row hidden" id="useproxy" style="background: var(--red-ui-tertiary-background)">
-            <label style="width: auto"><i class="fa fa-cogs"></i> Proxy Options:</label>
-          
-            <div class="form-row" style="background: #fff; margin-left: 20px">   
-                <div class="form-row">
-                    <label for="node-config-input-mtproxy"><i class="fa fa-telegram"></i> MT-Proxy</label>
-                    <input type="checkbox" id="node-config-input-mtproxy" style="display: inline-block; width: auto; vertical-align: top;">
-                </div>  
-                <div class="form-row">
-                    <label for="node-config-input-sockstype"><i class="fa fa-user-secret"></i> Socks Type</label>
-                    <select id="node-config-input-sockstype">
-                        <option value="4">socks4</option>
-                        <option value="5">socks5</option>
-                    </select>
-                </div>
-                <div class="form-row">
-                    <label for="node-config-input-host"><i class="fa fa-desktop"></i> Host</label>
-                    <input type="text" id="node-config-input-host" placeholder="(IP or hostname of the proxy.)">
-                </div>
-                <div class="form-row">
-                    <label for="node-config-input-port"><i class="fa fa-random"></i> Port</label>
-                    <input type="text" id="node-config-input-port" placeholder="(Port of the proxy.)">
-                </div>
-                <div class="form-row">
-                    <label for="node-config-input-username"><i class="fa fa-user"></i> Username</label>
-                    <input type="text" id="node-config-input-username" placeholder="(Username of the socks proxy.)">
-                </div>
-                <div class="form-row">
-                    <label for="node-config-input-password"><i class="fa fa-key"></i> Password</label>
-                    <input type="text" id="node-config-input-password" placeholder="(Password of the socks proxy.)">
-                </div>
-                <div class="form-row">
-                    <label for="node-config-input-secret"><i class="fa fa-user-secret"></i> Secret</label>
-                    <input type="text" id="node-config-input-secret" placeholder="(Secret of the mtproxy.)">
-                </div>
-                <div class="form-row">
-                    <label for="node-config-input-timeout"><i class="fa fa-clock-o"></i> Timeout s</label>
-                    <input type="text" id="node-config-input-timeout" placeholder="(Connect timeout in seconds e.g.: 2)">
-                </div>
-                <div class="form-row">
-                    <label for="node-config-input-usewss"><i class="fa fa-lock"></i> Use WSS</label>
-                    <input type="checkbox" id="node-config-input-usewss" style="display: inline-block; width: auto; vertical-align: top;">
-                </div>
-            </div>
-
-            <div class="form-tips" style="width: auto"><b>Tip:</b> SOCKS proxy support is optional can can only be used with a valid proxy server, port, username and password.</div>
-        </div>
-
-        <hr align="middle"/> 
-   
-        <div class="form-row">
-            <label for="node-config-input-verboselogging"><i class="fa fa-search"></i> Verbose Logging</label>
-            <input type="checkbox" id="node-config-input-verboselogging" style="display: inline-block; width: auto; vertical-align: top;">
-        </div>
-        
-        <div class="form-tips" style="width: auto"><b>Tip:</b> When verbose logging is turned on additional log messages will be printed to the node-red console.</div>
-
-        <hr align="middle"/> 
+    	<label for="node-config-input-apiid"><i class="fa fa-key"></i> ApiID</label>
+    	<input type="text" id="node-config-input-apiid" placeholder="(Enter the ID here)">
     </div>
+             <div class="form-row">
+                 <label for="node-config-input-apihash"><i class="fa fa-hashtag"></i> ApiHash</label>
+                 <input type="text" id="node-config-input-apihash" placeholder="(Enter the hash here)">
+             </div>
+    <div class="form-tips" style="width: auto"><b>Tip:</b> If you don't have an application ID yet, you can create a new one here: <a href="https://my.telegram.org/auth">Telegram</a>.</div>
+
+             <!-- optional client configuration parameters -->
+             <div class="form-row">
+                 <label for="node-config-input-devicemodel"><i class="fa fa-caret-right"></i> Device Model</label>
+                 <input type="text" id="node-config-input-devicemodel" placeholder="(Optional: device model)">
+             </div>
+             <div class="form-row">
+                 <label for="node-config-input-systemversion"><i class="fa fa-caret-right"></i> System Version</label>
+                 <input type="text" id="node-config-input-systemversion" placeholder="(Optional: system version)">
+             </div>
+             <div class="form-row">
+                 <label for="node-config-input-appversion"><i class="fa fa-caret-right"></i> App Version</label>
+                 <input type="text" id="node-config-input-appversion" placeholder="(Optional: app version)">
+             </div>
+         </div>
+
+         <div class="form-row">
+    <div class="form-row">
+    	<label for="node-config-input-session"><i class="fa fa-link"></i> Session</label>
+    	<input type="text" id="node-config-input-session" placeholder="(Enter the session here)">
+    </div>
+    <div class="form-tips" style="width: auto">
+                 <b>Tip:</b> If you don't have a session string yet, enter your phone code and password (if set) below. As an alternative you can create it online: <a href="https://tgsnake.js.org/login">Login</a>.</div>
+     	</div>
+
+         <div class="form-row hidden" id="loginpanel" style="background: var(--red-ui-tertiary-background)">
+             <hr align="middle"/>
+             <div class="form-row">
+                 <input id='loginbutton' type='button' value=' Login ' style="width: auto"/></i></input>
+                 <div class="form-tips" id='loginbuttontip' style="width: auto">
+                     Click Login button to request code for login: code will be sent via your phone.</div>
+             </div>
+
+             <div class="form-row">
+                 <label for="node-config-input-phonecode"><i class="fa fa-sign-in"></i> Phone-Code</label>
+                 <input type="text" id="node-config-input-phonecode" placeholder="(Enter phone code here)">
+             </div>
+
+             <div class="form-row hidden" id="password">
+                 <label for="node-config-input-password"><i class="fa fa-lock"></i> Password</label>
+                 <input type="text" id="node-config-input-password" placeholder="(Only needed if Two-Step-Verification is on)">
+             </div>
+             <hr align="middle"/>
+         </div>
+
+         <hr align="middle"/>
+
+         <div class="form-row">
+             <label for="node-config-input-useproxy"><i class="fa fa-lock"></i> Use Proxy</label>
+             <input type="checkbox" id="node-config-input-useproxy" style="display: inline-block; width: auto; vertical-align: top;">
+         </div>
+         <div class="form-row hidden" id="useproxy" style="background: var(--red-ui-tertiary-background)">
+             <label style="width: auto"><i class="fa fa-cogs"></i> Proxy Options:</label>
+
+             <div class="form-row" style="background: #fff; margin-left: 20px">
+                 <div class="form-row">
+                     <label for="node-config-input-mtproxy"><i class="fa fa-telegram"></i> MT-Proxy</label>
+                     <input type="checkbox" id="node-config-input-mtproxy" style="display: inline-block; width: auto; vertical-align: top;">
+                 </div>
+                 <div class="form-row">
+                     <label for="node-config-input-sockstype"><i class="fa fa-user-secret"></i> Socks Type</label>
+                     <select id="node-config-input-sockstype">
+                         <option value="4">socks4</option>
+                         <option value="5">socks5</option>
+                     </select>
+                 </div>
+                 <div class="form-row">
+                     <label for="node-config-input-host"><i class="fa fa-desktop"></i> Host</label>
+                     <input type="text" id="node-config-input-host" placeholder="(IP or hostname of the proxy.)">
+                 </div>
+                 <div class="form-row">
+                     <label for="node-config-input-port"><i class="fa fa-random"></i> Port</label>
+                     <input type="text" id="node-config-input-port" placeholder="(Port of the proxy.)">
+                 </div>
+                 <div class="form-row">
+                     <label for="node-config-input-username"><i class="fa fa-user"></i> Username</label>
+                     <input type="text" id="node-config-input-username" placeholder="(Username of the socks proxy.)">
+                 </div>
+                 <div class="form-row">
+                     <label for="node-config-input-password"><i class="fa fa-key"></i> Password</label>
+                     <input type="text" id="node-config-input-password" placeholder="(Password of the socks proxy.)">
+                 </div>
+                 <div class="form-row">
+                     <label for="node-config-input-secret"><i class="fa fa-user-secret"></i> Secret</label>
+                     <input type="text" id="node-config-input-secret" placeholder="(Secret of the mtproxy.)">
+                 </div>
+                 <div class="form-row">
+                     <label for="node-config-input-timeout"><i class="fa fa-clock-o"></i> Timeout s</label>
+                     <input type="text" id="node-config-input-timeout" placeholder="(Connect timeout in seconds e.g.: 2)">
+                 </div>
+                 <div class="form-row">
+                     <label for="node-config-input-usewss"><i class="fa fa-lock"></i> Use WSS</label>
+                     <input type="checkbox" id="node-config-input-usewss" style="display: inline-block; width: auto; vertical-align: top;">
+                 </div>
+             </div>
+
+             <div class="form-tips" style="width: auto"><b>Tip:</b> SOCKS proxy support is optional can can only be used with a valid proxy server, port, username and password.</div>
+         </div>
+
+         <hr align="middle"/>
+
+         <div class="form-row">
+             <label for="node-config-input-verboselogging"><i class="fa fa-search"></i> Verbose Logging</label>
+             <input type="checkbox" id="node-config-input-verboselogging" style="display: inline-block; width: auto; vertical-align: top;">
+         </div>
+
+         <div class="form-tips" style="width: auto"><b>Tip:</b> When verbose logging is turned on additional log messages will be printed to the node-red console.</div>
+
+         <hr align="middle"/>
+     </div>
 </script>
 
 <script type="text/x-red" data-help-name="telegram client config">
@@ -336,16 +357,14 @@
     <p>TODO</p>
 </script>
 
-
-
 <!-- ------------------------------------------------------------------------------------------ -->
 <script type="text/javascript">
     RED.nodes.registerType('telegram client receiver', {
         category: 'telegram',
         color: '#3BABDD',
         defaults: {
-            name: { value: "" },
-            bot: { value:"", type: "telegram client config", required: true },
+            name: { value: '' },
+            bot: { value: '', type: 'telegram client config', required: true },
             sendrawevents: { value: false, required: false },
             sendnewmessage: { value: false, required: false },
             sendeditedmessage: { value: false, required: false },
@@ -355,16 +374,15 @@
         },
         inputs: 0,
         outputs: 1,
-        icon: "telegram.png",
-        paletteLabel: "client receiver",
+        icon: 'telegram.png',
+        paletteLabel: 'client receiver',
         label: function () {
-            return this.name || "Telegram client receiver";
+            return this.name || 'Telegram client receiver';
         },
-        labelStyle: function() {
-            return this.name?"node_label_italic":"";
+        labelStyle: function () {
+            return this.name ? 'node_label_italic' : '';
         },
-        oneditprepare: function() {
-        }
+        oneditprepare: function () {},
     });
 </script>
 
@@ -378,7 +396,7 @@
         <input type="text" id="node-input-name" placeholder="Name">
     </div>
 
-    <hr align="middle"/> 
+    <hr align="middle"/>
 
     <div class="form-row">
         <label for="node-input-sendnewmessage"><i class="fa fa-filter"></i> New messages</label>
@@ -394,7 +412,7 @@
         <label for="node-input-sendeditedmessage"><i class="fa fa-filter"></i> Edited messages</label>
         <input type="checkbox" id="node-input-sendeditedmessage" style="display: inline-block; width: 50%; vertical-align: top;">
     </div>
-    
+
     <div class="form-row">
         <label for="node-input-sendalbum"><i class="fa fa-filter"></i> Albums (list of mesages)</label>
         <input type="checkbox" id="node-input-sendalbum" style="display: inline-block; width: 50%; vertical-align: top;">
@@ -410,15 +428,14 @@
         <input type="checkbox" id="node-input-sendrawevents" style="display: inline-block; width: 50%; vertical-align: top;">
         <div class="form-tips" style="width: auto"><b>Tip:</b> When raw events is turned on, all events are sent to the output without further filtering.</div>
     </div>
-
 </script>
 
 <script type="text/x-red" data-help-name="telegram client receiver">
     <p>A telegram node that triggers the output when some message event is received from the chat.</p>
     <p>The node receives all messages received from the telegram server.</p>
-    
-    <h3>Outputs</h3> 
-    <p>1. Standard Output: Event message is sent to output.</p>   
+
+    <h3>Outputs</h3>
+    <p>1. Standard Output: Event message is sent to output.</p>
 </script>
 
 <!-- ------------------------------------------------------------------------------------------ -->
@@ -428,21 +445,20 @@
         category: 'telegram',
         color: '#3BABDD',
         defaults: {
-            name: { value: "" },
-            bot: { value:"", type: "telegram client config", required: true }
+            name: { value: '' },
+            bot: { value: '', type: 'telegram client config', required: true },
         },
         inputs: 1,
         outputs: 1,
-        icon: "telegram.png",
-        paletteLabel: "client sender",
+        icon: 'telegram.png',
+        paletteLabel: 'client sender',
         label: function () {
-            return this.name || "Telegram client sender";
+            return this.name || 'Telegram client sender';
         },
-        labelStyle: function() {
-            return this.name?"node_label_italic":"";
+        labelStyle: function () {
+            return this.name ? 'node_label_italic' : '';
         },
-        oneditprepare: function() {
-        }
+        oneditprepare: function () {},
     });
 </script>
 
@@ -461,7 +477,7 @@
     <p>A telegram node that sends messaged to a chat.</p>
     <p>The node receives data and sends it to the telegram server.</p>
 
-    <h3>Inputs</h3> 
+    <h3>Inputs</h3>
     <p>1. Standard Input: receives a message object containing the following fields:</p>
     <p>The <code>msg.payload</code> must be an object that contains the following properties:</p>
         <ul>
@@ -473,7 +489,7 @@
     <p>1. Standard Output: returns the result of the api call.</p>
     <h3>Details</h3>
         <p>Please refer to the examples in the examples folder and the readme.</p>
-    <p></p>   
+    <p></p>
 </script>
 
 <!-- ------------------------------------------------------------------------------------------ -->
