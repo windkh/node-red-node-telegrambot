@@ -1,0 +1,86 @@
+// Created by Karl-Heinz Wind
+'use strict';
+
+const { describe, it } = require('node:test');
+const assert = require('node:assert');
+
+const entry = require('../telegrambot/telegrambot.js');
+
+// Collects what the entry point registers, without starting a Node-RED runtime.
+function createRedStub() {
+    const registeredTypes = [];
+    const adminRoutes = [];
+
+    return {
+        registeredTypes,
+        adminRoutes,
+        nodes: {
+            registerType(type, constructor, options) {
+                registeredTypes.push({ type, constructor, options });
+            },
+            createNode() {},
+            getNode() {
+                return undefined;
+            },
+        },
+        httpAdmin: {
+            get(route) {
+                adminRoutes.push(route);
+            },
+        },
+        events: {
+            on() {},
+            removeListener() {},
+        },
+    };
+}
+
+describe('entry point registration', () => {
+    it('loads without throwing', () => {
+        const RED = createRedStub();
+        assert.doesNotThrow(() => entry(RED));
+    });
+
+    it('registers the three node types in dependency order', () => {
+        const RED = createRedStub();
+        entry(RED);
+
+        const types = RED.registeredTypes.map((entry) => entry.type);
+        assert.deepStrictEqual(types, ['telegram client config', 'telegram client receiver', 'telegram client sender']);
+    });
+
+    it('registers every node type with a constructor function', () => {
+        const RED = createRedStub();
+        entry(RED);
+
+        for (const registered of RED.registeredTypes) {
+            assert.strictEqual(typeof registered.constructor, 'function', `${registered.type} has no constructor`);
+        }
+    });
+
+    it('declares the config node credentials', () => {
+        const RED = createRedStub();
+        entry(RED);
+
+        const config = RED.registeredTypes.find((entry) => entry.type === 'telegram client config');
+        assert.deepStrictEqual(config.options, {
+            credentials: {
+                apiid: { type: 'text' },
+                apihash: { type: 'text' },
+                session: { type: 'text' },
+                phonenumber: { type: 'text' },
+            },
+        });
+    });
+
+    it('registers the login admin endpoints used by the editor dialog', () => {
+        const RED = createRedStub();
+        entry(RED);
+
+        assert.deepStrictEqual(RED.adminRoutes, [
+            '/node-red-node-telegrambot-setphonecode',
+            '/node-red-node-telegrambot-setpassword',
+            '/node-red-node-telegrambot-login',
+        ]);
+    });
+});
