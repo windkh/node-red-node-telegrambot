@@ -53,7 +53,9 @@
                 },
             },
             phonenumber: { value: '', required: true },
-            password: { value: '', required: false },
+            // Not `password`: that name is already a *config* property holding the proxy password,
+            // and two keys of the same name would bind to one #node-config-input-password element.
+            twofapassword: { value: '', required: false },
             bottoken: { type: 'text' },
         },
         label: function () {
@@ -65,11 +67,11 @@
                 let mode = $('#node-config-input-loginmode').val();
                 if (mode == 'user') {
                     $('#phonenumber').show();
-                    $('#password').show();
+                    $('#twofapassword').show();
                     $('#bottoken').hide();
                 } else {
                     $('#phonenumber').hide();
-                    $('#password').hide();
+                    $('#twofapassword').hide();
                     $('#bottoken').show();
                 }
             };
@@ -92,7 +94,7 @@
                 let apiId = $('#node-config-input-apiid').val();
                 let apiHash = $('#node-config-input-apihash').val();
                 let phoneNumber = $('#node-config-input-phonenumber').val();
-                let password = $('#node-config-input-password').val();
+                let password = $('#node-config-input-twofapassword').val();
                 let botToken = $('#node-config-input-bottoken').val();
                 let loginMode = $('#node-config-input-loginmode').val();
                 let useProxy = $('#node-config-input-useproxy').prop('checked');
@@ -165,7 +167,7 @@
             };
 
             let setPassword = function () {
-                let password = $('#node-config-input-password').val();
+                let password = $('#node-config-input-twofapassword').val();
                 if (password != '') {
                     $('#loginbuttontip').text('Signing in using password ....');
                     let parameters = {
@@ -192,7 +194,7 @@
             // $('#node-config-input-phonenumber').change(login);
 
             $('#node-config-input-phonecode').change(setPhoneCode);
-            $('#node-config-input-password').change(setPassword);
+            $('#node-config-input-twofapassword').change(setPassword);
             $('#node-config-input-session').change(showLoginButton);
 
             $('#loginbutton').click(function () {
@@ -276,9 +278,9 @@
                  <input type="text" id="node-config-input-phonecode" placeholder="(Enter phone code here)">
              </div>
 
-             <div class="form-row hidden" id="password">
-                 <label for="node-config-input-password"><i class="fa fa-lock"></i> Password</label>
-                 <input type="text" id="node-config-input-password" placeholder="(Only needed if Two-Step-Verification is on)">
+             <div class="form-row hidden" id="twofapassword">
+                 <label for="node-config-input-twofapassword"><i class="fa fa-lock"></i> Password</label>
+                 <input type="text" id="node-config-input-twofapassword" placeholder="(Only needed if Two-Step-Verification is on)">
              </div>
              <hr align="middle"/>
          </div>
@@ -351,10 +353,35 @@
 </script>
 
 <script type="text/x-red" data-help-name="telegram client config">
-    <p>A configuration node that holds the configuration of the telegram bot.</p>
+    <p>Holds the credentials for one Telegram account and owns the client that every receiver and
+    sender using this config shares.</p>
 
-    <h3>Details</h3>
-    <p>TODO</p>
+    <h3>Login mode</h3>
+    <p><b>user</b> signs in as the account owner (a userbot) with a phone number.
+    <b>bot</b> signs in with a token from &#64;botfather. The login mode also decides which
+    authentication the deployed flow uses, so switching it back and forth is safe even if a bot token
+    is still stored.</p>
+
+    <h3>Logging in</h3>
+    <p>Create an API ID and API Hash at <i>my.telegram.org</i> under <i>API Development Tools</i>, then
+    press <b>Login</b>. Telegram sends a phone code; enter it in the <b>Phone-Code</b> field. If your
+    account has two-step verification enabled, also fill in <b>Password</b> in the login panel.</p>
+    <p>The login runs once and produces a <b>session string</b>, which is what the deployed flow
+    actually uses. Treat it like a password: it authenticates the whole account.</p>
+
+    <h3>Two passwords</h3>
+    <p>These are different values and easy to mix up:</p>
+    <ul>
+        <li><b>Password</b> in the login panel is your account's two-step-verification password.</li>
+        <li><b>Password</b> under <i>Proxy Options</i> is the password of the SOCKS proxy.</li>
+    </ul>
+    <p>Before version 0.1.11 both shared one input field. If you had entered an account password, it
+    now appears prefilled in the proxy field — clear it there and re-enter it in the login panel.</p>
+
+    <h3>Device fields</h3>
+    <p><b>Device Model</b>, <b>System Version</b> and <b>App Version</b> are optional. Left empty,
+    GramJS reports the host's own values. Setting them makes the session look like a specific client,
+    which some users prefer to reduce the risk of the account being flagged.</p>
 </script>
 
 <!-- ------------------------------------------------------------------------------------------ -->

@@ -29,18 +29,26 @@ async function createTelegramClient(options, warn) {
 
             client.setLogLevel(options.logLevel);
 
+            // Branch on the configured login mode, not on whether a token happens to be stored:
+            // a token left over from experimenting with bot mode would otherwise hijack the auth of
+            // a config that has since been switched back to user mode. This also matches ./login.js,
+            // which already keys off loginMode.
             let authParams;
-            if (botToken === undefined) {
+            if (options.loginMode === 'bot') {
+                authParams = {
+                    botAuthToken: botToken,
+                };
+
+                if (!botToken) {
+                    warn('Login mode is bot but no bot token is stored: log in again.');
+                }
+            } else {
                 authParams = {
                     phoneNumber: options.phoneNumber,
                     onError: (err) => {
                         console.log(err);
                         return true; // abort
                     },
-                };
-            } else {
-                authParams = {
-                    botAuthToken: botToken,
                 };
             }
 

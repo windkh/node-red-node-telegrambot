@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+# [0.1.11] - 2026-07-29
+
+### fixed the bot token and the two-step-verification password never being stored, because the editor declared credentials the runtime did not - bot token login now works at runtime - [#17](https://github.com/windkh/node-red-node-telegrambot/issues/17)
+
+### fixed the proxy password sharing an input field with the account password: the account password is now the `twofapassword` credential and `password` is the proxy password alone. If you had entered an account password, it will appear prefilled in the proxy password field - clear it there and re-enter it under Password in the login panel - [#17](https://github.com/windkh/node-red-node-telegrambot/issues/17)
+
+### changed the runtime to select user or bot authentication from the configured login mode instead of from the presence of a stored token, so a leftover token can no longer hijack a user-mode config - [#17](https://github.com/windkh/node-red-node-telegrambot/issues/17)
+
 # [0.1.10] - 2026-07-29
 
 ### fixed the telegram client never being torn down, so every redeploy left another live session connected and subscribed - likely cause of duplicated messages after a redeploy - [#16](https://github.com/windkh/node-red-node-telegrambot/issues/16)

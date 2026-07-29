@@ -121,9 +121,20 @@ be **omitted** when empty rather than passed as `''`, so GramJS applies its own 
 ### Node contract is public API
 
 Node type names (`telegram client config` / `receiver` / `sender`), credential field names (all
-lowercase: `apiid`, `apihash`, `session`, `phonenumber`), admin route paths, `msg.payload` shapes, and
-the `connected` / `disconnected` status texts are all load-bearing for existing user flows. Changing
-any of them is a breaking change and needs an ADR.
+lowercase: `apiid`, `apihash`, `session`, `phonenumber`, `bottoken`, `twofapassword`), admin route
+paths, `msg.payload` shapes, and the `connected` / `disconnected` status texts are all load-bearing for
+existing user flows. Changing any of them is a breaking change and needs an ADR.
+
+The editor's `credentials` block in `telegrambot.html` and the one passed to `RED.nodes.registerType`
+must list **exactly** the same names. Node-RED persists only what the runtime declares, so anything the
+editor offers but the runtime omits is silently discarded on deploy — that was the bug in
+[ADR 0004](doc/architecture/adr/0004-persist-bot-token-and-2fa-password.md).
+`test/registration.test.js` is what guards this; a node-level test cannot, because
+`helper.load(nodes, flow, credentials)` writes to the helper's store directly and bypasses the filter.
+
+Note `password` is a _config_ property holding the SOCKS proxy password, while the account's
+two-step-verification password is the `twofapassword` credential. They used to share both a name and a
+DOM element id. Do not merge them again.
 
 Note the raw-event asymmetry: raw events emit `msg.type = 'Raw'` at the top level, while all other
 events use `msg.payload.type`. This is inconsistent but intentional — do not "fix" it silently.

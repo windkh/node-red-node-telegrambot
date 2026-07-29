@@ -30,6 +30,8 @@ module.exports = function (RED) {
                 socksType: Number(n.sockstype),
                 port: Number(n.port),
                 username: n.username,
+                // `n.password` is the *proxy* password, a plain config property. The account's
+                // two-step-verification password is a credential and is read as `twofapassword`.
                 password: n.password,
                 secret: n.secret,
                 MTProxy: n.mtproxy,
@@ -37,10 +39,10 @@ module.exports = function (RED) {
             };
         }
 
-        this.loginMode = n.loginmode;
-        if (!this.loginMode) {
-            this.loginMode = 'user';
-        }
+        // Constant for the node's lifetime, like the device fields above, so it is a closure value
+        // rather than another positional argument threaded through createTelegramClient.
+        const loginMode = n.loginmode || 'user';
+        this.loginMode = loginMode;
 
         if (this.verbose) {
             this.logLevel = 'debug';
@@ -52,6 +54,8 @@ module.exports = function (RED) {
             this.apiHash = this.credentials.apihash || '';
             this.session = this.credentials.session || '';
             this.phoneNumber = this.credentials.phonenumber || '';
+            this.botToken = this.credentials.bottoken || undefined;
+            this.twoFaPassword = this.credentials.twofapassword || '';
         }
 
         this.createTelegramClient = async function (
@@ -71,6 +75,7 @@ module.exports = function (RED) {
                 session: session,
                 phoneNumber: phoneNumber,
                 botToken: botToken,
+                loginMode: loginMode,
                 logLevel: logLevel,
                 proxy: proxy,
                 useWSS: useWSS,
@@ -138,12 +143,16 @@ module.exports = function (RED) {
         });
     }
 
+    // Node-RED only persists credentials declared here. The editor's credentials block must match
+    // this list exactly — anything it offers but this omits is silently discarded on deploy.
     RED.nodes.registerType('telegram client config', TelegramConfigNode, {
         credentials: {
             apiid: { type: 'text' },
             apihash: { type: 'text' },
             session: { type: 'text' },
             phonenumber: { type: 'text' },
+            bottoken: { type: 'text' },
+            twofapassword: { type: 'text' },
         },
     });
 };

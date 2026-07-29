@@ -62,6 +62,60 @@ describe('telegram client nodes', () => {
         assert.strictEqual(proxy.timeout, 2);
     });
 
+    it('exposes the bot token and the two-step-verification password from credentials', async () => {
+        // Placeholders only — never a real token or password in a fixture.
+        const credentials = { c1: { bottoken: 'placeholder-token', twofapassword: 'placeholder-pw' } };
+        await helper.load(telegramBotNode, [configNode], credentials);
+
+        const c1 = helper.getNode('c1');
+        assert.strictEqual(c1.botToken, 'placeholder-token');
+        assert.strictEqual(c1.twoFaPassword, 'placeholder-pw');
+    });
+
+    it('leaves botToken undefined when no bot token is stored', async () => {
+        await helper.load(telegramBotNode, [configNode]);
+
+        // Must be undefined rather than '': lib/telegram-client.js used to pick the bot auth path
+        // from the mere presence of a token, and an empty string is still a presence.
+        //
+        // twoFaPassword is undefined here for a different reason: with nothing stored, Node-RED does
+        // not create `node.credentials` at all, so the whole credential block is skipped — apiId and
+        // session are undefined in that case too.
+        const c1 = helper.getNode('c1');
+        assert.strictEqual(c1.botToken, undefined);
+        assert.strictEqual(c1.twoFaPassword, undefined);
+    });
+
+    it('leaves botToken undefined when the stored token is empty', async () => {
+        await helper.load(telegramBotNode, [configNode], { c1: { bottoken: '' } });
+
+        assert.strictEqual(helper.getNode('c1').botToken, undefined, 'an empty token must not count as a token');
+    });
+
+    it('keeps the proxy password separate from the two-step-verification password', async () => {
+        // `password` is a config property (the SOCKS proxy password); the account password is the
+        // `twofapassword` credential. They share neither a name nor an editor field any more.
+        const flow = [{ ...configNode, useproxy: true, host: '127.0.0.1', password: 'proxy-pw' }];
+        const credentials = { c1: { twofapassword: 'account-pw' } };
+        await helper.load(telegramBotNode, flow, credentials);
+
+        const c1 = helper.getNode('c1');
+        assert.strictEqual(c1.proxy.password, 'proxy-pw', 'the proxy must keep its own password');
+        assert.strictEqual(c1.twoFaPassword, 'account-pw', 'the account password must not be overwritten');
+    });
+
+    it('defaults loginMode to user', async () => {
+        await helper.load(telegramBotNode, [configNode]);
+
+        assert.strictEqual(helper.getNode('c1').loginMode, 'user');
+    });
+
+    it('reads loginMode bot from the config', async () => {
+        await helper.load(telegramBotNode, [{ ...configNode, loginmode: 'bot' }]);
+
+        assert.strictEqual(helper.getNode('c1').loginMode, 'bot');
+    });
+
     it('loads a receiver node wired to the config node', async () => {
         const flow = [
             configNode,
