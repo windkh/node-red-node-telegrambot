@@ -28,8 +28,10 @@ which a missing `await` handles just as well as a present one.
   `Api[...]` constructor. A shared `[]` default would have broken the raw path.
 - Reject a non-array `args` on the client-method path up front, via `nodeDone`, with a message naming
   the requirement — rather than letting a `TypeError` escape from the spread.
-- Hoist both checks above the async work, per the "preconditions first" rule in `AGENTS.md`, and derive
-  the path once into `useApi` instead of repeating the `api === undefined || api === ''` test.
+- Derive the path once into `useApi` instead of repeating the `api === undefined || api === ''` test,
+  and express both checks as nested positive conditions with the error path in the `else` — no guard
+  clauses. `AGENTS.md` requires a single exit per function and explicitly forbids an early `return` in
+  a precondition check; the invocation itself moved into `invokeClient` so the nesting stays shallow.
 - Make the test fakes `async`, so a future regression on the `await` fails the suite. This was verified
   by reintroducing the bug: three tests fail, including the rejection case.
 

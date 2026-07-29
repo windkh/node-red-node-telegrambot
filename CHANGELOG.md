@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+# [0.1.9] - 2026-07-29
+
+### fixed the sender node silently dropping messages when the payload, the config node or the client was missing - now each case is reported so it reaches a Catch node - [#15](https://github.com/windkh/node-red-node-telegrambot/issues/15)
+
+### fixed the sender node never completing the Node-RED message lifecycle, which broke the Complete node and message tracing - [#15](https://github.com/windkh/node-red-node-telegrambot/issues/15)
+
 # [0.1.8] - 2026-07-29
 
 ### fixed the sender node not awaiting client methods, which put a pending Promise into msg.payload and hid every error from Catch nodes - [#14](https://github.com/windkh/node-red-node-telegrambot/issues/14)

@@ -203,6 +203,33 @@ describe('telegram client nodes', () => {
         assert.deepStrictEqual(errors, ['msg.payload: api or func is missing.']);
     });
 
+    it('completes the message exactly once on the success path', async () => {
+        const flow = [
+            configNode,
+            { id: 'n1', type: 'telegram client sender', bot: 'c1', wires: [['n2']] },
+            { id: 'n2', type: 'helper' },
+        ];
+        await helper.load(telegramBotNode, flow);
+
+        const client = { sendMessage: async () => 'result' };
+        const doneCalls = [];
+
+        await new Promise((resolve) => {
+            helper.getNode('n1').processMessage(
+                client,
+                { payload: { func: 'sendMessage', args: [] } },
+                () => {},
+                (error) => {
+                    doneCalls.push(error);
+                    resolve();
+                }
+            );
+        });
+
+        assert.strictEqual(doneCalls.length, 1, 'nodeDone must be called exactly once');
+        assert.strictEqual(doneCalls[0], undefined, 'nodeDone must be called without an error');
+    });
+
     it('invokes a raw MTProto request when msg.payload names an api', async () => {
         const flow = [
             configNode,
@@ -243,6 +270,89 @@ describe('telegram client nodes', () => {
         });
 
         assert.ok(error instanceof Error);
+    });
+});
+
+// Node-RED turns done(err) into node.error(err, msg) (Node.prototype._complete), and the test helper
+// proxies node.error and emits a `call:error` event — so driving the real input handler is the only way
+// to cover the boundary checks.
+describe('sender node input boundary', () => {
+    before(async () => {
+        await new Promise((resolve) => helper.startServer(resolve));
+    });
+
+    afterEach(async () => {
+        await helper.unload();
+    });
+
+    after(async () => {
+        await new Promise((resolve) => helper.stopServer(resolve));
+    });
+
+    // Rejects rather than hanging when nothing is reported: a dropped message would otherwise stall
+    // the whole file until the runner's timeout, which hides which case actually regressed.
+    function nextError(node) {
+        return new Promise((resolve, reject) => {
+            const timer = setTimeout(
+                () => reject(new Error('the node reported no error — the message was dropped')),
+                1000
+            );
+            node.on('call:error', (call) => {
+                clearTimeout(timer);
+                resolve(call.args[0]);
+            });
+        });
+    }
+
+    it('reports a missing payload instead of dropping the message', async () => {
+        const flow = [configNode, { id: 'n1', type: 'telegram client sender', bot: 'c1' }];
+        await helper.load(telegramBotNode, flow);
+
+        const n1 = helper.getNode('n1');
+        const error = nextError(n1);
+        n1.receive({});
+
+        assert.strictEqual(await error, 'msg.payload is required.');
+    });
+
+    it('reports a missing config node instead of dropping the message', async () => {
+        // No `bot` property, so RED.nodes.getNode returns nothing and node.config stays unset.
+        await helper.load(telegramBotNode, [{ id: 'n1', type: 'telegram client sender' }]);
+
+        const n1 = helper.getNode('n1');
+        const error = nextError(n1);
+        n1.receive({ payload: { func: 'sendMessage', args: [] } });
+
+        assert.strictEqual(await error, 'No telegram client config node configured.');
+    });
+
+    it('reports a missing client and shows disconnected', async () => {
+        const flow = [configNode, { id: 'n1', type: 'telegram client sender', bot: 'c1' }];
+        await helper.load(telegramBotNode, flow);
+
+        const n1 = helper.getNode('n1');
+        const statuses = [];
+        n1.status = (status) => statuses.push(status);
+
+        const error = nextError(n1);
+        n1.receive({ payload: { func: 'sendMessage', args: [] } });
+
+        assert.strictEqual(await error, 'No telegram client: check the config node and login first.');
+        assert.deepStrictEqual(statuses.at(-1), { fill: 'red', shape: 'ring', text: 'disconnected' });
+    });
+
+    it('does not drop a falsy payload', async () => {
+        const flow = [configNode, { id: 'n1', type: 'telegram client sender', bot: 'c1' }];
+        await helper.load(telegramBotNode, flow);
+
+        const n1 = helper.getNode('n1');
+        n1.config.getTelegramClient = async () => ({});
+
+        // 0 is falsy but present: it must reach processMessage and be reported there, not vanish.
+        const error = nextError(n1);
+        n1.receive({ payload: 0 });
+
+        assert.strictEqual(await error, 'msg.payload: api or func is missing.');
     });
 });
 
