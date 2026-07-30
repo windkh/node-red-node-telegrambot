@@ -65,11 +65,14 @@ describe('entry point registration', () => {
         const config = RED.registeredTypes.find((entry) => entry.type === 'telegram client config');
         // Must stay in step with the editor's credentials block in telegrambot.html: Node-RED only
         // persists what is declared here, so anything the editor offers but this omits is discarded.
+        //
+        // `session` is deliberately `password`: for `text` the runtime sends the stored value to the
+        // editor in clear, and the session authenticates the whole Telegram account.
         assert.deepStrictEqual(config.options, {
             credentials: {
                 apiid: { type: 'text' },
                 apihash: { type: 'text' },
-                session: { type: 'text' },
+                session: { type: 'password' },
                 phonenumber: { type: 'text' },
                 bottoken: { type: 'text' },
                 twofapassword: { type: 'text' },

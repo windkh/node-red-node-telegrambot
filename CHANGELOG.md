@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+# [0.1.13] - 2026-07-30
+
+### fixed the session string being sent to the editor in clear text: it is now a `password` credential, so the runtime hands the editor only a "has a session" flag. The session authenticates the whole Telegram account
+
 # [0.1.12] - 2026-07-29
 
 ### added filters to the receiver node: chats (with an exclude option), direction, from users and a text pattern. Filtering happens in Telegram's event builders, so unwanted traffic never reaches the flow. Leaving the fields empty keeps the previous behaviour - [#18](https://github.com/windkh/node-red-node-telegrambot/issues/18)

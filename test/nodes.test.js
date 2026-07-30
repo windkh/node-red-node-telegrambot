@@ -72,6 +72,14 @@ describe('telegram client nodes', () => {
         assert.strictEqual(c1.twoFaPassword, 'placeholder-pw');
     });
 
+    it('still receives the session at runtime although it is a password credential', async () => {
+        // `type: 'password'` only stops the runtime from sending the value to the *editor*; the node
+        // itself must still get it, or no deployed flow could connect.
+        await helper.load(telegramBotNode, [configNode], { c1: { session: 'placeholder-session' } });
+
+        assert.strictEqual(helper.getNode('c1').session, 'placeholder-session');
+    });
+
     it('leaves botToken undefined when no bot token is stored', async () => {
         await helper.load(telegramBotNode, [configNode]);
 

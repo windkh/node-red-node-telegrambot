@@ -145,11 +145,19 @@ module.exports = function (RED) {
 
     // Node-RED only persists credentials declared here. The editor's credentials block must match
     // this list exactly — anything it offers but this omits is silently discarded on deploy.
+    //
+    // The type matters for more than masking: for `text` the runtime sends the stored value to the
+    // editor in clear (see @node-red/runtime/lib/api/flows.js), while for `password` it sends only a
+    // `has_<name>` boolean. The session authenticates the whole account, so it must never travel.
+    //
+    // apihash, bottoken and twofapassword are secrets too, but the editor's login panel reads their
+    // values back to drive the login and would receive the __PWRD__ placeholder instead. Making them
+    // `password` requires the login routes to look credentials up server-side — tracked separately.
     RED.nodes.registerType('telegram client config', TelegramConfigNode, {
         credentials: {
             apiid: { type: 'text' },
             apihash: { type: 'text' },
-            session: { type: 'text' },
+            session: { type: 'password' },
             phonenumber: { type: 'text' },
             bottoken: { type: 'text' },
             twofapassword: { type: 'text' },
