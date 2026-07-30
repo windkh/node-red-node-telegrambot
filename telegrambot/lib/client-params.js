@@ -3,9 +3,18 @@
 
 // Builds the TelegramClient constructor options. The device/system/app version are optional:
 // GramJS applies its own defaults when they are absent, so an empty string must not be passed on.
+//
+// `connectionRetries` is deliberately not set. GramJS defaults it to Infinity, which is what a
+// long-running Node-RED flow wants: a router reboot or a brief ISP outage must not kill a receiver for
+// good. This used to be pinned to 5 which, with the 1s retryDelay, meant roughly five seconds of
+// network trouble left the client permanently dead — and because the config node caches it,
+// getTelegramClient kept handing back the same dead object until the next redeploy.
+//
+// `retryDelay`, `timeout` and `autoReconnect` are left at their defaults too, for the same reason:
+// GramJS recovers from transient failures on its own, and a second recovery mechanism racing it would
+// be worse than none. See doc/architecture/adr/0006-connection-state.md.
 function buildClientParams(options) {
     const clientParams = {
-        connectionRetries: 5,
         proxy: options.proxy,
         useWSS: options.useWSS,
     };

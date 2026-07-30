@@ -7,6 +7,15 @@ const { Api } = require('telegram');
 // path reports the same thing.
 const CONNECTED = { fill: 'green', shape: 'ring', text: 'connected' };
 const DISCONNECTED = { fill: 'red', shape: 'ring', text: 'disconnected' };
+// A filled dot, not a ring, because this one will not fix itself: GramJS reports `broken` only for an
+// unusable authorization key, so reconnecting cannot help and the user has to log in again.
+const BROKEN = { fill: 'red', shape: 'dot', text: 'session invalid: login again' };
+
+const STATUS_BY_STATE = {
+    connected: CONNECTED,
+    disconnected: DISCONNECTED,
+    broken: BROKEN,
+};
 
 // The sender node is a generic bridge to the Telegram client: `msg.payload.func` names either a
 // convenience method on the client itself (no `api`) or a raw MTProto request under `Api[api]`.
@@ -17,6 +26,19 @@ module.exports = function (RED) {
         const node = this;
         this.bot = config.bot;
         this.config = RED.nodes.getNode(this.bot);
+
+        // Keeps the canvas honest after start(): the connection can drop or the session can be
+        // invalidated long after this node last looked at it.
+        this.onConnectionState = (state) => {
+            const status = STATUS_BY_STATE[state];
+            if (status !== undefined) {
+                node.status(status);
+            }
+        };
+
+        if (this.config) {
+            this.config.addStatusListener(this);
+        }
 
         this.start = async () => {
             if (node.config) {
@@ -115,6 +137,9 @@ module.exports = function (RED) {
         });
 
         this.on('close', function (removed, done) {
+            if (node.config) {
+                node.config.removeStatusListener(node);
+            }
             node.stop();
             // node.status({});
             done();

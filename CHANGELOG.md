@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+# [0.1.14] - 2026-07-30
+
+### fixed the client giving up permanently after five failed connection attempts: connectionRetries is no longer pinned to 5, so GramJS' own default applies and a brief outage no longer kills a receiver until the next redeploy - [#19](https://github.com/windkh/node-red-node-telegrambot/issues/19)
+
+### added live connection status on the receiver and sender nodes. They used to set connected once and show it forever; a dropped connection and a recovery are now both visible without enabling raw events - [#19](https://github.com/windkh/node-red-node-telegrambot/issues/19)
+
+### added a distinct status for an invalid session (`session invalid: login again`). Telegram reports this only for an unusable authorization key, where reconnecting cannot help and a new login is required - [#19](https://github.com/windkh/node-red-node-telegrambot/issues/19)
+
 # [0.1.13] - 2026-07-30
 
 ### fixed the session string being sent to the editor in clear text: it is now a `password` credential, so the runtime hands the editor only a "has a session" flag. The session authenticates the whole Telegram account

@@ -418,6 +418,113 @@ describe('sender node input boundary', () => {
     });
 });
 
+// GramJS routes connection states through the raw handlers as UpdateConnectionState instances. The
+// config node subscribes to them internally so the status is honest whether or not the user enabled
+// "send raw events".
+describe('connection state reporting', () => {
+    const { UpdateConnectionState } = require('telegram/network');
+
+    before(async () => {
+        await new Promise((resolve) => helper.startServer(resolve));
+    });
+
+    afterEach(async () => {
+        await helper.unload();
+    });
+
+    after(async () => {
+        await new Promise((resolve) => helper.stopServer(resolve));
+    });
+
+    const flow = [
+        configNode,
+        { id: 'r1', type: 'telegram client receiver', bot: 'c1' },
+        { id: 's1', type: 'telegram client sender', bot: 'c1' },
+    ];
+
+    async function loadWithStatusRecorders() {
+        await helper.load(telegramBotNode, flow);
+
+        const nodes = { c1: helper.getNode('c1'), r1: helper.getNode('r1'), s1: helper.getNode('s1') };
+        const statuses = { r1: [], s1: [] };
+        nodes.r1.status = (status) => statuses.r1.push(status);
+        nodes.s1.status = (status) => statuses.s1.push(status);
+
+        return { nodes, statuses };
+    }
+
+    it('registers the receiver and the sender as listeners', async () => {
+        const { nodes } = await loadWithStatusRecorders();
+
+        assert.strictEqual(nodes.c1.statusListeners.size, 2);
+    });
+
+    it('reports connected to every listener', async () => {
+        const { nodes, statuses } = await loadWithStatusRecorders();
+
+        nodes.c1.onConnectionState(new UpdateConnectionState(UpdateConnectionState.connected));
+
+        assert.deepStrictEqual(statuses.r1.at(-1), { fill: 'green', shape: 'ring', text: 'connected' });
+        assert.deepStrictEqual(statuses.s1.at(-1), { fill: 'green', shape: 'ring', text: 'connected' });
+    });
+
+    it('reports disconnected to every listener', async () => {
+        const { nodes, statuses } = await loadWithStatusRecorders();
+
+        nodes.c1.onConnectionState(new UpdateConnectionState(UpdateConnectionState.disconnected));
+
+        assert.deepStrictEqual(statuses.r1.at(-1), { fill: 'red', shape: 'ring', text: 'disconnected' });
+        assert.deepStrictEqual(statuses.s1.at(-1), { fill: 'red', shape: 'ring', text: 'disconnected' });
+    });
+
+    it('reports a broken session distinctly from a dropped connection', async () => {
+        const { nodes, statuses } = await loadWithStatusRecorders();
+
+        nodes.c1.onConnectionState(new UpdateConnectionState(UpdateConnectionState.broken));
+
+        // GramJS emits `broken` only from _handleBadAuthKey, so reconnecting cannot help — the text has
+        // to tell the user to log in again, and the filled dot sets it apart from `disconnected`.
+        const expected = { fill: 'red', shape: 'dot', text: 'session invalid: login again' };
+        assert.deepStrictEqual(statuses.r1.at(-1), expected);
+        assert.deepStrictEqual(statuses.s1.at(-1), expected);
+    });
+
+    it('ignores updates that are not connection states', async () => {
+        const { nodes, statuses } = await loadWithStatusRecorders();
+
+        const before = statuses.r1.length;
+        nodes.c1.onConnectionState({ className: 'UpdateNewMessage' });
+
+        assert.strictEqual(statuses.r1.length, before, 'a normal update must not touch the status');
+    });
+
+    it('stops reporting to a node that has been closed', async () => {
+        const { nodes, statuses } = await loadWithStatusRecorders();
+
+        await nodes.r1.close();
+        const before = statuses.r1.length;
+        nodes.c1.onConnectionState(new UpdateConnectionState(UpdateConnectionState.connected));
+
+        assert.strictEqual(nodes.c1.statusListeners.size, 1, 'the closed node must have deregistered');
+        assert.strictEqual(statuses.r1.length, before, 'a closed node must not be written to');
+        assert.deepStrictEqual(statuses.s1.at(-1), { fill: 'green', shape: 'ring', text: 'connected' });
+    });
+
+    it('subscribes the internal handler once a client exists', async () => {
+        await helper.load(telegramBotNode, flow);
+
+        const c1 = helper.getNode('c1');
+        const added = [];
+        c1.createTelegramClient = async () => ({
+            addEventHandler: (handler) => added.push(handler),
+        });
+
+        await c1.getTelegramClient(helper.getNode('r1'));
+
+        assert.deepStrictEqual(added, [c1.onConnectionState], 'the state handler must be registered');
+    });
+});
+
 describe('receiver node event handlers', () => {
     const receiverFlow = [
         configNode,

@@ -29,6 +29,21 @@ Connecting is best effort. A missing session warns `No session: login first.`; a
 warned and the caller gets `undefined`. Nodes then report `disconnected` and stay loaded, so a Telegram
 outage or a stale session does not break the flow.
 
+Reconnection is left entirely to GramJS — the library retries and reconnects in several places, and a
+second mechanism here would race it. The config node instead _observes_ the state GramJS publishes and
+forwards it to the receiver and sender nodes registered with it, so the canvas keeps telling the truth
+after `start()` has run:
+
+| State          | Meaning                                           | Node status                      |
+| -------------- | ------------------------------------------------- | -------------------------------- |
+| `connected`    | connect or reconnect succeeded                    | `connected`                      |
+| `disconnected` | connect failed, ping timed out, or disconnected   | `disconnected` — recovers itself |
+| `broken`       | the stored session's authorization key is invalid | `session invalid: login again`   |
+
+`broken` is the one that cannot heal: GramJS emits it only for an unusable authorization key, so
+rebuilding the client from the same session would fail identically. See
+[ADR 0006](adr/0006-connection-state.md).
+
 ## Teardown (redeploy)
 
 The config node destroys the client on close and clears its cache, so a redeploy does not leave a live

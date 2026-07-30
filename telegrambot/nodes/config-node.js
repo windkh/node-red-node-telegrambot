@@ -1,7 +1,17 @@
 // Created by Karl-Heinz Wind
 'use strict';
 
+const { UpdateConnectionState } = require('telegram/network');
+
 const { createTelegramClient } = require('../lib/telegram-client');
+
+// GramJS reports these as numbers; map them to names so the nodes do not have to know the encoding.
+const CONNECTION_STATES = new Map([
+    [UpdateConnectionState.connected, 'connected'],
+    [UpdateConnectionState.disconnected, 'disconnected'],
+    // Emitted only from _handleBadAuthKey: the stored session is unusable, not a network hiccup.
+    [UpdateConnectionState.broken, 'broken'],
+]);
 
 // The configuration node owns the shared TelegramClient. Receiver and sender nodes reference it and
 // ask for the client via getTelegramClient, so one session serves every node in the flow.
@@ -87,10 +97,34 @@ module.exports = function (RED) {
             return await createTelegramClient(options, (message) => node.warn(message));
         };
 
+        // Receiver and sender nodes register here so they can be told when the connection changes.
+        // Without this they set their status once, at start, and then show `connected` forever — even
+        // after the client has died.
+        this.statusListeners = new Set();
+
+        this.addStatusListener = function (listener) {
+            node.statusListeners.add(listener);
+        };
+
+        this.removeStatusListener = function (listener) {
+            node.statusListeners.delete(listener);
+        };
+
+        // Called for every raw update; GramJS routes the connection states through the raw handlers.
+        this.onConnectionState = function (update) {
+            const state = update instanceof UpdateConnectionState ? CONNECTION_STATES.get(update.state) : undefined;
+
+            if (state !== undefined) {
+                for (const listener of node.statusListeners) {
+                    listener.onConnectionState(state);
+                }
+            }
+        };
+
         // Activates the client or returns the already activated bot.
         this.getTelegramClient = async function (node) {
             if (!this.client) {
-                this.client = await this.createTelegramClient(
+                const client = await this.createTelegramClient(
                     node,
                     this.apiId,
                     this.apiHash,
@@ -101,6 +135,15 @@ module.exports = function (RED) {
                     this.proxy,
                     this.useWSS
                 );
+
+                if (client) {
+                    // Registered here rather than by the nodes, so the state is observed whether or not
+                    // anyone enabled "send raw events". A user's own raw handler still receives these
+                    // updates as before — GramJS calls every registered handler.
+                    client.addEventHandler(this.onConnectionState);
+                }
+
+                this.client = client;
             }
 
             return this.client;

@@ -9,6 +9,20 @@ const { CallbackQuery } = require('telegram/events/CallbackQuery');
 
 const { buildEventFilters } = require('../lib/event-filters');
 
+// The status texts are part of this node's public contract — keep them in one place so every code path
+// reports the same thing. `broken` gets a filled dot rather than a ring because it will not fix itself:
+// GramJS reports it only for an unusable authorization key, so the user has to log in again.
+const CONNECTED = { fill: 'green', shape: 'ring', text: 'connected' };
+const DISCONNECTED = { fill: 'red', shape: 'ring', text: 'disconnected' };
+const BROKEN = { fill: 'red', shape: 'dot', text: 'session invalid: login again' };
+const INVALID_FILTER = { fill: 'red', shape: 'ring', text: 'invalid filter' };
+
+const STATUS_BY_STATE = {
+    connected: CONNECTED,
+    disconnected: DISCONNECTED,
+    broken: BROKEN,
+};
+
 // The receiver node subscribes to Telegram events on the shared client and emits one message per
 // event. Which event types are subscribed is configured per node; each subscription is tracked so
 // that only the handlers actually added are removed again on close.
@@ -32,6 +46,19 @@ module.exports = function (RED) {
             this.error(error);
         }
         this.filters = filters;
+
+        // Keeps the canvas honest after start(): the connection can drop or the session can be
+        // invalidated long after this node last looked at it.
+        this.onConnectionState = (state) => {
+            const status = STATUS_BY_STATE[state];
+            if (status !== undefined) {
+                node.status(status);
+            }
+        };
+
+        if (this.config) {
+            this.config.addStatusListener(this);
+        }
 
         this.sendRawEvents = config.sendrawevents || false;
         this.sendNewMessage = config.sendnewmessage || false;
@@ -164,21 +191,13 @@ module.exports = function (RED) {
                 }
             }
 
-            node.status({
-                fill: 'red',
-                shape: 'ring',
-                text: 'disconnected',
-            });
+            node.status(DISCONNECTED);
         };
 
         this.start = async () => {
             if (node.filters === undefined) {
                 // The filter did not compile; the error was already reported in the constructor.
-                node.status({
-                    fill: 'red',
-                    shape: 'ring',
-                    text: 'invalid filter',
-                });
+                node.status(INVALID_FILTER);
             } else if (node.config) {
                 const client = await node.config.getTelegramClient(node);
                 if (client) {
@@ -220,17 +239,9 @@ module.exports = function (RED) {
                         node.callbackQueryEventHandlerAdded = true;
                     }
 
-                    node.status({
-                        fill: 'green',
-                        shape: 'ring',
-                        text: 'connected',
-                    });
+                    node.status(CONNECTED);
                 } else {
-                    node.status({
-                        fill: 'red',
-                        shape: 'ring',
-                        text: 'disconnected',
-                    });
+                    node.status(DISCONNECTED);
                 }
             } else {
                 // no config node?
@@ -239,6 +250,10 @@ module.exports = function (RED) {
         this.start();
 
         this.on('close', function (removed, done) {
+            if (node.config) {
+                node.config.removeStatusListener(node);
+            }
+
             // stop() is async, so awaiting it is what makes the unsubscribe actually finish before
             // Node-RED considers this node closed.
             (async () => {
