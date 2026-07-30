@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+# [0.1.15] - 2026-07-30
+
+### added a configurable flood wait threshold on the config node. Waits up to this many seconds are slept through silently, longer ones are reported. Default stays 60 seconds; 0 never sleeps - [#20](https://github.com/windkh/node-red-node-telegrambot/issues/20)
+
+### added a `flood wait Ns` status on the sender node when Telegram throttles a send. The original error still reaches Catch nodes unchanged, so `err.seconds` keeps working - [#20](https://github.com/windkh/node-red-node-telegrambot/issues/20)
+
 # [0.1.14] - 2026-07-30
 
 ### fixed the client giving up permanently after five failed connection attempts: connectionRetries is no longer pinned to 5, so GramJS' own default applies and a brief outage no longer kills a receiver until the next redeploy - [#19](https://github.com/windkh/node-red-node-telegrambot/issues/19)

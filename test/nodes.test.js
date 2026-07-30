@@ -292,6 +292,72 @@ describe('telegram client nodes', () => {
         assert.strictEqual(doneCalls[0], undefined, 'nodeDone must be called without an error');
     });
 
+    it('shows a flood wait and still forwards the original error', async () => {
+        const { FloodWaitError } = require('telegram/errors');
+        const flow = [
+            configNode,
+            { id: 'n1', type: 'telegram client sender', bot: 'c1', wires: [['n2']] },
+            { id: 'n2', type: 'helper' },
+        ];
+        await helper.load(telegramBotNode, flow);
+
+        // The constructor reads `capture`, not `seconds`.
+        const failure = new FloodWaitError({ capture: 42, request: { className: 'messages.SendMessage' } });
+        const client = {
+            sendMessage: async () => {
+                throw failure;
+            },
+        };
+
+        const n1 = helper.getNode('n1');
+        const statuses = [];
+        n1.status = (status) => statuses.push(status);
+
+        const msg = { payload: { func: 'sendMessage', args: ['chat'] } };
+        const error = await new Promise((resolve) => {
+            n1.processMessage(client, msg, () => {}, resolve);
+        });
+
+        assert.strictEqual(error, failure, 'the original error must reach nodeDone untouched');
+        assert.strictEqual(error.seconds, 42, 'a Catch node may be reading err.seconds');
+        assert.deepStrictEqual(statuses.at(-1), { fill: 'yellow', shape: 'ring', text: 'flood wait 42s' });
+    });
+
+    it('lets a connection change override a pending flood wait', async () => {
+        const { FloodWaitError } = require('telegram/errors');
+        const flow = [configNode, { id: 'n1', type: 'telegram client sender', bot: 'c1' }];
+        await helper.load(telegramBotNode, flow);
+
+        const n1 = helper.getNode('n1');
+        const statuses = [];
+        n1.status = (status) => statuses.push(status);
+
+        n1.showFloodWait(600);
+        assert.deepStrictEqual(statuses.at(-1), { fill: 'yellow', shape: 'ring', text: 'flood wait 600s' });
+
+        // The connection state says something about the client itself, so it outranks throttling.
+        n1.onConnectionState('broken');
+
+        assert.deepStrictEqual(statuses.at(-1), { fill: 'red', shape: 'dot', text: 'session invalid: login again' });
+    });
+
+    it('reverts to the steady status once the flood wait elapses', async () => {
+        const flow = [configNode, { id: 'n1', type: 'telegram client sender', bot: 'c1' }];
+        await helper.load(telegramBotNode, flow);
+
+        const n1 = helper.getNode('n1');
+        const statuses = [];
+        n1.status = (status) => statuses.push(status);
+
+        n1.onConnectionState('connected');
+        n1.showFloodWait(0);
+
+        // 0 seconds keeps this deterministic: the timer fires on the next tick.
+        await new Promise((resolve) => setTimeout(resolve, 20));
+
+        assert.deepStrictEqual(statuses.at(-1), { fill: 'green', shape: 'ring', text: 'connected' });
+    });
+
     it('invokes a raw MTProto request when msg.payload names an api', async () => {
         const flow = [
             configNode,

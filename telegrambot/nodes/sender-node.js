@@ -2,6 +2,7 @@
 'use strict';
 
 const { Api } = require('telegram');
+const { FloodWaitError } = require('telegram/errors');
 
 // The status texts are part of this node's public contract — keep them in one place so every code
 // path reports the same thing.
@@ -17,6 +18,11 @@ const STATUS_BY_STATE = {
     broken: BROKEN,
 };
 
+// Yellow, because unlike the red states this is Telegram throttling a working connection.
+function floodWaitStatus(seconds) {
+    return { fill: 'yellow', shape: 'ring', text: 'flood wait ' + seconds + 's' };
+}
+
 // The sender node is a generic bridge to the Telegram client: `msg.payload.func` names either a
 // convenience method on the client itself (no `api`) or a raw MTProto request under `Api[api]`.
 // The two differ in how arguments are passed — spread array vs. single options object.
@@ -27,12 +33,45 @@ module.exports = function (RED) {
         this.bot = config.bot;
         this.config = RED.nodes.getNode(this.bot);
 
+        // The last status derived from the connection itself. A flood wait is temporary and reverts to
+        // this once it elapses, so it has to be remembered rather than recomputed.
+        let steadyStatus = DISCONNECTED;
+        let floodTimer;
+
+        function clearFloodTimer() {
+            if (floodTimer !== undefined) {
+                clearTimeout(floodTimer);
+                floodTimer = undefined;
+            }
+        }
+
+        this.setConnectionStatus = (status) => {
+            steadyStatus = status;
+            // A connection change outranks a flood wait: it says something about the client itself.
+            clearFloodTimer();
+            node.status(status);
+        };
+
+        // Telegram is throttling us. GramJS sleeps through anything up to floodSleepThreshold on its
+        // own; this only runs for the waits it gives up on and throws.
+        this.showFloodWait = (seconds) => {
+            clearFloodTimer();
+            node.status(floodWaitStatus(seconds));
+
+            floodTimer = setTimeout(() => {
+                floodTimer = undefined;
+                node.status(steadyStatus);
+            }, seconds * 1000);
+            // A long wait must not keep the process alive on its own account.
+            floodTimer.unref();
+        };
+
         // Keeps the canvas honest after start(): the connection can drop or the session can be
         // invalidated long after this node last looked at it.
         this.onConnectionState = (state) => {
             const status = STATUS_BY_STATE[state];
             if (status !== undefined) {
-                node.status(status);
+                node.setConnectionStatus(status);
             }
         };
 
@@ -44,9 +83,9 @@ module.exports = function (RED) {
             if (node.config) {
                 const client = await node.config.getTelegramClient(node);
                 if (client) {
-                    node.status(CONNECTED);
+                    node.setConnectionStatus(CONNECTED);
                 } else {
-                    node.status(DISCONNECTED);
+                    node.setConnectionStatus(DISCONNECTED);
                 }
             } else {
                 // no config node?
@@ -55,7 +94,7 @@ module.exports = function (RED) {
         this.start();
 
         this.stop = async () => {
-            node.status(DISCONNECTED);
+            node.setConnectionStatus(DISCONNECTED);
         };
 
         // Performs the call and completes the message. The call has already been validated.
@@ -79,6 +118,12 @@ module.exports = function (RED) {
                 nodeSend(msg);
             } catch (error) {
                 failure = error;
+
+                // Make throttling visible on the canvas, but hand the *original* error on: a Catch node
+                // may well be reading err.seconds, so this must stay an addition, not a replacement.
+                if (error instanceof FloodWaitError) {
+                    node.showFloodWait(error.seconds);
+                }
             } finally {
                 nodeDone(failure);
             }
@@ -125,7 +170,7 @@ module.exports = function (RED) {
                     if (client) {
                         node.processMessage(client, msg, nodeSend, nodeDone);
                     } else {
-                        node.status(DISCONNECTED);
+                        node.setConnectionStatus(DISCONNECTED);
                         nodeDone('No telegram client: check the config node and login first.');
                     }
                 } else {
@@ -140,6 +185,8 @@ module.exports = function (RED) {
             if (node.config) {
                 node.config.removeStatusListener(node);
             }
+            // A pending flood-wait timer would otherwise write to a closed node.
+            clearFloodTimer();
             node.stop();
             // node.status({});
             done();

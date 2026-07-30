@@ -14,6 +14,13 @@
             devicemodel: { value: '', required: false },
             systemversion: { value: '', required: false },
             appversion: { value: '', required: false },
+            floodsleepthreshold: {
+                value: '',
+                required: false,
+                validate: function (v) {
+                    return v === '' || (RED.validators.number(v) && v >= 0 && v <= 86400);
+                },
+            },
 
             host: { value: '', required: false },
             sockstype: { value: '5', required: false },
@@ -259,6 +266,11 @@
                  <label for="node-config-input-appversion"><i class="fa fa-caret-right"></i> App Version</label>
                  <input type="text" id="node-config-input-appversion" placeholder="(Optional: app version)">
              </div>
+             <div class="form-row">
+                 <label for="node-config-input-floodsleepthreshold"><i class="fa fa-hourglass-half"></i> Flood wait</label>
+                 <input type="text" id="node-config-input-floodsleepthreshold" placeholder="(Optional: seconds, default 60)">
+                 <div class="form-tips" style="width: auto"><b>Tip:</b> Flood waits up to this many seconds are slept through silently; longer ones are reported as an error. Lower fails fast, higher hides throttling. 0 never sleeps.</div>
+             </div>
          </div>
 
          <div class="form-row">
@@ -387,6 +399,16 @@
     <p><b>Device Model</b>, <b>System Version</b> and <b>App Version</b> are optional. Left empty,
     GramJS reports the host's own values. Setting them makes the session look like a specific client,
     which some users prefer to reduce the risk of the account being flagged.</p>
+
+    <h3>Flood wait</h3>
+    <p>When Telegram throttles you it answers with a required wait. Waits up to <b>Flood wait</b>
+    seconds are slept through silently and the call then retried; longer ones are reported as an error on
+    the sender node, which also shows <i>flood wait Ns</i> on the canvas. Default is 60 seconds.
+    A lower value fails fast; a higher one hides throttling. <b>0</b> never sleeps.</p>
+    <p>Silent waits below the threshold produce no error and no status change — the flow just pauses.
+    Turn on <b>Verbose logging</b> to see them in the Node-RED log.</p>
+    <p>Being throttled is a warning sign: sustained flooding is what gets userbot accounts limited or
+    banned. Treat frequent flood waits as a reason to slow the flow down, not to raise this value.</p>
 </script>
 
 <!-- ------------------------------------------------------------------------------------------ -->

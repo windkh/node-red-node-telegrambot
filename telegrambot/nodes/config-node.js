@@ -33,6 +33,9 @@ module.exports = function (RED) {
         const deviceModel = n.devicemodel || '';
         const systemVersion = n.systemversion || '';
         const appVersion = n.appversion || '';
+        // Kept as the raw config value: lib/client-params.js decides what counts as unset, because 0 is
+        // a meaningful setting here and '' is not.
+        const floodSleepThreshold = n.floodsleepthreshold;
 
         if (this.useProxy) {
             this.proxy = {
@@ -92,6 +95,7 @@ module.exports = function (RED) {
                 deviceModel: deviceModel,
                 systemVersion: systemVersion,
                 appVersion: appVersion,
+                floodSleepThreshold: floodSleepThreshold,
             };
 
             return await createTelegramClient(options, (message) => node.warn(message));

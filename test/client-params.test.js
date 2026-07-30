@@ -27,6 +27,30 @@ describe('buildClientParams', () => {
         assert.ok(!('autoReconnect' in params));
     });
 
+    it('omits floodSleepThreshold when it is unset', () => {
+        assert.ok(!('floodSleepThreshold' in buildClientParams({})));
+        assert.ok(!('floodSleepThreshold' in buildClientParams({ floodSleepThreshold: '' })));
+    });
+
+    it('passes a configured floodSleepThreshold through', () => {
+        assert.strictEqual(buildClientParams({ floodSleepThreshold: '120' }).floodSleepThreshold, 120);
+        assert.strictEqual(buildClientParams({ floodSleepThreshold: 120 }).floodSleepThreshold, 120);
+    });
+
+    it('keeps a floodSleepThreshold of zero, which means never sleep', () => {
+        // 0 is meaningful here, so emptiness cannot be a falsy check. The editor stores '0' as a
+        // string, but a numeric 0 is what actually catches a falsy guard — assert both.
+        assert.strictEqual(buildClientParams({ floodSleepThreshold: '0' }).floodSleepThreshold, 0);
+        assert.strictEqual(buildClientParams({ floodSleepThreshold: 0 }).floodSleepThreshold, 0);
+    });
+
+    it('ignores a floodSleepThreshold that is not a usable number', () => {
+        // The editor validates this; if something invalid gets through, fall back to the library default
+        // rather than handing GramJS a NaN.
+        assert.ok(!('floodSleepThreshold' in buildClientParams({ floodSleepThreshold: 'soon' })));
+        assert.ok(!('floodSleepThreshold' in buildClientParams({ floodSleepThreshold: '-5' })));
+    });
+
     it('omits the optional version fields when they are absent', () => {
         const params = buildClientParams({});
 
