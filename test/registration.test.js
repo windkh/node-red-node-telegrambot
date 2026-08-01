@@ -41,12 +41,18 @@ describe('entry point registration', () => {
         assert.doesNotThrow(() => entry(RED));
     });
 
-    it('registers the three node types in dependency order', () => {
+    it('registers the node types in dependency order', () => {
         const RED = createRedStub();
         entry(RED);
 
+        // The config node has to come first: every other node resolves it by id at construction time.
         const types = RED.registeredTypes.map((entry) => entry.type);
-        assert.deepStrictEqual(types, ['telegram client config', 'telegram client receiver', 'telegram client sender']);
+        assert.deepStrictEqual(types, [
+            'telegram client config',
+            'telegram client receiver',
+            'telegram client sender',
+            'telegram client download',
+        ]);
     });
 
     it('registers every node type with a constructor function', () => {

@@ -93,6 +93,37 @@ Not every filter applies to every event type, because Telegram's builders differ
 
 Leaving every field empty reproduces the behaviour of earlier versions: no filtering.
 
+### Download Node
+
+The _Telegram client download_ node fetches the media on a received message — a photo, video, voice note
+or document. Wire it straight to a receiver output; it accepts what the receiver emits, so nothing has to
+be unwrapped.
+
+```
+[client receiver] --> [client download] --> [file out]
+```
+
+Output:
+
+| Property       | Contents                                                    |
+| -------------- | ----------------------------------------------------------- |
+| `msg.payload`  | the file as a Buffer                                        |
+| `msg.filename` | the document's own name, or a generated one                 |
+| `msg.mimetype` | the mime type (photos are always `image/jpeg`)              |
+| `msg.telegram` | the original message, so the sender and chat stay reachable |
+
+That is the shape **file out** and **http response** already expect, so they can follow directly.
+
+Two settings matter:
+
+- **Thumbnail** — leave empty for the media itself, or give an index to fetch a thumbnail instead
+  (`0` is the smallest). Useful when you want a preview rather than a 40 MB original.
+- **Max size** — in megabytes. A larger download is refused with an error instead of being read into
+  memory. `0` disables the check. The size is not known in advance for every kind of media, and the check
+  is skipped when it cannot be determined — a safeguard, not a guarantee.
+
+[**download media flow**](examples/DownloadMedia.json)
+
 ### Sender Node
 
 The _Telegram client sender_ node is able to call nearly all functions provides by gramjs.

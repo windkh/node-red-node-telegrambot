@@ -9,4 +9,5 @@ module.exports = function (RED) {
     require('./nodes/config-node')(RED);
     require('./nodes/receiver-node')(RED);
     require('./nodes/sender-node')(RED);
+    require('./nodes/download-node')(RED);
 };

@@ -12,3 +12,4 @@ One file per decision: NNNN-title.md (Context / Decision / Consequences).
 | [0006](0006-connection-state.md)                   | Let GramJS reconnect; report the state it publishes               |
 | [0007](0007-flood-wait.md)                         | Make FLOOD_WAIT visible without changing the error                |
 | [0008](0008-entity-resolution.md)                  | Explain unresolvable peers instead of resolving them again        |
+| [0009](0009-download-node.md)                      | A separate node for downloading media                             |

@@ -686,3 +686,91 @@
 </script>
 
 <!-- ------------------------------------------------------------------------------------------ -->
+<script type="text/javascript">
+    RED.nodes.registerType('telegram client download', {
+        category: 'telegram',
+        color: '#3BABDD',
+        defaults: {
+            name: { value: '' },
+            bot: { value: '', type: 'telegram client config', required: true },
+            thumb: {
+                value: '',
+                required: false,
+                validate: function (v) {
+                    return v === '' || (RED.validators.number(v) && v >= 0);
+                },
+            },
+            maxsize: {
+                value: 20,
+                required: false,
+                validate: function (v) {
+                    return v === '' || (RED.validators.number(v) && v >= 0);
+                },
+            },
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: 'telegram.png',
+        paletteLabel: 'client download',
+        label: function () {
+            return this.name || 'Telegram client download';
+        },
+    });
+</script>
+
+<script type="text/x-red" data-template-name="telegram client download">
+    <div class="form-row">
+        <label for="node-input-bot"><i class="fa fa-telegram"></i> Bot</label>
+        <input type="text" id="node-input-bot" placeholder="Bot">
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+
+    <hr align="middle"/>
+
+    <div class="form-row">
+        <label for="node-input-thumb"><i class="fa fa-compress"></i> Thumbnail</label>
+        <input type="text" id="node-input-thumb" placeholder="(Empty = full size. 0 = smallest.)">
+    </div>
+    <div class="form-row">
+        <label for="node-input-maxsize"><i class="fa fa-balance-scale"></i> Max size</label>
+        <input type="text" id="node-input-maxsize" placeholder="(Megabytes. 0 = no limit.)">
+        <div class="form-tips" style="width: auto"><b>Tip:</b> Downloads larger than this are refused instead of being read into memory.</div>
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="telegram client download">
+    <p>Downloads the media attached to a received message &mdash; a photo, video, voice note or
+    document.</p>
+
+    <h3>Inputs</h3>
+    <p>Wire this node to a <i>Telegram client receiver</i> output. It accepts what the receiver emits, so
+    no unwrapping is needed. A message without media is reported as an error.</p>
+
+    <h3>Outputs</h3>
+    <ul>
+        <li><code>msg.payload</code> &mdash; the file as a Buffer</li>
+        <li><code>msg.filename</code> &mdash; the document's own name, or a generated one</li>
+        <li><code>msg.mimetype</code> &mdash; the document's mime type (photos are always
+        <code>image/jpeg</code>)</li>
+        <li><code>msg.telegram</code> &mdash; the original message, so the sender and chat stay
+        reachable</li>
+    </ul>
+    <p>That is the shape <b>file out</b> and <b>http response</b> already expect, so they can follow
+    directly.</p>
+
+    <h3>Thumbnail</h3>
+    <p>Leave empty to download the media itself. An index picks a thumbnail instead &mdash; <code>0</code>
+    is the smallest available size. Useful when you want a preview rather than a 40 MB original.</p>
+
+    <h3>Max size</h3>
+    <p>A download larger than this many megabytes is refused with an error instead of being read into
+    memory, which is what protects the runtime from a large video. <code>0</code> or empty disables the
+    check.</p>
+    <p>The size is not known in advance for every kind of media. When it cannot be determined the check
+    is skipped, so this is a safeguard rather than a guarantee.</p>
+</script>
+
+<!-- ------------------------------------------------------------------------------------------ -->

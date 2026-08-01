@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+# [0.1.19] - 2026-08-01
+
+### added a `telegram client download` node that fetches the media on a received message. Wire it to a receiver output: the bytes land in `msg.payload`, the name in `msg.filename` and the original message in `msg.telegram`, so `file out` and `http response` follow directly. A configurable size limit refuses large downloads instead of reading them into memory - [#22](https://github.com/windkh/node-red-node-telegrambot/issues/22), [#9](https://github.com/windkh/node-red-node-telegrambot/issues/9)
+
 # [0.1.18] - 2026-08-01
 
 ### added an explanation when Telegram cannot resolve a peer. The original error still reaches Catch nodes unchanged; the node now also warns why it happened - a numeric id only works while the peer is in the session's entity cache, which is lost on restart. Addressing peers by username avoids it entirely - [#24](https://github.com/windkh/node-red-node-telegrambot/issues/24)

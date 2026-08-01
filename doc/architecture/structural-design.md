@@ -8,13 +8,15 @@ telegrambot/
     config-node.js          telegram client config — owns the shared TelegramClient
     receiver-node.js        telegram client receiver — event subscriptions
     sender-node.js          telegram client sender — client calls and raw MTProto requests
+    download-node.js        telegram client download — media from a received message
   lib/
     login.js                interactive login, produces a session string
     telegram-client.js      runtime connect from a stored session string
     client-params.js        TelegramClient constructor options, shared by both of the above
     auth-prompt.js          deferred phone-code / password promises
     event-filters.js        receiver filter config -> per-builder GramJS options
-  telegrambot.html          editor definitions and help for all three nodes
+    media.js                media descriptor -> filename, mime type, download size
+  telegrambot.html          editor definitions and help for all four nodes
   icons/
 ```
 
