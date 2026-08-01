@@ -324,7 +324,6 @@ describe('telegram client nodes', () => {
     });
 
     it('lets a connection change override a pending flood wait', async () => {
-        const { FloodWaitError } = require('telegram/errors');
         const flow = [configNode, { id: 'n1', type: 'telegram client sender', bot: 'c1' }];
         await helper.load(telegramBotNode, flow);
 
