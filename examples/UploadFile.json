@@ -1,0 +1,93 @@
+[
+    {
+        "id": "upload_file_tab",
+        "type": "tab",
+        "label": "Upload a file",
+        "disabled": false,
+        "info": "Reads a file from disk and sends it to a chat.\n\n`file in` produces a Buffer in msg.payload and the path in msg.filename, which is exactly what the upload node needs — a Buffer carries no name of its own, so msg.filename is required.\n\nFor large files send the path instead of the Buffer: set `file in` to output a filename only, or put the path straight into msg.payload. Telegram then streams it from disk rather than the flow holding the whole file in memory."
+    },
+    {
+        "id": "upload_trigger",
+        "type": "inject",
+        "z": "upload_file_tab",
+        "name": "send it",
+        "props": [{ "p": "payload" }],
+        "repeat": "",
+        "once": false,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 150,
+        "y": 120,
+        "wires": [["upload_read"]]
+    },
+    {
+        "id": "upload_read",
+        "type": "file in",
+        "z": "upload_file_tab",
+        "name": "read the file",
+        "filename": "/tmp/report.pdf",
+        "filenameType": "str",
+        "format": "",
+        "chunk": false,
+        "sendError": true,
+        "encoding": "none",
+        "allProps": false,
+        "x": 330,
+        "y": 120,
+        "wires": [["upload_name"]]
+    },
+    {
+        "id": "upload_name",
+        "type": "change",
+        "z": "upload_file_tab",
+        "name": "name it",
+        "rules": [
+            {
+                "t": "set",
+                "p": "filename",
+                "pt": "msg",
+                "to": "report.pdf",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 510,
+        "y": 120,
+        "wires": [["upload_send"]]
+    },
+    {
+        "id": "upload_send",
+        "type": "telegram client upload",
+        "z": "upload_file_tab",
+        "name": "upload",
+        "bot": "",
+        "peer": "",
+        "caption": "Here is the report",
+        "forcedocument": true,
+        "x": 680,
+        "y": 120,
+        "wires": [["upload_debug"]]
+    },
+    {
+        "id": "upload_debug",
+        "type": "debug",
+        "z": "upload_file_tab",
+        "name": "sent message",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 860,
+        "y": 120,
+        "wires": []
+    }
+]

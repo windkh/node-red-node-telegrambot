@@ -9,6 +9,7 @@ telegrambot/
     receiver-node.js        telegram client receiver — event subscriptions
     sender-node.js          telegram client sender — client calls and raw MTProto requests
     download-node.js        telegram client download — media from a received message
+    upload-node.js          telegram client upload — send a Buffer or a path as a file
   lib/
     login.js                interactive login, produces a session string
     telegram-client.js      runtime connect from a stored session string
@@ -16,7 +17,8 @@ telegrambot/
     auth-prompt.js          deferred phone-code / password promises
     event-filters.js        receiver filter config -> per-builder GramJS options
     media.js                media descriptor -> filename, mime type, download size
-  telegrambot.html          editor definitions and help for all four nodes
+    upload.js               Buffer -> CustomFile, so an upload arrives correctly named
+  telegrambot.html          editor definitions and help for all five nodes
   icons/
 ```
 

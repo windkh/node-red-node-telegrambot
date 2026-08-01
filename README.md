@@ -124,6 +124,35 @@ Two settings matter:
 
 [**download media flow**](examples/DownloadMedia.json)
 
+### Upload Node
+
+The _Telegram client upload_ node sends a file to a chat — the mirror of the download node.
+
+```
+[file in] --> [client upload]
+```
+
+Inputs:
+
+| Property       | Contents                                                        |
+| -------------- | --------------------------------------------------------------- |
+| `msg.payload`  | the file: a **Buffer** or a **path** as a string                |
+| `msg.filename` | **required for a Buffer** — a Buffer carries no name of its own |
+| `msg.peer`     | overrides the configured **Send to**                            |
+| `msg.caption`  | overrides the configured **Caption**                            |
+
+`msg.payload` becomes the message Telegram created, so a following node can reply to it, edit it or pin
+it. The Buffer is not carried through.
+
+Why `msg.filename` is required: GramJS names an unnamed Buffer literally `unnamed`, so the file would
+arrive in the chat called that. The node reports an error instead of sending it wrongly. A path needs no
+filename — Telegram uses the file's basename.
+
+For large files pass a **path** rather than a Buffer: the whole file otherwise has to fit in memory
+before it can be sent.
+
+[**upload file flow**](examples/UploadFile.json)
+
 ### Sender Node
 
 The _Telegram client sender_ node is able to call nearly all functions provides by gramjs.

@@ -13,3 +13,4 @@ One file per decision: NNNN-title.md (Context / Decision / Consequences).
 | [0007](0007-flood-wait.md)                         | Make FLOOD_WAIT visible without changing the error                |
 | [0008](0008-entity-resolution.md)                  | Explain unresolvable peers instead of resolving them again        |
 | [0009](0009-download-node.md)                      | A separate node for downloading media                             |
+| [0010](0010-upload-node.md)                        | A separate node for uploading files                               |

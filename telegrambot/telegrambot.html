@@ -774,3 +774,80 @@
 </script>
 
 <!-- ------------------------------------------------------------------------------------------ -->
+<script type="text/javascript">
+    RED.nodes.registerType('telegram client upload', {
+        category: 'telegram',
+        color: '#3BABDD',
+        defaults: {
+            name: { value: '' },
+            bot: { value: '', type: 'telegram client config', required: true },
+            peer: { value: '', required: false },
+            caption: { value: '', required: false },
+            forcedocument: { value: false, required: false },
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: 'telegram.png',
+        paletteLabel: 'client upload',
+        label: function () {
+            return this.name || 'Telegram client upload';
+        },
+    });
+</script>
+
+<script type="text/x-red" data-template-name="telegram client upload">
+    <div class="form-row">
+        <label for="node-input-bot"><i class="fa fa-telegram"></i> Bot</label>
+        <input type="text" id="node-input-bot" placeholder="Bot">
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+
+    <hr align="middle"/>
+
+    <div class="form-row">
+        <label for="node-input-peer"><i class="fa fa-paper-plane"></i> Send to</label>
+        <input type="text" id="node-input-peer" placeholder="(Username. Overridden by msg.peer.)">
+    </div>
+    <div class="form-row">
+        <label for="node-input-caption"><i class="fa fa-comment"></i> Caption</label>
+        <input type="text" id="node-input-caption" placeholder="(Optional. Overridden by msg.caption.)">
+    </div>
+    <div class="form-row">
+        <label for="node-input-forcedocument"><i class="fa fa-file"></i> As document</label>
+        <input type="checkbox" id="node-input-forcedocument" style="display: inline-block; width: auto; vertical-align: top;">
+        <div class="form-tips" style="width: auto"><b>Tip:</b> Send as a file rather than letting Telegram re-encode it as a photo or video.</div>
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="telegram client upload">
+    <p>Sends a file to a chat &mdash; the mirror of the <i>Telegram client download</i> node.</p>
+
+    <h3>Inputs</h3>
+    <ul>
+        <li><code>msg.payload</code> &mdash; the file, either a <b>Buffer</b> or a <b>path</b> as a
+        string. This is what <b>file in</b> and <b>http request</b> produce, so they can feed this node
+        directly.</li>
+        <li><code>msg.filename</code> &mdash; <b>required when the payload is a Buffer</b>, because a
+        Buffer carries no name of its own. Without it the file would arrive in the chat called
+        <i>unnamed</i>, so the node reports an error instead. A path needs no filename.</li>
+        <li><code>msg.peer</code> &mdash; overrides <b>Send to</b>.</li>
+        <li><code>msg.caption</code> &mdash; overrides <b>Caption</b>.</li>
+    </ul>
+
+    <h3>Outputs</h3>
+    <p><code>msg.payload</code> becomes the message Telegram created, so it can be replied to, edited or
+    pinned by a following node. The Buffer is not carried through &mdash; it has served its purpose.</p>
+
+    <h3>Addressing</h3>
+    <p>A <b>username</b> always works. A numeric id only works while that peer is in the session's
+    entity cache, which is lost on restart &mdash; see the sender node's help for the details.</p>
+
+    <h3>Size</h3>
+    <p>A Buffer has to fit in memory before it can be sent. For large files pass a <b>path</b> instead:
+    Telegram reads it from disk rather than the flow holding the whole thing.</p>
+</script>
+
+<!-- ------------------------------------------------------------------------------------------ -->

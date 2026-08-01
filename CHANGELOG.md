@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+# [0.1.20] - 2026-08-01
+
+### added a `telegram client upload` node that sends a Buffer or a file path to a chat, so `file in` and `http request` can feed it directly. `msg.filename` is required for a Buffer: without a name Telegram would receive the file called `unnamed`, so the node reports an error rather than sending it wrongly - [#23](https://github.com/windkh/node-red-node-telegrambot/issues/23)
+
 # [0.1.19] - 2026-08-01
 
 ### added a `telegram client download` node that fetches the media on a received message. Wire it to a receiver output: the bytes land in `msg.payload`, the name in `msg.filename` and the original message in `msg.telegram`, so `file out` and `http response` follow directly. A configurable size limit refuses large downloads instead of reading them into memory - [#22](https://github.com/windkh/node-red-node-telegrambot/issues/22), [#9](https://github.com/windkh/node-red-node-telegrambot/issues/9)
