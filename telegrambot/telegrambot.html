@@ -21,6 +21,7 @@
                     return v === '' || (RED.validators.number(v) && v >= 0 && v <= 86400);
                 },
             },
+            parsemode: { value: '', required: false },
 
             host: { value: '', required: false },
             sockstype: { value: '5', required: false },
@@ -267,6 +268,16 @@
                  <input type="text" id="node-config-input-appversion" placeholder="(Optional: app version)">
              </div>
              <div class="form-row">
+                 <label for="node-config-input-parsemode"><i class="fa fa-font"></i> Parse mode</label>
+                 <select id="node-config-input-parsemode">
+                     <option value="">none (send text as-is)</option>
+                     <option value="md">Markdown</option>
+                     <option value="md2">MarkdownV2</option>
+                     <option value="html">HTML</option>
+                 </select>
+                 <div class="form-tips" style="width: auto"><b>Tip:</b> With a parse mode on, your flow must escape markup characters in any text it did not write itself.</div>
+             </div>
+             <div class="form-row">
                  <label for="node-config-input-floodsleepthreshold"><i class="fa fa-hourglass-half"></i> Flood wait</label>
                  <input type="text" id="node-config-input-floodsleepthreshold" placeholder="(Optional: seconds, default 60)">
                  <div class="form-tips" style="width: auto"><b>Tip:</b> Flood waits up to this many seconds are slept through silently; longer ones are reported as an error. Lower fails fast, higher hides throttling. 0 never sleeps.</div>
@@ -370,45 +381,58 @@
 </script>
 
 <script type="text/x-red" data-help-name="telegram client config">
-    <p>Holds the credentials for one Telegram account and owns the client that every receiver and
-    sender using this config shares.</p>
+        <p>Holds the credentials for one Telegram account and owns the client that every receiver and
+        sender using this config shares.</p>
 
-    <h3>Login mode</h3>
-    <p><b>user</b> signs in as the account owner (a userbot) with a phone number.
-    <b>bot</b> signs in with a token from &#64;botfather. The login mode also decides which
-    authentication the deployed flow uses, so switching it back and forth is safe even if a bot token
-    is still stored.</p>
+        <h3>Login mode</h3>
+        <p><b>user</b> signs in as the account owner (a userbot) with a phone number.
+        <b>bot</b> signs in with a token from &#64;botfather. The login mode also decides which
+        authentication the deployed flow uses, so switching it back and forth is safe even if a bot token
+        is still stored.</p>
 
-    <h3>Logging in</h3>
-    <p>Create an API ID and API Hash at <i>my.telegram.org</i> under <i>API Development Tools</i>, then
-    press <b>Login</b>. Telegram sends a phone code; enter it in the <b>Phone-Code</b> field. If your
-    account has two-step verification enabled, also fill in <b>Password</b> in the login panel.</p>
-    <p>The login runs once and produces a <b>session string</b>, which is what the deployed flow
-    actually uses. Treat it like a password: it authenticates the whole account.</p>
+        <h3>Logging in</h3>
+        <p>Create an API ID and API Hash at <i>my.telegram.org</i> under <i>API Development Tools</i>, then
+        press <b>Login</b>. Telegram sends a phone code; enter it in the <b>Phone-Code</b> field. If your
+        account has two-step verification enabled, also fill in <b>Password</b> in the login panel.</p>
+        <p>The login runs once and produces a <b>session string</b>, which is what the deployed flow
+        actually uses. Treat it like a password: it authenticates the whole account.</p>
 
-    <h3>Two passwords</h3>
-    <p>These are different values and easy to mix up:</p>
-    <ul>
-        <li><b>Password</b> in the login panel is your account's two-step-verification password.</li>
-        <li><b>Password</b> under <i>Proxy Options</i> is the password of the SOCKS proxy.</li>
-    </ul>
-    <p>Before version 0.1.11 both shared one input field. If you had entered an account password, it
-    now appears prefilled in the proxy field — clear it there and re-enter it in the login panel.</p>
+        <h3>Two passwords</h3>
+        <p>These are different values and easy to mix up:</p>
+        <ul>
+            <li><b>Password</b> in the login panel is your account's two-step-verification password.</li>
+            <li><b>Password</b> under <i>Proxy Options</i> is the password of the SOCKS proxy.</li>
+        </ul>
+        <p>Before version 0.1.11 both shared one input field. If you had entered an account password, it
+        now appears prefilled in the proxy field — clear it there and re-enter it in the login panel.</p>
 
-    <h3>Device fields</h3>
-    <p><b>Device Model</b>, <b>System Version</b> and <b>App Version</b> are optional. Left empty,
-    GramJS reports the host's own values. Setting them makes the session look like a specific client,
-    which some users prefer to reduce the risk of the account being flagged.</p>
+        <h3>Device fields</h3>
+        <p><b>Device Model</b>, <b>System Version</b> and <b>App Version</b> are optional. Left empty,
+        GramJS reports the host's own values. Setting them makes the session look like a specific client,
+        which some users prefer to reduce the risk of the account being flagged.</p>
 
-    <h3>Flood wait</h3>
-    <p>When Telegram throttles you it answers with a required wait. Waits up to <b>Flood wait</b>
-    seconds are slept through silently and the call then retried; longer ones are reported as an error on
-    the sender node, which also shows <i>flood wait Ns</i> on the canvas. Default is 60 seconds.
-    A lower value fails fast; a higher one hides throttling. <b>0</b> never sleeps.</p>
-    <p>Silent waits below the threshold produce no error and no status change — the flow just pauses.
-    Turn on <b>Verbose logging</b> to see them in the Node-RED log.</p>
-    <p>Being throttled is a warning sign: sustained flooding is what gets userbot accounts limited or
-    banned. Treat frequent flood waits as a reason to slow the flow down, not to raise this value.</p>
+        <h3>Parse mode</h3>
+        <p>Off by default: message text is sent exactly as given. Switching it on makes Telegram interpret
+        the text as <b>Markdown</b>, <b>MarkdownV2</b> or <b>HTML</b>, so <code>*bold*</code> arrives bold.</p>
+        <p><b>This applies to every message this client sends.</b> Once it is on, any text your flow did not
+        write itself &mdash; a user's name, a value from an API, an error message &mdash; has to be escaped,
+        or a stray <code>*</code>, <code>_</code> or <code>&lt;</code> will render wrongly or make Telegram
+        reject the message. If only some of your messages are formatted, leave this off and set
+        <code>parseMode</code> per message instead:</p>
+        <pre>msg.payload = {
+        func: 'sendMessage',
+        args: ['someone', { message: '*bold*', parseMode: 'md' }],
+    };</pre>
+
+        <h3>Flood wait</h3>
+        <p>When Telegram throttles you it answers with a required wait. Waits up to <b>Flood wait</b>
+        seconds are slept through silently and the call then retried; longer ones are reported as an error on
+        the sender node, which also shows <i>flood wait Ns</i> on the canvas. Default is 60 seconds.
+        A lower value fails fast; a higher one hides throttling. <b>0</b> never sleeps.</p>
+        <p>Silent waits below the threshold produce no error and no status change — the flow just pauses.
+        Turn on <b>Verbose logging</b> to see them in the Node-RED log.</p>
+        <p>Being throttled is a warning sign: sustained flooding is what gets userbot accounts limited or
+        banned. Treat frequent flood waits as a reason to slow the flow down, not to raise this value.</p>
 </script>
 
 <!-- ------------------------------------------------------------------------------------------ -->

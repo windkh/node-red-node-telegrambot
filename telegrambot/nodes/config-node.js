@@ -36,6 +36,7 @@ module.exports = function (RED) {
         // Kept as the raw config value: lib/client-params.js decides what counts as unset, because 0 is
         // a meaningful setting here and '' is not.
         const floodSleepThreshold = n.floodsleepthreshold;
+        const parseMode = n.parsemode || '';
 
         if (this.useProxy) {
             this.proxy = {
@@ -96,6 +97,7 @@ module.exports = function (RED) {
                 systemVersion: systemVersion,
                 appVersion: appVersion,
                 floodSleepThreshold: floodSleepThreshold,
+                parseMode: parseMode,
             };
 
             return await createTelegramClient(options, (message) => node.warn(message));

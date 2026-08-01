@@ -112,6 +112,14 @@ describe('telegram client nodes', () => {
         assert.strictEqual(c1.twoFaPassword, 'account-pw', 'the account password must not be overwritten');
     });
 
+    it('leaves the parse mode unset by default', async () => {
+        await helper.load(telegramBotNode, [configNode]);
+
+        // The guard that matters: switching a parse mode on by default would change what every
+        // existing flow sends, because text containing *, _ or < would start being read as markup.
+        assert.strictEqual(helper.getNode('c1').config.parsemode, undefined);
+    });
+
     it('defaults loginMode to user', async () => {
         await helper.load(telegramBotNode, [configNode]);
 

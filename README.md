@@ -113,6 +113,26 @@ Setting `api` builds a raw MTProto request, which takes a single options **objec
 msg.payload = { api: 'messages', func: 'SendMessage', args: { peer: 'someone' } };
 ```
 
+#### Formatting message text
+
+By default text is sent exactly as given. To get **bold**, links or code blocks, Telegram has to be told
+to interpret the text — either per message, which is usually what you want:
+
+```javascript
+msg.payload = {
+    func: 'sendMessage',
+    args: ['someone', { message: '*bold* and _italic_', parseMode: 'md' }],
+};
+```
+
+or for every message this client sends, via **Parse mode** on the config node (`Markdown`,
+`MarkdownV2` or `HTML`).
+
+> **Escaping:** with a parse mode active, any text your flow did not write itself — a user's name, a
+> value from an API, an error message — must be escaped first. A stray `*`, `_` or `<` will render
+> wrongly or make Telegram reject the message outright. If only some of your messages are formatted,
+> leave the config-node setting off and pass `parseMode` per message.
+
 #### Useful client methods
 
 Anything on the client is reachable by name. The ones worth knowing:

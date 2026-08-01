@@ -6,6 +6,20 @@ const { StringSession } = require('telegram/sessions');
 
 const { buildClientParams } = require('./client-params');
 
+// What GramJS' sanitizeParseMode accepts. It *throws* on anything else, and this is only a formatting
+// preference — it must not be able to stop the client connecting, so the value is checked first.
+const PARSE_MODES = ['md', 'markdown', 'md2', 'markdownv2', 'html'];
+
+function applyParseMode(client, parseMode, warn) {
+    if (parseMode) {
+        if (PARSE_MODES.includes(parseMode)) {
+            client.setParseMode(parseMode);
+        } else {
+            warn(`Unknown parse mode '${parseMode}': sending messages without one.`);
+        }
+    }
+}
+
 // Connects a client from an already stored session string, i.e. the runtime counterpart to
 // ./login. Without a session there is nothing to restore, so the caller is told to log in first.
 //
@@ -28,6 +42,10 @@ async function createTelegramClient(options, warn) {
             client = new TelegramClient(stringSession, ID, options.apiHash, clientParams);
 
             client.setLogLevel(options.logLevel);
+
+            // Unset by default: switching one on would change what every existing flow sends, because
+            // text containing *, _ or < would suddenly be read as markup.
+            applyParseMode(client, options.parseMode, warn);
 
             // Branch on the configured login mode, not on whether a token happens to be stored:
             // a token left over from experimenting with bot mode would otherwise hijack the auth of
@@ -66,4 +84,7 @@ async function createTelegramClient(options, warn) {
 
 module.exports = {
     createTelegramClient,
+    // Exported for tests: createTelegramClient itself builds a real TelegramClient and cannot run
+    // offline, but the parse-mode decision is worth pinning down on its own.
+    applyParseMode,
 };

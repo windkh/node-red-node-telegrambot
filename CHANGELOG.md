@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+# [0.1.17] - 2026-08-01
+
+### added a parse mode option on the config node (Markdown, MarkdownV2, HTML) so message text can be formatted. Off by default: switching it on changes how every message this client sends is interpreted, and any text the flow did not write itself then has to be escaped. `parseMode` can also be set per message instead - [#26](https://github.com/windkh/node-red-node-telegrambot/issues/26)
+
 # [0.1.16] - 2026-08-01
 
 ### documented the client methods reachable from the sender node, the two calling conventions and their different args shapes, and the warning that connection and authentication methods disrupt every node sharing the config - [#29](https://github.com/windkh/node-red-node-telegrambot/issues/29)
