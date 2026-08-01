@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+# [0.1.18] - 2026-08-01
+
+### added an explanation when Telegram cannot resolve a peer. The original error still reaches Catch nodes unchanged; the node now also warns why it happened - a numeric id only works while the peer is in the session's entity cache, which is lost on restart. Addressing peers by username avoids it entirely - [#24](https://github.com/windkh/node-red-node-telegrambot/issues/24)
+
 # [0.1.17] - 2026-08-01
 
 ### added a parse mode option on the config node (Markdown, MarkdownV2, HTML) so message text can be formatted. Off by default: switching it on changes how every message this client sends is interpreted, and any text the flow did not write itself then has to be escaped. `parseMode` can also be set per message instead - [#26](https://github.com/windkh/node-red-node-telegrambot/issues/26)

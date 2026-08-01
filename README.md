@@ -133,6 +133,35 @@ or for every message this client sends, via **Parse mode** on the config node (`
 > wrongly or make Telegram reject the message outright. If only some of your messages are formatted,
 > leave the config-node setting off and pass `parseMode` per message.
 
+#### Addressing a chat or user
+
+You do not need to resolve peers yourself — both calling conventions accept a username and let GramJS
+look it up. **How you address a peer decides whether it keeps working, though:**
+
+| You pass       | Works                                                                 |
+| -------------- | --------------------------------------------------------------------- |
+| `'username'`   | Always. Costs one lookup, which Telegram then caches for the session. |
+| An invite link | Always.                                                               |
+| A numeric id   | **Only while that peer is in the session's cache.**                   |
+| A phone number | Only if that person is in your account's contacts.                    |
+
+The catch is the numeric id. Telegram will not let you address an arbitrary user by id alone — it needs
+an `access_hash`, which the client only holds for peers it has already seen in this session. That cache
+lives in memory and is **lost on every restart**, so a flow that works while you are building it can
+fail after a redeploy with:
+
+```
+Could not find the input entity for ...
+```
+
+Address peers by **username** and this never happens. If you only have an id, resolve it once in the
+same flow with `getEntity` and pass the result on:
+
+```javascript
+msg.payload = { func: 'getEntity', args: ['username'] };
+// then send to msg.payload from the next node
+```
+
 #### Useful client methods
 
 Anything on the client is reachable by name. The ones worth knowing:

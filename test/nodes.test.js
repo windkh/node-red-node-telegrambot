@@ -331,6 +331,58 @@ describe('telegram client nodes', () => {
         assert.strictEqual(results.checkAuthorization, true);
     });
 
+    it('explains an unresolvable peer and still forwards the original error', async () => {
+        const flow = [
+            configNode,
+            { id: 'n1', type: 'telegram client sender', bot: 'c1', wires: [['n2']] },
+            { id: 'n2', type: 'helper' },
+        ];
+        await helper.load(telegramBotNode, flow);
+
+        // GramJS' own wording, from client/users.js — there is no error class for this, so the node
+        // matches on the message. Keep this string in step with UNRESOLVED_PEER in sender-node.js.
+        const failure = new Error('Could not find the input entity for "12345". Please read https://…');
+        const client = {
+            sendMessage: async () => {
+                throw failure;
+            },
+        };
+
+        const n1 = helper.getNode('n1');
+        const warnings = [];
+        n1.warn = (message) => warnings.push(message);
+
+        const msg = { payload: { func: 'sendMessage', args: ['12345'] } };
+        const error = await new Promise((resolve) => {
+            n1.processMessage(client, msg, () => {}, resolve);
+        });
+
+        assert.strictEqual(error, failure, 'the original error must reach nodeDone untouched');
+        assert.strictEqual(warnings.length, 1, 'the hint is an addition, not a replacement');
+        assert.match(warnings[0], /entity cache/);
+    });
+
+    it('does not explain unrelated errors', async () => {
+        const flow = [configNode, { id: 'n1', type: 'telegram client sender', bot: 'c1' }];
+        await helper.load(telegramBotNode, flow);
+
+        const client = {
+            sendMessage: async () => {
+                throw new Error('CHAT_WRITE_FORBIDDEN');
+            },
+        };
+
+        const n1 = helper.getNode('n1');
+        const warnings = [];
+        n1.warn = (message) => warnings.push(message);
+
+        await new Promise((resolve) => {
+            n1.processMessage(client, { payload: { func: 'sendMessage', args: ['chat'] } }, () => {}, resolve);
+        });
+
+        assert.deepStrictEqual(warnings, [], 'only the peer error gets the hint');
+    });
+
     it('shows a flood wait and still forwards the original error', async () => {
         const { FloodWaitError } = require('telegram/errors');
         const flow = [

@@ -651,6 +651,19 @@
     <b>object</b>:</p>
     <pre>msg.payload = { api: 'messages', func: 'SendMessage', args: { peer: 'someone', ... } };</pre>
 
+    <h3>Addressing a chat or user</h3>
+    <p>You do not have to resolve peers yourself &mdash; both conventions accept a username and let
+    GramJS look it up. But <b>how</b> you address a peer decides whether it keeps working:</p>
+    <ul>
+        <li>A <b>username</b> or an invite link always works.</li>
+        <li>A <b>numeric id</b> works only while that peer is in the session's entity cache. That cache
+        is held in memory and lost on every restart, so a flow that works while you build it can fail
+        after a redeploy with <i>Could not find the input entity for &hellip;</i></li>
+        <li>A <b>phone number</b> works only for people in your account's contacts.</li>
+    </ul>
+    <p>Address peers by username and this never comes up. If you only have an id, resolve it once with
+    <code>getEntity</code> in the same flow and pass the result on.</p>
+
     <h3>Useful client methods</h3>
     <p>Anything on the client is reachable. The ones worth knowing:</p>
     <ul>

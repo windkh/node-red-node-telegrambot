@@ -23,6 +23,21 @@ function floodWaitStatus(seconds) {
     return { fill: 'yellow', shape: 'ring', text: 'flood wait ' + seconds + 's' };
 }
 
+// GramJS throws a plain Error for an unresolvable peer — there is no class to match on, so this has to
+// go by the message, and it points at Telethon's Python documentation. If GramJS rewords it the hint is
+// simply lost; the original error reaches the flow either way.
+const UNRESOLVED_PEER = 'Could not find the input entity';
+
+function isUnresolvedPeer(error) {
+    return error instanceof Error && typeof error.message === 'string' && error.message.includes(UNRESOLVED_PEER);
+}
+
+const UNRESOLVED_PEER_HINT =
+    'Telegram could not resolve that peer. A username or an invite link always works. A bare numeric id ' +
+    "only works while that peer is in this session's entity cache, which is held in memory and lost on " +
+    'every restart — so a flow that worked before a redeploy can fail after one. Address the peer by ' +
+    'username, or resolve it once with getEntity in the same flow.';
+
 // The sender node is a generic bridge to the Telegram client: `msg.payload.func` names either a
 // convenience method on the client itself (no `api`) or a raw MTProto request under `Api[api]`.
 // The two differ in how arguments are passed — spread array vs. single options object.
@@ -128,10 +143,12 @@ module.exports = function (RED) {
             } catch (error) {
                 failure = error;
 
-                // Make throttling visible on the canvas, but hand the *original* error on: a Catch node
-                // may well be reading err.seconds, so this must stay an addition, not a replacement.
+                // Both branches only *add* to what the flow sees. The original error still goes to
+                // nodeDone untouched, because a Catch node may well be inspecting it.
                 if (error instanceof FloodWaitError) {
                     node.showFloodWait(error.seconds);
+                } else if (isUnresolvedPeer(error)) {
+                    node.warn(UNRESOLVED_PEER_HINT);
                 }
             } finally {
                 nodeDone(failure);
