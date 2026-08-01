@@ -618,9 +618,34 @@
         </ul>
     <h3>Outputs</h3>
     <p>1. Standard Output: returns the result of the api call.</p>
+
+    <h3>Two calling conventions</h3>
+    <p>Leaving <code>api</code> out calls a method on the GramJS client directly, with <code>args</code>
+    spread as its arguments &mdash; so <code>args</code> must be an <b>array</b>:</p>
+    <pre>msg.payload = { func: 'sendMessage', args: ['someone', { message: 'Hello' }] };</pre>
+    <p>Setting <code>api</code> builds a raw MTProto request, which takes a single options
+    <b>object</b>:</p>
+    <pre>msg.payload = { api: 'messages', func: 'SendMessage', args: { peer: 'someone', ... } };</pre>
+
+    <h3>Useful client methods</h3>
+    <p>Anything on the client is reachable. The ones worth knowing:</p>
+    <ul>
+        <li><b>Sending</b> &mdash; sendMessage, sendFile, forwardMessages, editMessage, deleteMessages</li>
+        <li><b>Chats</b> &mdash; pinMessage, unpinMessage, markAsRead, kickParticipant</li>
+        <li><b>Reading</b> &mdash; getMessages, getDialogs, getParticipants, iterMessages, iterDialogs</li>
+        <li><b>Media</b> &mdash; downloadMedia, downloadFile, downloadProfilePhoto, uploadFile</li>
+        <li><b>Entities</b> &mdash; getEntity, getInputEntity, getPeerId</li>
+        <li><b>Account</b> &mdash; getMe, isBot, isUserAuthorized, checkAuthorization</li>
+    </ul>
+    <p>The <code>iter*</code> methods return async iterators, which do not survive being placed in
+    <code>msg.payload</code>. Prefer the non-iterating variants until dedicated support exists.</p>
+    <p><b>Careful:</b> the client is shared by every node using the same config. Connection and
+    authentication methods &mdash; connect, disconnect, destroy, start, signIn&hellip;, addEventHandler
+    &mdash; are reachable too, and calling them from a flow will disrupt the other nodes.</p>
+
     <h3>Details</h3>
-        <p>Please refer to the examples in the examples folder and the readme.</p>
-    <p></p>
+    <p>Please refer to the examples in the examples folder and the readme. The full method and TL
+    reference is at https://gram.js.org/.</p>
 </script>
 
 <!-- ------------------------------------------------------------------------------------------ -->

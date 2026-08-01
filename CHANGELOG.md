@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+# [0.1.16] - 2026-08-01
+
+### documented the client methods reachable from the sender node, the two calling conventions and their different args shapes, and the warning that connection and authentication methods disrupt every node sharing the config - [#29](https://github.com/windkh/node-red-node-telegrambot/issues/29)
+
 # [0.1.15] - 2026-07-30
 
 ### added a configurable flood wait threshold on the config node. Waits up to this many seconds are slept through silently, longer ones are reported. Default stays 60 seconds; 0 never sleeps - [#20](https://github.com/windkh/node-red-node-telegrambot/issues/20)

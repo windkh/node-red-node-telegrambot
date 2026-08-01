@@ -109,8 +109,17 @@ module.exports = function (RED) {
                     const request = new Api[call.api][call.func](call.args);
                     result = await client.invoke(request);
                 } else {
-                    // sendMessage, forwardMessages, editMessage, deleteMessages, pinMessage, unpinMessage, markAsRead, sendFile
-                    // args must be an array
+                    // Any method on the GramJS client, called with `args` spread as its arguments.
+                    // Sending:   sendMessage, sendFile, forwardMessages, editMessage, deleteMessages
+                    // Chats:     pinMessage, unpinMessage, markAsRead, kickParticipant
+                    // Reading:   getMessages, getDialogs, getParticipants, iterMessages, iterDialogs
+                    // Media:     downloadMedia, downloadFile, downloadProfilePhoto, uploadFile
+                    // Entities:  getEntity, getInputEntity, getPeerId
+                    // Account:   getMe, isBot, isUserAuthorized, checkAuthorization
+                    //
+                    // Note the client is shared by every node using this config, so the connection and
+                    // auth methods (connect, start, signIn*, addEventHandler, …) are reachable but will
+                    // disrupt the other nodes. See the node help.
                     result = await client[call.func](...call.args);
                 }
 

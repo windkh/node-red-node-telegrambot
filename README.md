@@ -98,6 +98,42 @@ Leaving every field empty reproduces the behaviour of earlier versions: no filte
 The _Telegram client sender_ node is able to call nearly all functions provides by gramjs.
 For a full list of methods please visit https://gram.js.org/ under TL.
 
+#### Two calling conventions
+
+Leaving `api` out calls a method on the GramJS client directly, with `args` spread as its arguments —
+so `args` must be an **array**:
+
+```javascript
+msg.payload = { func: 'sendMessage', args: ['someone', { message: 'Hello' }] };
+```
+
+Setting `api` builds a raw MTProto request, which takes a single options **object**:
+
+```javascript
+msg.payload = { api: 'messages', func: 'SendMessage', args: { peer: 'someone' } };
+```
+
+#### Useful client methods
+
+Anything on the client is reachable by name. The ones worth knowing:
+
+| Area     | Methods                                                                       |
+| -------- | ----------------------------------------------------------------------------- |
+| Sending  | `sendMessage`, `sendFile`, `forwardMessages`, `editMessage`, `deleteMessages` |
+| Chats    | `pinMessage`, `unpinMessage`, `markAsRead`, `kickParticipant`                 |
+| Reading  | `getMessages`, `getDialogs`, `getParticipants`                                |
+| Media    | `downloadMedia`, `downloadFile`, `downloadProfilePhoto`, `uploadFile`         |
+| Entities | `getEntity`, `getInputEntity`, `getPeerId`                                    |
+| Account  | `getMe`, `isBot`, `isUserAuthorized`, `checkAuthorization`                    |
+
+The `iter*` variants (`iterMessages`, `iterDialogs`, `iterParticipants`) return async iterators, which
+do not survive being placed in `msg.payload`. Use the non-iterating methods until dedicated support
+exists.
+
+> **Careful:** the client is shared by every node using the same config node. Connection and
+> authentication methods — `connect`, `disconnect`, `destroy`, `start`, `signIn…`, `addEventHandler` —
+> are reachable too, and calling them from a flow will disrupt the other nodes.
+
 ### Examples
 
 #### Api.messages.SendMessage

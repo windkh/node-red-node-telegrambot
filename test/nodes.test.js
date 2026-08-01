@@ -292,6 +292,37 @@ describe('telegram client nodes', () => {
         assert.strictEqual(doneCalls[0], undefined, 'nodeDone must be called without an error');
     });
 
+    it('reaches the account inspection methods through the generic path', async () => {
+        const flow = [
+            configNode,
+            { id: 'n1', type: 'telegram client sender', bot: 'c1', wires: [['n2']] },
+            { id: 'n2', type: 'helper' },
+        ];
+        await helper.load(telegramBotNode, flow);
+
+        // These are the methods a user reaches for when working out *which* account a config is bound
+        // to. They take no arguments, which is the case that used to throw before #14 fixed the args
+        // default, so they are worth pinning down explicitly.
+        const client = {
+            getMe: async () => ({ username: 'someone' }),
+            isBot: async () => false,
+            checkAuthorization: async () => true,
+        };
+
+        const n1 = helper.getNode('n1');
+        const results = {};
+        for (const func of ['getMe', 'isBot', 'checkAuthorization']) {
+            const sent = await new Promise((resolve) => {
+                n1.processMessage(client, { payload: { func: func } }, resolve, () => {});
+            });
+            results[func] = sent.payload;
+        }
+
+        assert.deepStrictEqual(results.getMe, { username: 'someone' });
+        assert.strictEqual(results.isBot, false, 'a falsy result must still be delivered');
+        assert.strictEqual(results.checkAuthorization, true);
+    });
+
     it('shows a flood wait and still forwards the original error', async () => {
         const { FloodWaitError } = require('telegram/errors');
         const flow = [
