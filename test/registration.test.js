@@ -10,10 +10,14 @@ const entry = require('../telegrambot/telegrambot.js');
 function createRedStub() {
     const registeredTypes = [];
     const adminRoutes = [];
+    // Recorded separately: a login route that went back to GET would put the api hash and the 2FA
+    // password in query strings again, and only the method reveals that.
+    const getRoutes = [];
 
     return {
         registeredTypes,
         adminRoutes,
+        getRoutes,
         nodes: {
             registerType(type, constructor, options) {
                 registeredTypes.push({ type, constructor, options });
@@ -22,9 +26,16 @@ function createRedStub() {
             getNode() {
                 return undefined;
             },
+            getCredentials() {
+                return undefined;
+            },
         },
         httpAdmin: {
             get(route) {
+                getRoutes.push(route);
+                adminRoutes.push(route);
+            },
+            post(route) {
                 adminRoutes.push(route);
             },
         },
@@ -73,16 +84,17 @@ describe('entry point registration', () => {
         // Must stay in step with the editor's credentials block in telegrambot.html: Node-RED only
         // persists what is declared here, so anything the editor offers but this omits is discarded.
         //
-        // `session` is deliberately `password`: for `text` the runtime sends the stored value to the
-        // editor in clear, and the session authenticates the whole Telegram account.
+        // Every secret is `password`: for `text` the runtime sends the stored value to the editor in
+        // clear. `apiid` is an application id and `phonenumber` has to stay legible so the user can
+        // tell which account a config belongs to.
         assert.deepStrictEqual(config.options, {
             credentials: {
                 apiid: { type: 'text' },
-                apihash: { type: 'text' },
+                apihash: { type: 'password' },
                 session: { type: 'password' },
                 phonenumber: { type: 'text' },
-                bottoken: { type: 'text' },
-                twofapassword: { type: 'text' },
+                bottoken: { type: 'password' },
+                twofapassword: { type: 'password' },
             },
         });
     });
@@ -96,5 +108,15 @@ describe('entry point registration', () => {
             '/node-red-node-telegrambot-setpassword',
             '/node-red-node-telegrambot-login',
         ]);
+    });
+
+    it('registers the login endpoints as POST, so secrets stay out of the URL', () => {
+        const RED = createRedStub();
+        entry(RED);
+
+        // These bodies carry the api hash, the phone number, the 2FA password and the bot token. As
+        // query parameters they reach access logs, browser history and Referer headers.
+        assert.deepStrictEqual(RED.getRoutes, [], 'no login route may be a GET');
+        assert.strictEqual(RED.adminRoutes.length, 3);
     });
 });

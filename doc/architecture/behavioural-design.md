@@ -5,13 +5,20 @@
 Telegram's login needs a phone code that only exists _after_ the login has started, so it cannot be a
 single request. The editor drives three admin calls instead:
 
-1. The user presses **Login**. `GET …-login` calls `lib/login.js` with an empty `StringSession` and
+1. The user presses **Login**. `POST …-login` calls `lib/login.js` with an empty `StringSession` and
    parks two pending promises (`lib/auth-prompt.js`). The response is held open.
-2. Telegram texts a code. The editor sends `GET …-setphonecode`, which settles the parked phone-code
-   promise; the awaiting login continues. If 2FA is on, `GET …-setpassword` does the same for the
+2. Telegram texts a code. The editor sends `POST …-setphonecode`, which settles the parked phone-code
+   promise; the awaiting login continues. If 2FA is on, `POST …-setpassword` does the same for the
    password. An **empty** value rejects instead of resolving, which aborts the login.
 3. `client.start()` returns, `client.session.save()` yields the session string, and the held-open
    `…-login` response delivers it. The editor stores it in the config node's credentials.
+
+The routes are `POST` so the api hash, phone number, 2FA password and bot token travel in a body rather
+than a query string — a query string would reach access logs, browser history and `Referer` headers. And
+every secret credential is `password`-typed, so the runtime never sends its value to the editor at all:
+the editor posts the `__PWRD__` placeholder for those and the route substitutes what is stored, looked up
+by node id. A config node that was never deployed has nothing stored, posts real values, and they are
+used as posted. See [ADR 0011](adr/0011-keep-secrets-out-of-the-editor.md).
 
 The parked resolvers are module state in `lib/auth-prompt.js`: the three requests are separate HTTP
 calls with nothing to thread state through, and only one login runs at a time.

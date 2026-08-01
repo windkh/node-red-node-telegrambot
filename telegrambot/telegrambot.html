@@ -52,7 +52,10 @@
                     return v === '' || (RED.validators.number(v) && v >= 0 && v <= 4294967295);
                 },
             },
-            apihash: { value: '', required: true },
+            // All the secrets are `password`, so the runtime hands the editor only a `has_<name>` flag
+            // and never the value. The login posts the __PWRD__ placeholder for these and the route
+            // substitutes what is stored — see telegrambot/lib/login-credentials.js.
+            apihash: { type: 'password', value: '', required: true },
             // `password`, so the runtime never sends the value to the editor: it hands over only
             // `has_session` and the field shows the __PWRD__ placeholder. The login panel keys off
             // "is it empty", which the placeholder answers correctly, and saving an untouched field
@@ -68,13 +71,31 @@
             phonenumber: { value: '', required: true },
             // Not `password`: that name is already a *config* property holding the proxy password,
             // and two keys of the same name would bind to one #node-config-input-password element.
-            twofapassword: { value: '', required: false },
-            bottoken: { type: 'text' },
+            twofapassword: { type: 'password', value: '', required: false },
+            bottoken: { type: 'password' },
         },
         label: function () {
             return this.botname;
         },
         oneditprepare: function () {
+            // The login routes look stored credentials up by node id, so they can substitute whatever
+            // the editor could not send: a `password`-typed credential comes back as the __PWRD__
+            // placeholder, never as its value.
+            let nodeId = this.id;
+
+            // POST, not GET: these bodies carry the api hash, phone number, 2FA password and bot token,
+            // and a query string would put them in access logs, browser history and Referer headers.
+            let postJson = function (route, parameters, done) {
+                $.ajax({
+                    url: route,
+                    type: 'POST',
+                    contentType: 'application/json; charset=utf-8',
+                    data: JSON.stringify(parameters),
+                    dataType: 'json',
+                    success: done,
+                });
+            };
+
             // polling or webhook
             let updateLoginMode = function () {
                 let mode = $('#node-config-input-loginmode').val();
@@ -132,6 +153,7 @@
 
                 if (apiId !== '' && apiHash) {
                     let parameters = {
+                        id: nodeId,
                         apiId: apiId,
                         apiHash: apiHash,
                         phoneNumber: phoneNumber,
@@ -148,7 +170,7 @@
                     $('#loginbuttontip').text('Login started: enter code in field below.');
                     $('#node-config-input-phonecode').val('');
                     $('#node-config-input-session').val('');
-                    $.getJSON('node-red-node-telegrambot-login', parameters, function (data) {
+                    postJson('node-red-node-telegrambot-login', parameters, function (data) {
                         if (data.session) {
                             $('#node-config-input-session').val(data.session);
                             $('#loginbuttontip').text(
@@ -173,7 +195,7 @@
                     let parameters = {
                         phoneCode: phoneCode,
                     };
-                    $.getJSON('node-red-node-telegrambot-setphonecode', parameters, function (data) {
+                    postJson('node-red-node-telegrambot-setphonecode', parameters, function (data) {
                         // TODO:
                     });
                 }
@@ -186,7 +208,7 @@
                     let parameters = {
                         password: password,
                     };
-                    $.getJSON('node-red-node-telegrambot-setpassword', parameters, function (data) {
+                    postJson('node-red-node-telegrambot-setpassword', parameters, function (data) {
                         // TODO:
                     });
                 }
@@ -241,7 +263,7 @@
              </div>
              <div class="form-row hidden" id="bottoken">
                  <label for="node-config-input-bottoken"><i class="fa fa-key"></i> Bot-Token</label>
-                 <input type="text" id="node-config-input-bottoken" placeholder="(Enter the bot token from botfather here)">
+                 <input type="password" id="node-config-input-bottoken" placeholder="(Enter the bot token from botfather here)">
                  <div class="form-tips" style="width: auto"><b>Tip:</b> If you don't have a token yet, you can create a new one here: <a href="https://t.me/BotFather">@BotFather</a>.</div>
              </div>
     <div class="form-row">
@@ -250,7 +272,7 @@
     </div>
              <div class="form-row">
                  <label for="node-config-input-apihash"><i class="fa fa-hashtag"></i> ApiHash</label>
-                 <input type="text" id="node-config-input-apihash" placeholder="(Enter the hash here)">
+                 <input type="password" id="node-config-input-apihash" placeholder="(Enter the hash here)">
              </div>
     <div class="form-tips" style="width: auto"><b>Tip:</b> If you don't have an application ID yet, you can create a new one here: <a href="https://my.telegram.org/auth">Telegram</a>.</div>
 
@@ -308,7 +330,7 @@
 
              <div class="form-row hidden" id="twofapassword">
                  <label for="node-config-input-twofapassword"><i class="fa fa-lock"></i> Password</label>
-                 <input type="text" id="node-config-input-twofapassword" placeholder="(Only needed if Two-Step-Verification is on)">
+                 <input type="password" id="node-config-input-twofapassword" placeholder="(Only needed if Two-Step-Verification is on)">
              </div>
              <hr align="middle"/>
          </div>

@@ -199,17 +199,20 @@ module.exports = function (RED) {
     // editor in clear (see @node-red/runtime/lib/api/flows.js), while for `password` it sends only a
     // `has_<name>` boolean. The session authenticates the whole account, so it must never travel.
     //
-    // apihash, bottoken and twofapassword are secrets too, but the editor's login panel reads their
-    // values back to drive the login and would receive the __PWRD__ placeholder instead. Making them
-    // `password` requires the login routes to look credentials up server-side — tracked separately.
+    // This block, not the editor's, is what the runtime consults to decide what to send back: every
+    // secret is `password`, so the editor receives only a `has_<name>` flag. The login routes then
+    // substitute the __PWRD__ placeholder from storage — see lib/login-credentials.js.
+    //
+    // `apiid` is an application id, not a secret. `phonenumber` stays legible so the user can tell which
+    // account a config node belongs to; masking it would make several accounts indistinguishable.
     RED.nodes.registerType('telegram client config', TelegramConfigNode, {
         credentials: {
             apiid: { type: 'text' },
-            apihash: { type: 'text' },
+            apihash: { type: 'password' },
             session: { type: 'password' },
             phonenumber: { type: 'text' },
-            bottoken: { type: 'text' },
-            twofapassword: { type: 'text' },
+            bottoken: { type: 'password' },
+            twofapassword: { type: 'password' },
         },
     });
 };

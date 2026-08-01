@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+# [0.2.0] - 2026-08-01
+
+### fixed the api hash, bot token and two-step-verification password being sent to the editor in clear text. All secret credentials are now `password`-typed, so the runtime hands the editor only a "this is set" flag. The stored values are untouched, but the editor no longer shows them back - [#31](https://github.com/windkh/node-red-node-telegrambot/issues/31)
+
+### fixed the login sending the api hash, phone number, 2FA password and bot token as URL query parameters, where they reach reverse-proxy access logs, browser history and Referer headers. The three login endpoints are now `POST` and carry their values in the body - [#31](https://github.com/windkh/node-red-node-telegrambot/issues/31)
+
+### **breaking:** the admin endpoints `node-red-node-telegrambot-login`, `-setphonecode` and `-setpassword` changed from `GET` to `POST`. The paths are unchanged. These back the Login button in the config dialog, so this only affects anyone who scripted against them directly
+
 # [0.1.20] - 2026-08-01
 
 ### added a `telegram client upload` node that sends a Buffer or a file path to a chat, so `file in` and `http request` can feed it directly. `msg.filename` is required for a Buffer: without a name Telegram would receive the file called `unnamed`, so the node reports an error rather than sending it wrongly - [#23](https://github.com/windkh/node-red-node-telegrambot/issues/23)
