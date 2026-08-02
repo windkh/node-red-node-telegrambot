@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+# [0.2.1] - 2026-08-02
+
+### added button support to the sender node: a plain-JSON `buttons` description in the options object is turned into the objects Telegram needs, since a Function node cannot build them itself. An invalid button is reported with its position - [#27](https://github.com/windkh/node-red-node-telegrambot/issues/27)
+
+### note: callback buttons only work in bot mode. Telegram sends the press to the bot that created the button, so a user account never receives it and the receiver's Callback query event stays silent. Use `url` buttons for userbot flows
+
 # [0.2.0] - 2026-08-01
 
 ### fixed the api hash, bot token and two-step-verification password being sent to the editor in clear text. All secret credentials are now `password`-typed, so the runtime hands the editor only a "this is set" flag. The stored values are untouched, but the editor no longer shows them back - [#31](https://github.com/windkh/node-red-node-telegrambot/issues/31)

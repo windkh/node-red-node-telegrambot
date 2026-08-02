@@ -15,3 +15,4 @@ One file per decision: NNNN-title.md (Context / Decision / Consequences).
 | [0009](0009-download-node.md)                      | A separate node for downloading media                             |
 | [0010](0010-upload-node.md)                        | A separate node for uploading files                               |
 | [0011](0011-keep-secrets-out-of-the-editor.md)     | Keep the secrets out of the editor and out of the URL             |
+| [0012](0012-reply-markup.md)                       | Build reply markup from JSON; be honest about callbacks           |

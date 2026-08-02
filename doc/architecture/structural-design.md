@@ -19,6 +19,7 @@ telegrambot/
     event-filters.js        receiver filter config -> per-builder GramJS options
     media.js                media descriptor -> filename, mime type, download size
     upload.js               Buffer -> CustomFile, so an upload arrives correctly named
+    reply-markup.js         JSON button description -> GramJS Button objects
   telegrambot.html          editor definitions and help for all five nodes
   icons/
 ```

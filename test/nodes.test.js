@@ -300,6 +300,42 @@ describe('telegram client nodes', () => {
         assert.strictEqual(doneCalls[0], undefined, 'nodeDone must be called without an error');
     });
 
+    it('converts a plain-JSON buttons description before calling the client', async () => {
+        const flow = [
+            configNode,
+            { id: 'n1', type: 'telegram client sender', bot: 'c1', wires: [['n2']] },
+            { id: 'n2', type: 'helper' },
+        ];
+        await helper.load(telegramBotNode, flow);
+
+        const calls = [];
+        const client = {
+            sendMessage: async (...args) => {
+                calls.push(args);
+                return 'sent';
+            },
+        };
+
+        const msg = {
+            payload: {
+                func: 'sendMessage',
+                args: [
+                    'someone',
+                    { message: 'pick one', buttons: [[{ type: 'url', text: 'Open', url: 'https://x.dev' }]] },
+                ],
+            },
+        };
+        await new Promise((resolve) => {
+            helper.getNode('n1').processMessage(client, msg, resolve, () => {});
+        });
+
+        // A Function node can only produce JSON — GramJS Button objects are not requireable from one — so
+        // the node has to do the conversion on the way through.
+        const sentButtons = calls[0][1].buttons;
+        assert.strictEqual(sentButtons[0][0].className, 'KeyboardButtonUrl', 'the client must receive real buttons');
+        assert.strictEqual(sentButtons[0][0].url, 'https://x.dev');
+    });
+
     it('reaches the account inspection methods through the generic path', async () => {
         const flow = [
             configNode,

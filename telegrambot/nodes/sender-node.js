@@ -4,6 +4,8 @@
 const { Api } = require('telegram');
 const { FloodWaitError } = require('telegram/errors');
 
+const { convertButtonsInArgs } = require('../lib/reply-markup');
+
 // The status texts are part of this node's public contract — keep them in one place so every code
 // path reports the same thing.
 const CONNECTED = { fill: 'green', shape: 'ring', text: 'connected' };
@@ -135,7 +137,10 @@ module.exports = function (RED) {
                     // Note the client is shared by every node using this config, so the connection and
                     // auth methods (connect, start, signIn*, addEventHandler, …) are reachable but will
                     // disrupt the other nodes. See the node help.
-                    result = await client[call.func](...call.args);
+                    //
+                    // A plain-JSON `buttons` in the options object becomes real GramJS buttons first: a
+                    // Function node cannot require them, so the flow can only produce JSON.
+                    result = await client[call.func](...convertButtonsInArgs(call.args));
                 }
 
                 msg.payload = result;

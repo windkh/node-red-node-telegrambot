@@ -222,6 +222,48 @@ msg.payload = { func: 'getEntity', args: ['username'] };
 // then send to msg.payload from the next node
 ```
 
+#### Buttons
+
+Pass a plain-JSON `buttons` description in the options object and the node turns it into the objects
+Telegram needs — an array of rows, each row an array of buttons:
+
+```javascript
+msg.payload = {
+    func: 'sendMessage',
+    args: [
+        'someone',
+        {
+            message: 'Pick one',
+            buttons: [
+                [{ type: 'url', text: 'Open the docs', url: 'https://gram.js.org' }],
+                [
+                    { type: 'callback', text: 'Yes', data: 'yes' },
+                    { type: 'callback', text: 'No', data: 'no' },
+                ],
+            ],
+        },
+    ],
+};
+```
+
+| `type`            | Needs  | Effect                                                 |
+| ----------------- | ------ | ------------------------------------------------------ |
+| `url`             | `url`  | opens a link                                           |
+| `callback`        | `data` | sends `data` back — **bot mode only**, see below       |
+| `switchInline`    | —      | starts an inline query, optional `query`, `samePeer`   |
+| `text`            | —      | a plain keyboard button; the text is sent as a message |
+| `requestLocation` | —      | asks the user to share their location                  |
+| `requestPhone`    | —      | asks the user to share their phone number              |
+
+An invalid button is reported with its position, for example
+`buttons[1][0]: a 'url' button needs a 'url'`.
+
+> **Callback buttons only work in bot mode.** Telegram sends the button press to _the bot that created
+> the button_ — [the API documentation](https://core.telegram.org/api/bots/buttons) is explicit that the
+> update is "sent to the bot". A user account has no bot, so it will never receive the press, and the
+> receiver's **Callback query** event will stay silent. Use `url` buttons for userbot flows, or set the
+> config node's login mode to **bot**.
+
 #### Useful client methods
 
 Anything on the client is reachable by name. The ones worth knowing:
