@@ -11,6 +11,9 @@ deliberately _not_ the Telegram Bot API, which is what `node-red-contrib-telegra
 | `telegram client config`   | Holds the credentials and owns the single shared `TelegramClient`.     |
 | `telegram client receiver` | Subscribes to Telegram events and emits one Node-RED message each.     |
 | `telegram client sender`   | Calls a teleproto client method or a raw MTProto request from a `msg`. |
+| `telegram client download` | Fetches the media on a received message.                               |
+| `telegram client upload`   | Sends a Buffer or a file path to a chat.                               |
+| `telegram client list`     | Reads history, dialogs or participants — the async-iterator APIs.      |
 
 ## Runtime model
 

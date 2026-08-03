@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+# [1.1.0] - 2026-08-03
+
+### added a `telegram client list` node that reads message history, dialogs (the chat list) and the participants of a chat. These use Telegram's async-iterator APIs, which the sender node cannot usefully expose - it would put an iterator object into `msg.payload` - [#25](https://github.com/windkh/node-red-node-telegrambot/issues/25)
+
+### the node emits one message per item by default, with `msg.parts` set so a standard join node reassembles the array. A large history therefore never has to fit in memory. An array mode is available for small reads, where it also sets `msg.total`
+
+### note the limit: blank means **100**, and `0` means no limit. Telegram's own default is unbounded, which on a busy channel reads it back to the first message and is a realistic way to earn a `FLOOD_WAIT` on a user account
+
 # [1.0.2] - 2026-08-03
 
 ### fixed the download and upload nodes still showing the old `session invalid: login again` status for a broken connection. 1.0.0 corrected that text in the receiver and sender only, so two nodes disagreed with the other two about a status a flow can route on

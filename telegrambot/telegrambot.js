@@ -11,4 +11,5 @@ module.exports = function (RED) {
     require('./nodes/sender-node')(RED);
     require('./nodes/download-node')(RED);
     require('./nodes/upload-node')(RED);
+    require('./nodes/list-node')(RED);
 };

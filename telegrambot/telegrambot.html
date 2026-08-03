@@ -890,3 +890,141 @@
 </script>
 
 <!-- ------------------------------------------------------------------------------------------ -->
+<script type="text/javascript">
+    RED.nodes.registerType('telegram client list', {
+        category: 'telegram',
+        color: '#3BABDD',
+        defaults: {
+            name: { value: '' },
+            bot: { value: '', type: 'telegram client config', required: true },
+            what: { value: 'messages', required: true },
+            peer: { value: '', required: false },
+            // Blank means 100, not unbounded. See the help and lib/list-request.js.
+            limit: {
+                value: 100,
+                required: false,
+                validate: function (v) {
+                    return v === '' || (RED.validators.number(v) && v >= 0);
+                },
+            },
+            search: { value: '', required: false },
+            mode: { value: 'stream', required: true },
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: 'telegram.png',
+        paletteLabel: 'client list',
+        label: function () {
+            return this.name || 'Telegram client list';
+        },
+        oneditprepare: function () {
+            // Dialogs are the whole chat list, so there is nothing to read *from* and nothing to
+            // search: iterDialogs takes neither.
+            let updateWhat = function () {
+                let what = $('#node-input-what').val();
+                if (what === 'dialogs') {
+                    $('#list-peer').hide();
+                    $('#list-search').hide();
+                } else {
+                    $('#list-peer').show();
+                    $('#list-search').show();
+                }
+            };
+            updateWhat();
+            $('#node-input-what').change(updateWhat);
+        },
+    });
+</script>
+
+<script type="text/x-red" data-template-name="telegram client list">
+    <div class="form-row">
+        <label for="node-input-bot"><i class="fa fa-telegram"></i> Bot</label>
+        <input type="text" id="node-input-bot" placeholder="Bot">
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+
+    <hr align="middle"/>
+
+    <div class="form-row">
+        <label for="node-input-what"><i class="fa fa-list"></i> Read</label>
+        <select id="node-input-what">
+            <option value="messages">message history</option>
+            <option value="dialogs">dialogs (the chat list)</option>
+            <option value="participants">participants of a chat</option>
+        </select>
+    </div>
+    <div class="form-row" id="list-peer">
+        <label for="node-input-peer"><i class="fa fa-comments"></i> Read from</label>
+        <input type="text" id="node-input-peer" placeholder="(Username. Overridden by msg.peer.)">
+    </div>
+    <div class="form-row" id="list-search">
+        <label for="node-input-search"><i class="fa fa-search"></i> Search</label>
+        <input type="text" id="node-input-search" placeholder="(Optional. Overridden by msg.search.)">
+    </div>
+    <div class="form-row">
+        <label for="node-input-limit"><i class="fa fa-hashtag"></i> Limit</label>
+        <input type="text" id="node-input-limit" placeholder="(Max items. Overridden by msg.limit.)">
+    </div>
+    <div class="form-row">
+        <label for="node-input-mode"><i class="fa fa-share-alt"></i> Output</label>
+        <select id="node-input-mode">
+            <option value="stream">one message per item</option>
+            <option value="array">one message with an array</option>
+        </select>
+    </div>
+
+    <div class="form-tips" style="width: auto"><b>Tip:</b> A blank limit means 100. Enter <code>0</code>
+    for no limit &mdash; on a large channel that reads the whole history, which is slow and a good way to
+    earn a flood wait.</div>
+</script>
+
+<script type="text/x-red" data-help-name="telegram client list">
+    <p>Reads existing data: a chat's <b>message history</b>, your <b>dialogs</b> (the chat list), or the
+    <b>participants</b> of a group or channel.</p>
+
+    <p>These are not reachable through the sender node, because Telegram returns them as
+    <i>async iterators</i> &mdash; putting one into <code>msg.payload</code> gives a flow an object it
+    cannot use. This node iterates for you and decides how the items become messages.</p>
+
+    <h3>Output</h3>
+    <p><b>one message per item</b> (the default) emits each item separately with
+    <code>msg.parts</code> set, so a standard <b>join</b> node in automatic mode reassembles the array:</p>
+    <pre>[client list] --&gt; [join] --&gt; [debug]</pre>
+    <p>This is the mode to use for history, because a large one never has to fit in memory at once.
+    <code>msg.parts.count</code> comes from Telegram's own total for the query.</p>
+
+    <p><b>one message with an array</b> emits a single message whose <code>msg.payload</code> is the whole
+    array, with <code>msg.total</code> alongside it. Simpler for small reads &mdash; a chat list, the
+    members of a group &mdash; but everything is held in memory first.</p>
+
+    <h3>Limit</h3>
+    <p>Blank means <b>100</b>. Enter <code>0</code> for no limit, the same convention as <b>Max size</b> on
+    the download node.</p>
+    <p>The limit is not a formality. Telegram's own default here is unbounded, and iterating a busy
+    channel to its beginning takes a long time and can earn a <code>FLOOD_WAIT</code> &mdash; on a user
+    account, repeatedly, that risks the account. Ask for what you need.</p>
+
+    <h3>Inputs</h3>
+    <ul>
+        <li><code>msg.peer</code> &mdash; overrides <b>Read from</b>. Ignored for dialogs.</li>
+        <li><code>msg.limit</code> &mdash; overrides <b>Limit</b>.</li>
+        <li><code>msg.search</code> &mdash; overrides <b>Search</b>. Ignored for dialogs, which Telegram
+        does not let you search here.</li>
+    </ul>
+    <p>Any message triggers a read; the payload is not used. Other properties are carried through to
+    every emitted message.</p>
+
+    <h3>Progress and cancelling</h3>
+    <p>The node shows <code>read <i>n</i></code> while it works, so a long read does not look like a hang.
+    A redeploy stops the read at its next item &mdash; it will not keep pulling from Telegram or emit into
+    a closed node.</p>
+
+    <h3>Addressing</h3>
+    <p>A <b>username</b> or invite link always works. A numeric id only works while that peer is in the
+    session's entity cache, which is lost on restart &mdash; see the sender node's help.</p>
+</script>
+
+<!-- ------------------------------------------------------------------------------------------ -->
