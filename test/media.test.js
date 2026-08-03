@@ -116,3 +116,72 @@ describe('mediaSize', () => {
         assert.strictEqual(mediaSize(photo([])), undefined);
     });
 });
+
+// Photo sizes: only `PhotoSize` carries a plain `size`, and reading just that one is what made the
+// download node's limit understate a real photo by a factor of fifty. Telegram sends a mix, and the
+// biggest entry is usually the `PhotoSizeProgressive` that has `sizes` instead.
+describe('the size of a photo', () => {
+    const stripped = (length, first) => {
+        const bytes = Buffer.alloc(length);
+        bytes[0] = first;
+        return { className: 'PhotoStrippedSize', type: 'i', bytes: bytes };
+    };
+    const photo = (sizes) => ({ className: 'MessageMediaPhoto', photo: { id: 7, sizes: sizes } });
+
+    it('counts a progressive size, which is usually the largest one Telegram offers', () => {
+        // The regression this file exists for. Before, the progressive entry was ignored and the answer
+        // was 90000 — so a 4.5 MB photo sailed past a 1 MB limit.
+        const realistic = photo([
+            stripped(200, 1),
+            { className: 'PhotoSize', type: 'm', size: 12000 },
+            { className: 'PhotoSize', type: 'x', size: 90000 },
+            { className: 'PhotoSizeProgressive', type: 'y', sizes: [20000, 300000, 4500000] },
+        ]);
+
+        assert.strictEqual(mediaSize(realistic, undefined), 4500000);
+    });
+
+    it('takes the last progressive size, because that is the whole image', () => {
+        // Ascending per the TL schema, and a download of this entry fetches all of it.
+        const progressive = photo([{ className: 'PhotoSizeProgressive', type: 'y', sizes: [1000, 2000, 3000] }]);
+
+        assert.strictEqual(mediaSize(progressive, undefined), 3000);
+    });
+
+    it('counts a stripped size, adding back the header teleproto reconstructs', () => {
+        // 622 bytes is the common JPEG header the stripped form leaves out; teleproto adds it back, and a
+        // count that ignored it would be wrong by more than the payload itself.
+        assert.strictEqual(mediaSize(photo([stripped(100, 1)]), undefined), 722);
+    });
+
+    it('counts a stripped size as its bytes when it carries no header marker', () => {
+        assert.strictEqual(mediaSize(photo([stripped(100, 0)]), undefined), 100);
+        assert.strictEqual(mediaSize(photo([stripped(2, 1)]), undefined), 2);
+    });
+
+    it('counts a cached size as its bytes', () => {
+        const cached = { className: 'PhotoCachedSize', type: 'x', bytes: Buffer.alloc(4096) };
+
+        assert.strictEqual(mediaSize(photo([cached]), undefined), 4096);
+    });
+
+    it('counts an empty size as nothing rather than as unknown', () => {
+        assert.strictEqual(mediaSize(photo([{ className: 'PhotoSizeEmpty', type: 'x' }]), undefined), 0);
+    });
+
+    it('still honours the thumbnail index, whatever kind that entry is', () => {
+        const mixed = photo([
+            { className: 'PhotoSize', type: 's', size: 500 },
+            { className: 'PhotoSizeProgressive', type: 'y', sizes: [1000, 900000] },
+        ]);
+
+        assert.strictEqual(mediaSize(mixed, 0), 500, 'index 0 is the small one');
+        assert.strictEqual(mediaSize(mixed, 1), 900000, 'index 1 is the progressive one');
+    });
+
+    it('is unknown only when no entry can be counted at all', () => {
+        // Then the download node has to skip its check — which is fine, as long as it is rare rather than
+        // the common case it used to be.
+        assert.strictEqual(mediaSize(photo([{ className: 'PhotoSizeSomethingNew', type: 'z' }]), undefined), undefined);
+    });
+});

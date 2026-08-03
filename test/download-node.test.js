@@ -154,3 +154,109 @@ describe('download node', () => {
         assert.match(String(error), /not a telegram message/);
     });
 });
+
+// Progress and cancellation, which the upload node has had since 1.2.0 while this one showed a static
+// `downloading` and kept streaming into a closed node.
+describe('download progress and cancellation', () => {
+    before(async () => {
+        await new Promise((resolve) => helper.startServer(resolve));
+    });
+
+    afterEach(async () => {
+        await helper.unload();
+    });
+
+    after(async () => {
+        await new Promise((resolve) => helper.stopServer(resolve));
+    });
+
+    async function loadWithClient(onDownload) {
+        const flow = [configNode, { id: 'n1', type: 'telegram client download', bot: 'c1' }];
+        await helper.load(telegramBotNode, flow);
+
+        const n1 = helper.getNode('n1');
+        const statuses = [];
+        n1.status = (status) => statuses.push(status);
+        n1.config.getTelegramClient = async () => ({ downloadMedia: onDownload });
+
+        return { node: n1, statuses: statuses };
+    }
+
+    const A_PHOTO = {
+        className: 'Message',
+        id: 1,
+        media: {
+            className: 'MessageMediaPhoto',
+            photo: { id: 9, sizes: [{ className: 'PhotoSize', type: 'x', size: 2048 }] },
+        },
+    };
+
+    it('reports progress as a percentage of the bytes teleproto has fetched', async () => {
+        let report;
+        const { node, statuses } = await loadWithClient(async (message, params) => {
+            report = params.progressCallback;
+            // Checked before use: without it a missing callback fails as a timeout rather than as an
+            // assertion, which says much less about what went wrong.
+            if (typeof report === 'function') {
+                report(512, 2048);
+            }
+            return Buffer.from('data');
+        });
+
+        await new Promise((resolve) => {
+            node.send = () => resolve();
+            node.receive({ payload: A_PHOTO, _msgid: '1' });
+        });
+
+        // Bytes, not a fraction — the mirror image of the upload node.
+        assert.strictEqual(typeof report, 'function');
+        assert.ok(
+            statuses.some((status) => status.text === 'downloading 25%'),
+            'expected a percentage, got ' + JSON.stringify(statuses.map((s) => s.text))
+        );
+    });
+
+    it('shows no percentage when the server did not state a size', async () => {
+        // A percentage of nothing would read as "0%" forever.
+        const { node, statuses } = await loadWithClient(async (message, params) => {
+            params.progressCallback(512, 0);
+            return Buffer.from('data');
+        });
+
+        await new Promise((resolve) => {
+            node.send = () => resolve();
+            node.receive({ payload: A_PHOTO, _msgid: '1' });
+        });
+
+        // Not a digit test: without the guard the text reads `downloading Infinity%`, which a `\d` match
+        // sails straight past. Anything after the word at all is wrong here.
+        const shown = statuses.filter((status) => status.text.startsWith('downloading')).map((status) => status.text);
+        assert.deepStrictEqual([...new Set(shown)], ['downloading'], 'no percentage may be shown');
+    });
+
+    it('hands teleproto a signal and aborts it when the node closes', async () => {
+        let seen;
+        let release;
+        const held = new Promise((resolve) => {
+            release = resolve;
+        });
+
+        const { node } = await loadWithClient(async (message, params) => {
+            seen = params.signal;
+            await held;
+            return Buffer.from('data');
+        });
+
+        node.receive({ payload: A_PHOTO, _msgid: '1' });
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
+        assert.ok(seen instanceof AbortSignal, 'a real AbortSignal must be passed');
+        assert.strictEqual(seen.aborted, false, 'not aborted yet');
+
+        await node.close();
+
+        // teleproto checks this in its streaming loop, so a 40 MB video stops between chunks.
+        assert.strictEqual(seen.aborted, true, 'closing must abort a download in flight');
+        release();
+    });
+});

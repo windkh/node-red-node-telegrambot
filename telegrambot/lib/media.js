@@ -77,6 +77,38 @@ function findFilenameAttribute(document) {
 // the caller must skip its size check rather than guess.
 //
 // `thumb` matters: with a thumbnail index the download is that size, not the full photo.
+// How many bytes one entry of `photo.sizes` costs.
+//
+// Only `PhotoSize` carries a plain `size`, and reading just that one is what made the download node's
+// limit understate a real photo by a factor of fifty: Telegram sends a mix, and the biggest entry is
+// usually the `PhotoSizeProgressive` that has `sizes` instead. teleproto does the same arithmetic in
+// `utils._photoSizeByteCount` — mirrored here by `className` rather than reused, because it is
+// `instanceof`-based and private, and everything in this file is deliberately testable against plain
+// objects with no client.
+function photoSizeBytes(entry) {
+    let bytes;
+
+    if (entry !== undefined && entry !== null) {
+        if (typeof entry.size === 'number') {
+            bytes = entry.size;
+        } else if (entry.className === 'PhotoSizeProgressive' && Array.isArray(entry.sizes)) {
+            // Ascending per the TL schema, so the last is the whole thing — which is what a download of
+            // this entry fetches.
+            bytes = entry.sizes[entry.sizes.length - 1];
+        } else if (entry.className === 'PhotoStrippedSize' && entry.bytes !== undefined) {
+            // A stripped size is a JPEG with a common header removed; the 622 bytes are what teleproto
+            // adds back when it reconstructs one.
+            bytes = entry.bytes.length < 3 || entry.bytes[0] !== 1 ? entry.bytes.length : entry.bytes.length + 622;
+        } else if (entry.className === 'PhotoCachedSize' && entry.bytes !== undefined) {
+            bytes = entry.bytes.length;
+        } else if (entry.className === 'PhotoSizeEmpty') {
+            bytes = 0;
+        }
+    }
+
+    return bytes;
+}
+
 function mediaSize(media, thumb) {
     let size;
 
@@ -88,9 +120,9 @@ function mediaSize(media, thumb) {
         size = Number(document.size);
     } else if (Array.isArray(sizes)) {
         const selected = typeof thumb === 'number' ? [sizes[thumb]] : sizes;
-        const known = selected.filter((entry) => entry !== undefined && typeof entry.size === 'number');
+        const known = selected.map(photoSizeBytes).filter((bytes) => typeof bytes === 'number');
         if (known.length > 0) {
-            size = Math.max(...known.map((entry) => entry.size));
+            size = Math.max(...known);
         }
     }
 
