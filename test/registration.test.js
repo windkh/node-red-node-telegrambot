@@ -104,9 +104,13 @@ describe('entry point registration', () => {
         const RED = createRedStub();
         entry(RED);
 
+        // The paths are public API per AGENTS.md — anyone who scripted against them depends on these
+        // exact strings, so the list is asserted rather than counted.
         assert.deepStrictEqual(RED.adminRoutes, [
             '/node-red-node-telegrambot-setphonecode',
             '/node-red-node-telegrambot-setpassword',
+            '/node-red-node-telegrambot-loginqr',
+            '/node-red-node-telegrambot-loginqrstatus',
             '/node-red-node-telegrambot-login',
         ]);
     });
@@ -118,6 +122,6 @@ describe('entry point registration', () => {
         // These bodies carry the api hash, the phone number, the 2FA password and the bot token. As
         // query parameters they reach access logs, browser history and Referer headers.
         assert.deepStrictEqual(RED.getRoutes, [], 'no login route may be a GET');
-        assert.strictEqual(RED.adminRoutes.length, 3);
+        assert.strictEqual(RED.adminRoutes.length, 5);
     });
 });
