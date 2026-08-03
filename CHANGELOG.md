@@ -2,7 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-# [0.3.0] - 2026-08-03
+# [1.0.0] - 2026-08-03
+
+### **first release published to npm since 0.1.6.** Everything between the two existed only in git, so this upgrade brings twenty-odd changelog entries at once - two of them need a manual step. Read [MIGRATION.md](/MIGRATION.md) before upgrading
 
 ### moved the MTProto library from GramJS to [teleproto](https://github.com/sanyok12345/teleproto). `gram-js/gramjs` was archived on GitHub and will not be fixed again; teleproto is a maintained fork of it - [#34](https://github.com/windkh/node-red-node-telegrambot/issues/34)
 
