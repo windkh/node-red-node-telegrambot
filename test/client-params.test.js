@@ -58,18 +58,39 @@ describe('buildClientParams', () => {
         assert.ok(!('floodSleepThreshold' in buildClientParams({ floodSleepThreshold: '-5' })));
     });
 
-    it('omits the optional version fields when they are absent', () => {
+    it('passes the version fields through, empty included', () => {
         const params = buildClientParams({});
 
-        assert.deepStrictEqual(Object.keys(params).sort(), ['proxy']);
+        assert.deepStrictEqual(Object.keys(params).sort(), ['appVersion', 'deviceModel', 'proxy', 'systemVersion']);
+        assert.strictEqual(params.deviceModel, '');
     });
 
-    it('omits the optional version fields when they are empty strings', () => {
-        const params = buildClientParams({ deviceModel: '', systemVersion: '', appVersion: '' });
+    it('is safe to pass them empty, which is why they are no longer omitted', () => {
+        // The premise the simplification rests on, asserted against the library rather than against a
+        // restatement of it: teleproto's defaults set all three to '' and then fall back on any falsy
+        // value, so absent and empty produce the same InitConnection. If that ever stops being true,
+        // this fails and the omission has to come back.
+        const { TelegramClient } = require('teleproto');
+        const { StringSession } = require('teleproto/sessions');
+        const { Logger } = require('teleproto/extensions');
 
-        assert.ok(!('deviceModel' in params));
-        assert.ok(!('systemVersion' in params));
-        assert.ok(!('appVersion' in params));
+        // A silent logger, because constructing a client otherwise prints a version banner. Nothing here
+        // connects — the constructor only builds the InitConnection.
+        const quiet = () => new Logger(undefined);
+        const build = (options) =>
+            new TelegramClient(new StringSession(''), 12345, 'hash', { baseLogger: quiet(), ...options });
+
+        const withEmpty = build(buildClientParams({ deviceModel: '', systemVersion: '', appVersion: '' }));
+        const withNothing = build({});
+
+        for (const field of ['deviceModel', 'systemVersion', 'appVersion']) {
+            assert.strictEqual(
+                withEmpty._initRequest[field],
+                withNothing._initRequest[field],
+                `an empty ${field} must reach Telegram as the library's own default`
+            );
+            assert.notStrictEqual(withEmpty._initRequest[field], '', `${field} must not go out empty`);
+        }
     });
 
     it('includes the optional version fields when they are set', () => {

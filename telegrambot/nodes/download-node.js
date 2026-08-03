@@ -28,6 +28,14 @@ module.exports = function (RED) {
         // In megabytes, because that is the unit a user thinks in. 0 or empty means no limit.
         this.maxSize = Number(config.maxsize) > 0 ? Number(config.maxsize) * 1024 * 1024 : undefined;
 
+        // The controllers for downloads still in flight. teleproto checks the signal in its streaming
+        // loop, so aborting one stops it between chunks rather than after the whole file — which is what
+        // a redeploy needs from a 40 MB video.
+        //
+        // Note this differs from the upload node, which sets `isCanceled` on its progress callback: that
+        // is the only hook `sendFile` offers, while `downloadMedia` takes a real AbortSignal.
+        const running = new Set();
+
         attachConnectionStatus(node, (status) => node.status(status));
 
         this.start = async () => {
@@ -63,7 +71,31 @@ module.exports = function (RED) {
                 } else {
                     node.status(busyStatus('downloading'));
 
-                    const buffer = await client.downloadMedia(message, { thumb: node.thumb });
+                    const controller = new AbortController();
+                    running.add(controller);
+
+                    // Bytes, not a fraction — the mirror image of the upload node, where teleproto hands
+                    // over a fraction instead. Guarded because `total` is 0 for media whose size the
+                    // server did not state, and a percentage of nothing is not worth showing.
+                    const progressCallback = (downloaded, total) => {
+                        const done = Number(downloaded);
+                        const whole = Number(total);
+
+                        if (whole > 0) {
+                            node.status(busyStatus('downloading ' + Math.round((done / whole) * 100) + '%'));
+                        }
+                    };
+
+                    let buffer;
+                    try {
+                        buffer = await client.downloadMedia(message, {
+                            thumb: node.thumb,
+                            progressCallback: progressCallback,
+                            signal: controller.signal,
+                        });
+                    } finally {
+                        running.delete(controller);
+                    }
 
                     // Node-RED convention: the bytes go in payload so `file out` and `http response`
                     // work without a Change node. The original message stays reachable, because a flow
@@ -105,6 +137,11 @@ module.exports = function (RED) {
         });
 
         this.on('close', function (removed, done) {
+            // Stops a download in flight rather than letting it stream into a node that no longer exists.
+            for (const controller of running) {
+                controller.abort();
+            }
+
             detachConnectionStatus(node);
             node.stop();
             done();

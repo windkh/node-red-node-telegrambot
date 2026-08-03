@@ -121,9 +121,13 @@ anything, that change is wrong.
 
 The proxy is built once in the config node from the `useproxy` fields and passed straight into the
 `TelegramClient` options — teleproto handles both SOCKS (`socksType`) and MTProxy (`MTProxy` +
-`secret`). The optional `deviceModel` / `systemVersion` / `appVersion` fields must be **omitted** when
-empty rather than passed as `''`, so teleproto applies its own defaults; that is what
-`lib/client-params.js` is for.
+`secret`). `lib/client-params.js` is what builds those options.
+
+The `deviceModel` / `systemVersion` / `appVersion` fields may be passed empty. This rule used to say they
+had to be **omitted** when empty so that teleproto would apply its own defaults — that was wrong.
+teleproto's defaults set all three to `''` and then fall back on any falsy value
+(`clientParams.deviceModel || os.type().toString() || 'Unknown'`), so absent and empty are the same to it.
+The code no longer pretends otherwise.
 
 There is no `useWSS` any more. `usewss` survives in the editor's `defaults` so saved flows round-trip,
 but nothing reads it — see [ADR 0013](doc/architecture/adr/0013-migrate-to-teleproto.md).

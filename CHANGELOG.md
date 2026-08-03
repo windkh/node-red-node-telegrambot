@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+# [1.6.0] - 2026-08-03
+
+### fixed the download node's **Max size** limit understating a photo, often badly. Only one of Telegram's five photo-size variants carries a plain size, and the largest entry of a real photo is usually one of the others - measured on a realistic photo, the node reported 90 KB for a 4.5 MB download, so a 1 MB limit let it through. Photos that only offer progressive sizes reported nothing at all and skipped the check entirely
+
+### added download progress (`downloading 42%`) and cancellation: a redeploy now stops a download in flight instead of letting it stream into a closed node. The upload node has had both since 1.2.0
+
+### changed `deviceModel` / `systemVersion` / `appVersion` to be passed through even when empty. They were being omitted on the stated grounds that an empty string would override teleproto's defaults; it does not, and the checks that enforced that did nothing. Nothing changes on the wire
+
 # [1.5.0] - 2026-08-03
 
 ### added a **Login with QR** button to the config node: scan a code with a Telegram app that is already signed in instead of waiting for a phone code. Two-step verification uses the same password field as before, and both routes produce the same session string - [#28](https://github.com/windkh/node-red-node-telegrambot/issues/28)

@@ -1,8 +1,7 @@
 // Created by Karl-Heinz Wind
 'use strict';
 
-// Builds the TelegramClient constructor options. The device/system/app version are optional:
-// teleproto applies its own defaults when they are absent, so an empty string must not be passed on.
+// Builds the TelegramClient constructor options.
 //
 // `connectionRetries` is deliberately not set. The library defaults it to Infinity, which is what a
 // long-running Node-RED flow wants: a router reboot or a brief ISP outage must not kill a receiver for
@@ -45,19 +44,17 @@ function buildClientParams(options) {
         clientParams.floodSleepThreshold = floodSleepThreshold;
     }
 
-    const deviceModel = options.deviceModel || '';
-    const systemVersion = options.systemVersion || '';
-    const appVersion = options.appVersion || '';
-
-    if (deviceModel !== '') {
-        clientParams.deviceModel = deviceModel;
-    }
-    if (systemVersion !== '') {
-        clientParams.systemVersion = systemVersion;
-    }
-    if (appVersion !== '') {
-        clientParams.appVersion = appVersion;
-    }
+    // Passed through as they come, empty included. These used to be omitted when empty, on the stated
+    // grounds that an empty string would override the library's defaults. It would not: teleproto's own
+    // defaults set all three to `''` and then fall back on a falsy value —
+    //
+    //     deviceModel: clientParams.deviceModel || os.type().toString() || 'Unknown',
+    //
+    // so absent and empty are the same thing to it, and the three checks that enforced the distinction
+    // did nothing. See doc/architecture/adr/0021-lean-on-the-library.md.
+    clientParams.deviceModel = options.deviceModel || '';
+    clientParams.systemVersion = options.systemVersion || '';
+    clientParams.appVersion = options.appVersion || '';
 
     return clientParams;
 }

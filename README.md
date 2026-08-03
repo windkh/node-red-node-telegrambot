@@ -142,6 +142,9 @@ Two settings matter:
   memory. `0` disables the check. The size is not known in advance for every kind of media, and the check
   is skipped when it cannot be determined — a safeguard, not a guarantee.
 
+The node shows `downloading 42%` while it works, and a redeploy stops a download in flight rather than
+letting it stream into a node that no longer exists.
+
 [**download media flow**](examples/DownloadMedia.json)
 
 ### Upload Node
