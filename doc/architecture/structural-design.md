@@ -20,6 +20,7 @@ telegrambot/
     auth-error.js           authentication failure -> one safe log line
     node-status.js          the node statuses and the connection-state subscription
     session-store.js        the opt-in on-disk session, so peer ids survive a restart
+    update-state.js         the opt-in update position, so missed messages can be fetched
     list-request.js         read type + limit + search -> a call on the client
     event-filters.js        receiver filter config -> per-builder teleproto options
     media.js                media descriptor -> filename, mime type, download size

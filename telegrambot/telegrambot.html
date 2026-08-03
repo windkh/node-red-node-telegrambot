@@ -28,6 +28,9 @@
             // Off by default: switching it on writes the account's auth key to disk. See
             // doc/architecture/adr/0018-persist-the-entity-cache.md.
             persistpeers: { value: false, required: false },
+            // Off by default: after a long outage this replays everything that was missed. See
+            // doc/architecture/adr/0019-catch-up-on-missed-updates.md.
+            catchup: { value: false, required: false },
 
             host: { value: '', required: false },
             sockstype: { value: '5', required: false },
@@ -294,6 +297,11 @@
                  <input type="text" id="node-config-input-appversion" placeholder="(Optional: app version)">
              </div>
              <div class="form-row">
+                 <label for="node-config-input-catchup"><i class="fa fa-history"></i> Catch up</label>
+                 <input type="checkbox" id="node-config-input-catchup" style="display: inline-block; width: auto; vertical-align: top;">
+                 <div class="form-tips" style="width: auto"><b>Careful:</b> on start, fetch the messages that arrived while Node-RED was down and emit them through the receiver as if they had just come in. After a long outage on a busy account that is a lot of messages at once.</div>
+             </div>
+             <div class="form-row">
                  <label for="node-config-input-persistpeers"><i class="fa fa-database"></i> Remember peers</label>
                  <input type="checkbox" id="node-config-input-persistpeers" style="display: inline-block; width: auto; vertical-align: top;">
                  <div class="form-tips" style="width: auto"><b>Careful:</b> this keeps resolved peers on disk so numeric ids survive a restart &mdash; but it also writes this account's <b>session key</b> to a folder under your Node-RED user directory, outside the credentials file. Anyone who can read that folder can use the account. Leave it off unless you address peers by numeric id.</div>
@@ -432,6 +440,23 @@
         </ul>
         <p>Before version 0.1.11 both shared one input field. If you had entered an account password, it
         now appears prefilled in the proxy field — clear it there and re-enter it in the login panel.</p>
+
+        <h3>Catch up</h3>
+        <p>Messages that arrive while Node-RED is stopped or redeploying are normally lost: the receiver
+        subscribes to the live stream and has no idea what it missed.</p>
+
+        <p>With this on, the position in the update stream is written to
+        <code>&lt;user directory&gt;/telegram-updates/&lt;node id&gt;.json</code>, and on the next start
+        everything since is fetched and emitted through the receiver &mdash; through the same path as live
+        updates, so a flow cannot tell a replayed message from a fresh one and needs no changes.</p>
+
+        <p><b>Off by default, on purpose.</b> After a long outage on a busy account this arrives as a flood
+        the moment you deploy. Turn it on if missing messages matters more than that.</p>
+
+        <p>Two limits worth knowing. Telegram decides how far back it will replay; past that it refuses and
+        those messages are gone, which is reported in the log as
+        <code>getDifference: too long</code>. And a message may be delivered twice around the boundary
+        &mdash; most are filtered out, but a flow that must not act twice should be idempotent.</p>
 
         <h3>Remember peers</h3>
         <p>Telegram will not let a client address a user by <b>numeric id</b> alone &mdash; it needs an

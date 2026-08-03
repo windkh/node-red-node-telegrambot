@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+# [1.4.0] - 2026-08-03
+
+### added a **Catch up** option to the config node. With it on, the position in the update stream is remembered, and messages that arrived while Node-RED was stopped or redeploying are fetched on the next start and emitted through the receiver as if they had just come in - [#21](https://github.com/windkh/node-red-node-telegrambot/issues/21)
+
+### replayed messages travel the same path as live ones, so flows need no changes and cannot tell them apart
+
+### it is **off by default**: after a long outage on a busy account the whole backlog arrives at once. Note also that Telegram decides how far back it will replay, and that a message may be delivered twice around the boundary - most duplicates are filtered, but a flow that must not act twice should be idempotent
+
 # [1.3.0] - 2026-08-03
 
 ### added a **Remember peers** option to the config node. With it on, resolved peers are kept on disk, so a chat or user addressed by a bare numeric id keeps working after a restart instead of failing with `Could not find the input entity` - [#32](https://github.com/windkh/node-red-node-telegrambot/issues/32)

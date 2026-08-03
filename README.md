@@ -288,6 +288,26 @@ or for every message this client sends, via **Parse mode** on the config node (`
 > wrongly or make Telegram reject the message outright. If only some of your messages are formatted,
 > leave the config-node setting off and pass `parseMode` per message.
 
+#### Catching up after a restart
+
+Messages that arrive while Node-RED is stopped or redeploying are normally lost — the receiver subscribes
+to the live stream and has no idea what it missed.
+
+**Catch up** on the config node changes that. The position in the update stream is remembered in
+`<user directory>/telegram-updates/<node id>.json`, and on the next start everything since is fetched and
+emitted through the receiver. Replayed messages travel the same path as live ones, so **a flow needs no
+changes and cannot tell the difference.**
+
+**Off by default, on purpose:** after a long outage on a busy account this arrives as a flood the moment
+you deploy.
+
+Two limits worth knowing:
+
+- Telegram decides how far back it will replay. Past that it refuses, those messages are gone, and the log
+  says `getDifference: too long`.
+- A message may be delivered twice around the boundary. Most duplicates are filtered out, but a flow that
+  must not act twice should be idempotent.
+
 #### Remembering peers across a restart
 
 Telegram will not let a client address a user by **numeric id** alone — it needs an access hash, which the

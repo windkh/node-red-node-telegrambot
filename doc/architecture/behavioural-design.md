@@ -53,6 +53,19 @@ and `_reconnect` when the reconnect attempt itself throws. GramJS only had the f
 status text no longer claims the session is invalid. See [ADR 0006](adr/0006-connection-state.md) and
 [ADR 0013](adr/0013-migrate-to-teleproto.md).
 
+## Catching up after a restart
+
+Off unless the config node asks for it. When it does, the position in the update stream
+(`pts` / `qts` / `date` / `seq`) is written to `<user directory>/telegram-updates/<node id>.json` on close
+and every 60 seconds, and on the next start it is seeded into teleproto's `UpdateManager` **before**
+`catchUp()` runs — the other order would fetch the difference from the server's current position, which
+replays nothing.
+
+Everything after that is the library's: the difference loop, `differenceSlice`, `differenceTooLong`,
+`updatesTooLong` on the live stream, per-channel state, and duplicate filtering. Replayed updates go
+through the same `dispatch` as live ones, so the receiver emits them identically and a flow cannot tell.
+See [ADR 0019](adr/0019-catch-up-on-missed-updates.md).
+
 ## Teardown (redeploy)
 
 The config node destroys the client on close and clears its cache, so a redeploy does not leave a live

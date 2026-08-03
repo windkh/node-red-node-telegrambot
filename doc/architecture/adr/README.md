@@ -22,3 +22,4 @@ One file per decision: NNNN-title.md (Context / Decision / Consequences).
 | [0016](0016-list-node.md)                          | A node for the async-iterator reads, streaming by default         |
 | [0017](0017-finish-the-upload-node.md)             | Finish the upload node: albums, silent, replyTo, progress         |
 | [0018](0018-persist-the-entity-cache.md)           | Persist the peer cache with StoreSession, opt-in                  |
+| [0019](0019-catch-up-on-missed-updates.md)         | Catch up on missed updates by persisting the position, opt-in     |
