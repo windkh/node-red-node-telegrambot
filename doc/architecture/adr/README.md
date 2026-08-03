@@ -18,3 +18,4 @@ One file per decision: NNNN-title.md (Context / Decision / Consequences).
 | [0012](0012-reply-markup.md)                       | Build reply markup from JSON; be honest about callbacks           |
 | [0013](0013-migrate-to-teleproto.md)               | Move off the archived GramJS to its maintained fork               |
 | [0014](0014-release-as-1-0-0.md)                   | Release the teleproto move as 1.0.0                               |
+| [0015](0015-share-the-node-status-plumbing.md)     | Share the node status plumbing, and fix the text it hid           |

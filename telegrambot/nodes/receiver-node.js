@@ -8,21 +8,10 @@ const { Album } = require('teleproto/events/Album');
 const { CallbackQuery } = require('teleproto/events/CallbackQuery');
 
 const { buildEventFilters } = require('../lib/event-filters');
+const { CONNECTED, DISCONNECTED, attachConnectionStatus, detachConnectionStatus } = require('../lib/node-status');
 
-// The status texts are part of this node's public contract — keep them in one place so every code path
-// reports the same thing. `broken` gets a filled dot rather than a ring because it will not fix itself:
-// teleproto reports it either for an unusable authorization key or for a reconnect that failed
-// outright, and both leave the sender dead — so the text names both remedies.
-const CONNECTED = { fill: 'green', shape: 'ring', text: 'connected' };
-const DISCONNECTED = { fill: 'red', shape: 'ring', text: 'disconnected' };
-const BROKEN = { fill: 'red', shape: 'dot', text: 'broken: login again or redeploy' };
+// Specific to this node, so it stays here rather than in lib/node-status: the others have no filters.
 const INVALID_FILTER = { fill: 'red', shape: 'ring', text: 'invalid filter' };
-
-const STATUS_BY_STATE = {
-    connected: CONNECTED,
-    disconnected: DISCONNECTED,
-    broken: BROKEN,
-};
 
 // The receiver node subscribes to Telegram events on the shared client and emits one message per
 // event. Which event types are subscribed is configured per node; each subscription is tracked so
@@ -50,16 +39,7 @@ module.exports = function (RED) {
 
         // Keeps the canvas honest after start(): the connection can drop or the session can be
         // invalidated long after this node last looked at it.
-        this.onConnectionState = (state) => {
-            const status = STATUS_BY_STATE[state];
-            if (status !== undefined) {
-                node.status(status);
-            }
-        };
-
-        if (this.config) {
-            this.config.addStatusListener(this);
-        }
+        attachConnectionStatus(node, (status) => node.status(status));
 
         this.sendRawEvents = config.sendrawevents || false;
         this.sendNewMessage = config.sendnewmessage || false;
@@ -251,9 +231,7 @@ module.exports = function (RED) {
         this.start();
 
         this.on('close', function (removed, done) {
-            if (node.config) {
-                node.config.removeStatusListener(node);
-            }
+            detachConnectionStatus(node);
 
             // stop() is async, so awaiting it is what makes the unsubscribe actually finish before
             // Node-RED considers this node closed.

@@ -5,26 +5,13 @@ const { Api } = require('teleproto');
 const { FloodWaitError } = require('teleproto/errors');
 
 const { convertButtonsInArgs } = require('../lib/reply-markup');
-
-// The status texts are part of this node's public contract — keep them in one place so every code
-// path reports the same thing.
-const CONNECTED = { fill: 'green', shape: 'ring', text: 'connected' };
-const DISCONNECTED = { fill: 'red', shape: 'ring', text: 'disconnected' };
-// A filled dot, not a ring, because this one will not fix itself: teleproto reports `broken` for an
-// unusable authorization key or for a reconnect that failed outright, and in both cases the sender is
-// marked dead — so waiting will not help.
-const BROKEN = { fill: 'red', shape: 'dot', text: 'broken: login again or redeploy' };
-
-const STATUS_BY_STATE = {
-    connected: CONNECTED,
-    disconnected: DISCONNECTED,
-    broken: BROKEN,
-};
-
-// Yellow, because unlike the red states this is Telegram throttling a working connection.
-function floodWaitStatus(seconds) {
-    return { fill: 'yellow', shape: 'ring', text: 'flood wait ' + seconds + 's' };
-}
+const {
+    CONNECTED,
+    DISCONNECTED,
+    floodWaitStatus,
+    attachConnectionStatus,
+    detachConnectionStatus,
+} = require('../lib/node-status');
 
 // teleproto throws a plain Error for an unresolvable peer — there is no class to match on, so this has to
 // go by the message, and it points at Telethon's Python documentation. If teleproto rewords it the hint is
@@ -86,16 +73,10 @@ module.exports = function (RED) {
 
         // Keeps the canvas honest after start(): the connection can drop or the session can be
         // invalidated long after this node last looked at it.
-        this.onConnectionState = (state) => {
-            const status = STATUS_BY_STATE[state];
-            if (status !== undefined) {
-                node.setConnectionStatus(status);
-            }
-        };
-
-        if (this.config) {
-            this.config.addStatusListener(this);
-        }
+        //
+        // Routed through setConnectionStatus rather than node.status, because this node has to remember
+        // the state: a flood wait is temporary and reverts to it.
+        attachConnectionStatus(node, (status) => node.setConnectionStatus(status));
 
         this.start = async () => {
             if (node.config) {
@@ -214,9 +195,7 @@ module.exports = function (RED) {
         });
 
         this.on('close', function (removed, done) {
-            if (node.config) {
-                node.config.removeStatusListener(node);
-            }
+            detachConnectionStatus(node);
             // A pending flood-wait timer would otherwise write to a closed node.
             clearFloodTimer();
             node.stop();
