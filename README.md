@@ -162,6 +162,59 @@ before it can be sent.
 
 [**upload file flow**](examples/UploadFile.json)
 
+### List Node
+
+The _Telegram client list_ node reads existing data: a chat's **message history**, your **dialogs** (the
+chat list), or the **participants** of a group or channel.
+
+None of these work through the sender node, because Telegram returns them as _async iterators_ — putting
+one into `msg.payload` gives a flow an object it cannot use. This node iterates and decides how the items
+become messages.
+
+#### Output modes
+
+**one message per item** (the default) emits each item separately with `msg.parts` set, so a standard
+**join** node in automatic mode reassembles the array:
+
+```
+[inject] --> [client list] --> [join] --> [debug]
+```
+
+Use this for history: a large one never has to fit in memory at once. `msg.parts.count` comes from
+Telegram's own total for the query, capped at the limit.
+
+**one message with an array** emits a single message whose `msg.payload` is the whole array, with
+`msg.total` alongside. Simpler for small reads — a chat list, the members of a group — but everything is
+held in memory first.
+
+#### The limit is not a formality
+
+| Limit    | Meaning         |
+| -------- | --------------- |
+| blank    | 100 items       |
+| a number | that many items |
+| `0`      | no limit        |
+
+Telegram's own default here is **unbounded**. Iterating a busy channel back to its first message takes a
+long time and can earn a `FLOOD_WAIT`; on a user account, repeatedly, that risks the account. `0` is
+available, but it has to be asked for — the same convention as **Max size** on the download node.
+
+#### Inputs
+
+| Property     | Effect                                                                        |
+| ------------ | ----------------------------------------------------------------------------- |
+| `msg.peer`   | overrides **Read from**. Ignored for dialogs.                                 |
+| `msg.limit`  | overrides **Limit**.                                                          |
+| `msg.search` | overrides **Search**. Ignored for dialogs, which Telegram cannot search here. |
+
+Any message triggers a read; its payload is not used, and its other properties are carried through to
+every emitted message.
+
+The node shows `read n` while it works, so a long read does not look like a hang. A redeploy stops it at
+the next item rather than continuing to pull from Telegram.
+
+[**read history flow**](examples/ReadHistory.json)
+
 ### Sender Node
 
 The _Telegram client sender_ node is able to call nearly all functions provided by teleproto.

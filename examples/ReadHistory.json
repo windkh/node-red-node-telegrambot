@@ -1,0 +1,86 @@
+[
+    {
+        "id": "read_history_tab",
+        "type": "tab",
+        "label": "Read history",
+        "disabled": false,
+        "info": "Reads the last 50 messages of a chat and joins them back into one array.\n\nThe list node streams one message per item, so a large history never has to fit in memory at once. The join node in automatic mode uses msg.parts, which the list node sets — count comes from Telegram's own total for the query, capped at the limit.\n\nSet the Bot to your telegram client config node and enter a username under \"Read from\".\n\nMind the limit: 0 means no limit, which on a busy channel reads it back to the first message and can earn a FLOOD_WAIT."
+    },
+    {
+        "id": "history_trigger",
+        "type": "inject",
+        "z": "read_history_tab",
+        "name": "read it",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 150,
+        "y": 120,
+        "wires": [["history_read"]]
+    },
+    {
+        "id": "history_read",
+        "type": "telegram client list",
+        "z": "read_history_tab",
+        "name": "last 50 messages",
+        "bot": "",
+        "what": "messages",
+        "peer": "",
+        "limit": "50",
+        "search": "",
+        "mode": "stream",
+        "x": 340,
+        "y": 120,
+        "wires": [["history_join"]]
+    },
+    {
+        "id": "history_join",
+        "type": "join",
+        "z": "read_history_tab",
+        "name": "back into one array",
+        "mode": "auto",
+        "build": "array",
+        "property": "payload",
+        "propertyType": "msg",
+        "key": "topic",
+        "joiner": "\\n",
+        "joinerType": "str",
+        "accumulate": false,
+        "timeout": "",
+        "count": "",
+        "reduceRight": false,
+        "reduceExp": "",
+        "reduceInit": "",
+        "reduceInitType": "",
+        "reduceFixup": "",
+        "x": 560,
+        "y": 120,
+        "wires": [["history_debug"]]
+    },
+    {
+        "id": "history_debug",
+        "type": "debug",
+        "z": "read_history_tab",
+        "name": "the messages",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 780,
+        "y": 120,
+        "wires": []
+    }
+]

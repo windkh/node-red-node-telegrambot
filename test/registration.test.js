@@ -64,6 +64,7 @@ describe('entry point registration', () => {
             'telegram client sender',
             'telegram client download',
             'telegram client upload',
+            'telegram client list',
         ]);
     });
 

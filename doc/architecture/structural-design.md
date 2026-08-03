@@ -10,6 +10,7 @@ telegrambot/
     sender-node.js          telegram client sender — client calls and raw MTProto requests
     download-node.js        telegram client download — media from a received message
     upload-node.js          telegram client upload — send a Buffer or a path as a file
+    list-node.js            telegram client list — history, dialogs, participants
   lib/
     login.js                interactive login, produces a session string
     telegram-client.js      runtime connect from a stored session string
@@ -18,11 +19,12 @@ telegrambot/
     login-credentials.js    resolves the editor's __PWRD__ placeholder against storage
     auth-error.js           authentication failure -> one safe log line
     node-status.js          the node statuses and the connection-state subscription
+    list-request.js         read type + limit + search -> a call on the client
     event-filters.js        receiver filter config -> per-builder teleproto options
     media.js                media descriptor -> filename, mime type, download size
     upload.js               Buffer -> CustomFile, so an upload arrives correctly named
     reply-markup.js         JSON button description -> teleproto Button objects
-  telegrambot.html          editor definitions and help for all five nodes
+  telegrambot.html          editor definitions and help for all six nodes
   icons/
 ```
 
@@ -49,6 +51,6 @@ and must never prompt. The genuinely shared part is the constructor options, whi
 
 ## The HTML file is not split
 
-`telegrambot.html` still defines all three nodes. Node-RED loads the `.html` next to the registered
+`telegrambot.html` still defines all six nodes. Node-RED loads the `.html` next to the registered
 entry file as one document, so splitting it would need a build step. See
 [ADR 0001](adr/0001-modular-layout.md).
