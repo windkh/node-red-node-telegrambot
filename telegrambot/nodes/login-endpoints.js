@@ -9,6 +9,7 @@ const {
     settlePassword,
 } = require('../lib/auth-prompt');
 const { resolveLoginSecrets } = require('../lib/login-credentials');
+const { describeAuthError } = require('../lib/auth-error');
 
 // Admin HTTP API backing the "Login" button in the config node's editor dialog. Telegram's
 // interactive login needs a phone code (and possibly a 2FA password) that the user can only supply
@@ -60,21 +61,15 @@ module.exports = function (RED) {
                     res.json(data);
                 },
                 (error) => {
-                    let message;
-                    if (error.code !== undefined) {
-                        message = 'Error ' + error.code + ' (' + error.errorMessage + '): ' + error.message;
-                    } else if (error.message !== undefined) {
-                        message = error.message;
-                    } else {
-                        message = error;
-                    }
-
                     const data = {
                         type: 'error',
-                        error: message,
+                        error: describeAuthError(error),
                     };
                     res.json(data);
-                }
+                },
+                // No node instance to warn through — this is an admin route, not a node — so the
+                // runtime logger is the channel. It respects the configured log level; stdout did not.
+                (message) => RED.log.warn(message)
             );
         } catch {
             // TODO: login() reports its own failures through the error callback above; this only

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+# [1.0.1] - 2026-08-03
+
+### changed authentication failures to be reported through the Node-RED log instead of `console.log` on stdout, so they carry the node context and respect the configured log level - [#33](https://github.com/windkh/node-red-node-telegrambot/issues/33)
+
+### audited what those two lines were putting in the log, which is what #33 was filed for: nothing sensitive. teleproto's `RPCError` keeps only the request's class name and never stores the request itself, so the phone number, api hash and phone code cannot reach a log line. Pinned by a test using the real `Api.auth.SignIn` request object
+
+### note: the message shown in the config dialog after a failed login is unchanged
+
 # [1.0.0] - 2026-08-03
 
 ### **first release published to npm since 0.1.6.** Everything between the two existed only in git, so this upgrade brings twenty-odd changelog entries at once - two of them need a manual step. Read [MIGRATION.md](/MIGRATION.md) before upgrading

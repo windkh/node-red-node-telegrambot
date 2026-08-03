@@ -5,6 +5,7 @@ const { TelegramClient } = require('teleproto');
 const { StringSession } = require('teleproto/sessions');
 
 const { buildClientParams } = require('./client-params');
+const { describeAuthError } = require('./auth-error');
 
 // What teleproto's sanitizeParseMode accepts. It *throws* on anything else, and this is only a formatting
 // preference — it must not be able to stop the client connecting, so the value is checked first.
@@ -63,8 +64,11 @@ async function createTelegramClient(options, warn) {
             } else {
                 authParams = {
                     phoneNumber: options.phoneNumber,
+                    // Through `warn`, not `console.log`: this belongs in the Node-RED log with the
+                    // calling node's context, at the runtime's own log level, rather than on stdout
+                    // where it bypasses both. See ./auth-error for what is safe to log here (#33).
                     onError: (err) => {
-                        console.log(err);
+                        warn('Telegram login failed: ' + describeAuthError(err));
                         return true; // abort
                     },
                 };

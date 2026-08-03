@@ -5,6 +5,7 @@ const { TelegramClient } = require('teleproto');
 const { StringSession } = require('teleproto/sessions');
 
 const { buildClientParams } = require('./client-params');
+const { describeAuthError } = require('./auth-error');
 
 // Performs the interactive login that produces a session string.
 //
@@ -12,7 +13,11 @@ const { buildClientParams } = require('./client-params');
 // per-runtime connect: it starts from an empty session and reports the resulting session string
 // through `sessionCreated`. `getPhoneCode` and `getPassword` are pending promises settled by later
 // admin requests (see ./auth-prompt), which is why they are awaited lazily inside the auth params.
-async function login(parameters, getPhoneCode, getPassword, sessionCreated, error) {
+//
+// `warn` is how a failure that does not end the login gets reported. There is no node instance here —
+// the login is an admin route, not a node — so the caller passes the runtime logger. Keeping it a plain
+// callback is what lets this module stay free of `RED`.
+async function login(parameters, getPhoneCode, getPassword, sessionCreated, error, warn) {
     try {
         const apiId = Number(parameters.apiId);
         const apiHash = parameters.apiHash;
@@ -46,10 +51,14 @@ async function login(parameters, getPhoneCode, getPassword, sessionCreated, erro
                     phoneNumber: phoneNumber,
                     phoneCode: async () => await getPhoneCode,
                     password: password,
+                    // Through `warn`, not `console.log`: stdout bypasses the Node-RED log and its
+                    // level. See ./auth-error for what is safe to log here (#33).
+                    //
+                    // Returning true aborts, and teleproto then throws `AUTH_USER_CANCEL` — which is
+                    // all the editor dialog gets to show. The real cause only exists here, so logging
+                    // it is not optional.
                     onError: (err) => {
-                        console.log(err);
-                        // if (err.errorMessage === 'PHONE_CODE_INVALID') {
-                        // }
+                        warn('Telegram login failed: ' + describeAuthError(err));
                         return true; // abort
                     },
                 };
