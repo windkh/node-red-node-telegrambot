@@ -73,6 +73,17 @@ Then go to 'API Development Tools' and create your API ID and API Hash. Both are
 the config node or as an alternative you can also create it online here https://tgsnake.js.org/login
 This session string is used instead of interactive login (where you need to enter a phone-code and your password if set).
 
+#### Login with a QR code
+
+Instead of waiting for a phone code, click **Login with QR** and scan the code with a Telegram app that is
+already signed in — in the app: **Settings, Devices, Link Desktop Device**.
+
+The code is replaced every half minute until you scan it. If your account has two-step verification, enter
+the password in the same field the phone-code login uses. On a machine where Telegram is installed you can
+click the link under the code instead of scanning.
+
+Both routes produce the same session string, so it makes no difference afterwards which one you used.
+
 ### Receiver Node
 
 The _Telegram client receiver_ node receives message which are sent to your account or bot. Just add a debug node to the

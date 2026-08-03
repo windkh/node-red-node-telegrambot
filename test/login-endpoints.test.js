@@ -153,3 +153,85 @@ describe('login admin endpoints', () => {
         assert.strictEqual(answer.error, 'Parameters are missing: apiId, apiHash, phoneNumber');
     });
 });
+
+// The QR login spans two requests too, but differently: `-loginqr` answers at once and the editor polls
+// `-loginqrstatus`, which is what lets a *replacement* token be delivered when Telegram expires the old
+// one. A single held response cannot do that.
+//
+// Posting an empty body is what keeps these offline — the login stops at the parameter check, which still
+// exercises the whole route, the state handoff and the polling.
+describe('QR login admin endpoints', () => {
+    // The status is written from a callback, so it lands a tick after the route answered.
+    function settled() {
+        return new Promise((resolve) => setImmediate(resolve));
+    }
+
+    it('reports nothing running before a QR login is started', () => {
+        const routes = loadRoutes();
+        const res = createResponse();
+
+        routes['/node-red-node-telegrambot-loginqrstatus']({ body: {} }, res);
+
+        assert.deepStrictEqual(res.body, [{ type: 'idle' }]);
+    });
+
+    it('answers the start request at once rather than holding it open', () => {
+        const routes = loadRoutes();
+        const res = createResponse();
+
+        routes['/node-red-node-telegrambot-loginqr']({ body: {} }, res);
+
+        // Holding until the first token exists would duplicate what the polling does, and a token that
+        // never arrives would hang the dialog.
+        assert.deepStrictEqual(res.body, [{ type: 'started' }]);
+    });
+
+    it('makes the failure reachable through the status route', async () => {
+        const routes = loadRoutes();
+
+        routes['/node-red-node-telegrambot-loginqr']({ body: {} }, createResponse());
+        await settled();
+
+        const res = createResponse();
+        routes['/node-red-node-telegrambot-loginqrstatus']({ body: {} }, res);
+
+        assert.strictEqual(res.body[0].type, 'error');
+        assert.strictEqual(res.body[0].error, 'Parameters are missing: apiId, apiHash');
+    });
+
+    it('replaces a running login instead of racing it', async () => {
+        const routes = loadRoutes();
+
+        routes['/node-red-node-telegrambot-loginqr']({ body: {} }, createResponse());
+        await settled();
+
+        // The second start must reset the state, or the first run's result would be shown for the second
+        // attempt — and both would be competing over the shared password prompt.
+        routes['/node-red-node-telegrambot-loginqr']({ body: { apiId: '12345', apiHash: 'hash' } }, createResponse());
+
+        const res = createResponse();
+        routes['/node-red-node-telegrambot-loginqrstatus']({ body: {} }, res);
+
+        assert.strictEqual(res.body[0].type, 'waiting', 'the stale error must not survive a restart');
+    });
+
+    it('survives a request with no body at all', () => {
+        const routes = loadRoutes();
+
+        assert.doesNotThrow(() => routes['/node-red-node-telegrambot-loginqr']({}, createResponse()));
+        assert.doesNotThrow(() => routes['/node-red-node-telegrambot-loginqrstatus']({}, createResponse()));
+    });
+
+    it('looks the stored api hash up by the posted node id, like the phone-code login', async () => {
+        const routes = loadRoutes({ apihash: 'stored-hash' });
+
+        // Only the placeholder is substituted, so apiId is still missing and nothing reaches Telegram.
+        routes['/node-red-node-telegrambot-loginqr']({ body: { id: 'c1', apiHash: PLACEHOLDER } }, createResponse());
+        await settled();
+
+        const res = createResponse();
+        routes['/node-red-node-telegrambot-loginqrstatus']({ body: {} }, res);
+
+        assert.strictEqual(res.body[0].type, 'error', 'a missing apiId must still stop it');
+    });
+});

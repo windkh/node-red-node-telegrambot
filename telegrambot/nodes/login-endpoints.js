@@ -10,6 +10,8 @@ const {
 } = require('../lib/auth-prompt');
 const { resolveLoginSecrets } = require('../lib/login-credentials');
 const { describeAuthError } = require('../lib/auth-error');
+const { loginWithQrCode } = require('../lib/login-qr');
+const { createQrSession } = require('../lib/qr-session');
 
 // Admin HTTP API backing the "Login" button in the config node's editor dialog. Telegram's
 // interactive login needs a phone code (and possibly a 2FA password) that the user can only supply
@@ -39,6 +41,27 @@ module.exports = function (RED) {
         settlePassword(parameters.password);
 
         res.json('ok');
+    });
+
+    // `-loginqr` starts the login and answers at once; the editor then polls `-loginqrstatus`. That is
+    // what lets a *replacement* token be delivered when Telegram expires the old one, which the single
+    // held response of the phone-code flow cannot do. ../lib/qr-session owns the rules.
+    const qrSession = createQrSession(loginWithQrCode);
+
+    RED.httpAdmin.post('/node-red-node-telegrambot-loginqr', function (req, res) {
+        const posted = req.body || {};
+        const stored = posted.id !== undefined ? RED.nodes.getCredentials(posted.id) : undefined;
+        const parameters = resolveLoginSecrets(posted, stored);
+
+        qrSession.start(parameters, createPasswordPromise());
+
+        // Answered immediately: the token does not exist yet, and holding the response until it does
+        // would only duplicate what the polling handles.
+        res.json({ type: 'started' });
+    });
+
+    RED.httpAdmin.post('/node-red-node-telegrambot-loginqrstatus', function (req, res) {
+        res.json(qrSession.status());
     });
 
     RED.httpAdmin.post('/node-red-node-telegrambot-login', function (req, res) {

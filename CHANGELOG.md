@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+# [1.5.0] - 2026-08-03
+
+### added a **Login with QR** button to the config node: scan a code with a Telegram app that is already signed in instead of waiting for a phone code. Two-step verification uses the same password field as before, and both routes produce the same session string - [#28](https://github.com/windkh/node-red-node-telegrambot/issues/28)
+
+### the code is rendered on the server and refreshed every half minute until it is scanned, so the editor needs no QR library. Adds one small dependency, `qrcode-generator` (MIT, no dependencies of its own)
+
+### added the admin routes `node-red-node-telegrambot-loginqr` and `-loginqrstatus`. The three existing login routes are unchanged
+
 # [1.4.0] - 2026-08-03
 
 ### added a **Catch up** option to the config node. With it on, the position in the update stream is remembered, and messages that arrived while Node-RED was stopped or redeploying are fetched on the next start and emitted through the receiver as if they had just come in - [#21](https://github.com/windkh/node-red-node-telegrambot/issues/21)

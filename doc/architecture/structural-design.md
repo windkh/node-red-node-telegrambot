@@ -13,6 +13,8 @@ telegrambot/
     list-node.js            telegram client list — history, dialogs, participants
   lib/
     login.js                interactive login, produces a session string
+    login-qr.js             the QR alternative: deep link, SVG, and the sign-in
+    qr-session.js           one QR login at a time, and what the editor is shown
     telegram-client.js      runtime connect from a stored session string
     client-params.js        TelegramClient constructor options, shared by both of the above
     auth-prompt.js          deferred phone-code / password promises

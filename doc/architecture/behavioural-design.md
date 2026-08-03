@@ -53,6 +53,18 @@ and `_reconnect` when the reconnect attempt itself throws. GramJS only had the f
 status text no longer claims the session is invalid. See [ADR 0006](adr/0006-connection-state.md) and
 [ADR 0013](adr/0013-migrate-to-teleproto.md).
 
+## The QR login is a poll, not a held response
+
+The phone-code login holds its `-login` response until a session exists. The QR login cannot: Telegram
+expires each token after about half a minute, so a **replacement** has to reach the editor, and one response
+answers once. `-loginqr` therefore starts the login and returns immediately, and the editor polls
+`-loginqrstatus` for `waiting` / `qr` / `session` / `error` / `idle`.
+
+teleproto drives the exchange — the token loop, the scan notification, a data-centre migration, and
+two-step verification through the same password prompt the phone-code flow uses. `lib/qr-session.js` holds
+the one rule that is ours: one login at a time, so a second attempt aborts the first.
+See [ADR 0020](adr/0020-qr-code-login.md).
+
 ## Catching up after a restart
 
 Off unless the config node asks for it. When it does, the position in the update stream

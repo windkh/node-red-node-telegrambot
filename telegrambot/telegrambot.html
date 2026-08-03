@@ -239,11 +239,107 @@
             $('#node-config-input-twofapassword').change(setPassword);
             $('#node-config-input-session').change(showLoginButton);
 
+            // The QR login is a poll rather than one held response, because Telegram expires each token
+            // after about half a minute and the editor has to be handed the replacement. The server keeps
+            // the current state; this asks for it until there is a session or an error.
+            let qrPollTimer;
+
+            let stopQrPolling = function () {
+                if (qrPollTimer !== undefined) {
+                    clearInterval(qrPollTimer);
+                    qrPollTimer = undefined;
+                }
+            };
+
+            let showQrStatus = function (data) {
+                if (data.type === 'qr') {
+                    // Rendered by the server, so the editor needs no QR library. Set as HTML because it
+                    // is an <svg> element, not text.
+                    $('#qrcode').html(data.svg);
+                    $('#qrcodelink').attr('href', data.url);
+                    $('#loginqrtip').text('Scan this in Telegram: Settings, Devices, Link Desktop Device.');
+                } else if (data.type === 'session') {
+                    stopQrPolling();
+                    $('#qrcode').empty();
+                    $('#node-config-input-session').val(data.session);
+                    $('#loginqrtip').text('Signed in. Click Done to save the session.');
+                    showLoginButton();
+                } else if (data.type === 'error') {
+                    stopQrPolling();
+                    $('#qrcode').empty();
+                    $('#loginqrtip').text('QR login failed: ' + data.error);
+                } else if (data.type === 'idle') {
+                    stopQrPolling();
+                    $('#loginqrtip').text('QR login stopped. Click again to retry.');
+                }
+            };
+
+            let loginWithQr = function () {
+                let apiId = $('#node-config-input-apiid').val();
+                let apiHash = $('#node-config-input-apihash').val();
+
+                if (apiId !== '' && apiHash) {
+                    let parameters = {
+                        id: nodeId,
+                        apiId: apiId,
+                        apiHash: apiHash,
+                        devicemodel: $('#node-config-input-devicemodel').val(),
+                        systemversion: $('#node-config-input-systemversion').val(),
+                        appversion: $('#node-config-input-appversion').val(),
+                    };
+
+                    if ($('#node-config-input-useproxy').prop('checked')) {
+                        parameters.proxy = {
+                            ip: $('#node-config-input-host').val(),
+                            socksType: Number($('#node-config-input-sockstype').val()),
+                            port: Number($('#node-config-input-port').val()),
+                            username: $('#node-config-input-username').val(),
+                            password: $('#node-config-input-password').val(),
+                            secret: $('#node-config-input-secret').val(),
+                            MTProxy: $('#node-config-input-mtproxy').prop('checked'),
+                            timeout: Number($('#node-config-input-timeout').val()),
+                        };
+                    }
+
+                    stopQrPolling();
+                    $('#loginqrtip').text('Starting QR login ...');
+                    $('#node-config-input-session').val('');
+
+                    postJson('node-red-node-telegrambot-loginqr', parameters, function () {
+                        // Two seconds: fast enough that the first code appears promptly, slow enough to
+                        // be invisible next to a token that lives for thirty.
+                        qrPollTimer = setInterval(function () {
+                            postJson('node-red-node-telegrambot-loginqrstatus', {}, showQrStatus);
+                        }, 2000);
+                    });
+                } else {
+                    $('#loginqrtip').text('Enter the API ID and API Hash first.');
+                }
+            };
+
             $('#loginbutton').click(function () {
                 login();
             });
 
+            $('#loginqrbutton').click(function () {
+                loginWithQr();
+            });
+
+            // The dialog closing is the only "the user is gone" signal there is. The server aborts a
+            // forgotten login on its own timeout as well, but this stops the browser asking.
+            this.__stopQrPolling = stopQrPolling;
+
             showLoginButton();
+        },
+        oneditsave: function () {
+            if (this.__stopQrPolling) {
+                this.__stopQrPolling();
+            }
+        },
+        oneditcancel: function () {
+            if (this.__stopQrPolling) {
+                this.__stopQrPolling();
+            }
         },
     });
 </script>
@@ -338,6 +434,21 @@
                  <input id='loginbutton' type='button' value=' Login ' style="width: auto"/></i></input>
                  <div class="form-tips" id='loginbuttontip' style="width: auto">
                      Click Login button to request code for login: code will be sent via your phone.</div>
+             </div>
+
+             <div class="form-row">
+                 <label></label>
+                 <input id='loginqrbutton' type='button' value=' Login with QR ' style="width: auto"/></i></input>
+                 <div class="form-tips" id='loginqrtip' style="width: auto">
+                     Or scan a QR code with a Telegram app that is already signed in &mdash; no phone code needed.</div>
+             </div>
+
+             <div class="form-row">
+                 <label></label>
+                 <div id="qrcode" style="width: 220px; background: #fff; padding: 4px"></div>
+                 <div class="form-tips" style="width: auto">
+                     Cannot scan? <a id="qrcodelink" href="#" target="_blank">Open the login link</a> on a device
+                     where Telegram is installed. The code is replaced every half minute until you scan it.</div>
              </div>
 
              <div class="form-row">
