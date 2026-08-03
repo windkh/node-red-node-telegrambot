@@ -153,6 +153,14 @@ Two of them are worth a second look:
 
 ---
 
+### Messages missed while Node-RED was down
+
+New in 1.4.0 and **off by default**: **Catch up** on the config node. Every version so far has simply lost
+messages that arrived while Node-RED was stopped, and that stays the behaviour until you switch this on.
+
+Before you do, note that switching it on after a long stop means the whole backlog arrives at once. See
+[the README section](README.md#catching-up-after-a-restart).
+
 ### Peers addressed by numeric id
 
 New in 1.3.0 and **off by default**, including for you after this upgrade: **Remember peers** on the config

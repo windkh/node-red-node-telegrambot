@@ -7,3 +7,6 @@ coverage
 # On-disk Telegram sessions (see ADR 0018). These hold an account auth key —
 # never commit one.
 telegram-sessions
+
+# Saved update positions (see ADR 0019). Not secret, but not source either.
+telegram-updates

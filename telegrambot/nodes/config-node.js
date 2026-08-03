@@ -5,6 +5,7 @@ const { UpdateConnectionState } = require('teleproto/network');
 
 const { createTelegramClient } = require('../lib/telegram-client');
 const { describeSessionStore } = require('../lib/session-store');
+const { updateStatePath, readUpdateState, writeUpdateState } = require('../lib/update-state');
 
 // teleproto reports these as numbers; map them to names so the nodes do not have to know the encoding.
 const CONNECTION_STATES = new Map([
@@ -15,6 +16,9 @@ const CONNECTION_STATES = new Map([
     // GramJS only had the first — see doc/architecture/adr/0013-migrate-to-teleproto.md.
     [UpdateConnectionState.broken, 'broken'],
 ]);
+
+// One minute. Frequent enough that a crash costs little replay, rare enough to be free.
+const SAVE_INTERVAL_MS = 60 * 1000;
 
 // The configuration node owns the shared TelegramClient. Receiver and sender nodes reference it and
 // ask for the client via getTelegramClient, so one session serves every node in the flow.
@@ -46,6 +50,17 @@ module.exports = function (RED) {
         //
         // The name is derived from the node id, so two config nodes never share a store — which matters
         // because store2 keys its areas by name process-wide.
+        // Off unless asked for: after a long outage this replays everything that was missed, which on
+        // a busy account is a flood the user did not ask for. See
+        // doc/architecture/adr/0019-catch-up-on-missed-updates.md.
+        // The path is only computed when it is wanted: `RED.settings.userDir` is not guaranteed to be
+        // set in every embedding, and the session store above takes the same care for the same reason.
+        const catchUp = n.catchup || false;
+        let updateStateFile;
+        if (catchUp) {
+            updateStateFile = updateStatePath(RED.settings.userDir, node.id);
+        }
+
         let sessionStore = '';
         if (n.persistpeers) {
             const described = describeSessionStore(RED.settings.userDir, node.id, process.cwd());
@@ -147,6 +162,45 @@ module.exports = function (RED) {
             }
         };
 
+        // How often the position is written while the flow runs. On a clean redeploy the close handler
+        // saves it; this bounds how much is replayed again after a crash, which the library's own
+        // duplicate check then mostly absorbs.
+        let saveTimer;
+
+        // Reads what the update manager has reached and writes it down. Called on a timer and on close.
+        this.saveUpdateState = function () {
+            const client = node.client;
+
+            if (updateStateFile !== undefined && client && client.updateManager && client.updateManager.state) {
+                writeUpdateState(updateStateFile, client.updateManager.state, (message) => node.warn(message));
+            }
+        };
+
+        // Replays what was missed while Node-RED was down.
+        //
+        // teleproto does the hard part — the difference loop, `differenceTooLong`, `updatesTooLong`, and
+        // deduplication — but its `ensureState()` initialises from the server's *current* position, which
+        // is the same as skipping the gap. Seeding the saved position first is what turns that into a
+        // catch-up. Replayed updates go through the same dispatch as live ones, so the receiver node
+        // emits them exactly as it would have at the time.
+        this.catchUpOnUpdates = async function (client) {
+            const saved = readUpdateState(updateStateFile, (message) => node.warn(message));
+
+            if (saved !== undefined) {
+                try {
+                    client.updateManager.refreshFromState(saved);
+                    await client.catchUp();
+                } catch (error) {
+                    // A failed catch-up must not stop the flow starting: the live stream still works.
+                    node.warn('Could not catch up on missed updates: ' + error.message);
+                }
+            }
+
+            // From here the position is worth remembering even if there was nothing to replay.
+            saveTimer = setInterval(() => node.saveUpdateState(), SAVE_INTERVAL_MS);
+            saveTimer.unref();
+        };
+
         // Activates the client or returns the already activated bot.
         this.getTelegramClient = async function (node) {
             if (!this.client) {
@@ -169,6 +223,12 @@ module.exports = function (RED) {
                 }
 
                 this.client = client;
+
+                // After `this.client` is set, so the handlers a replayed update reaches are the same ones
+                // a live update would, and so saveUpdateState can find the client.
+                if (client && catchUp) {
+                    await node.catchUpOnUpdates(client);
+                }
             }
 
             return this.client;
@@ -182,6 +242,13 @@ module.exports = function (RED) {
         // session would survive every redeploy. destroy() also clears the registered event builders
         // and drops the borrowed senders.
         this.closeTelegramClient = async function () {
+            // Written before the client is dropped: this is the position a redeploy resumes from.
+            if (saveTimer !== undefined) {
+                clearInterval(saveTimer);
+                saveTimer = undefined;
+            }
+            node.saveUpdateState();
+
             const client = node.client;
             // Cleared first so a concurrent getTelegramClient builds a fresh one instead of handing
             // out the client being torn down.
