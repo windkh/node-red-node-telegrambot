@@ -14,10 +14,26 @@ function createRedStub() {
     // password in query strings again, and only the method reveals that.
     const getRoutes = [];
 
+    // What the entry point logs on load. Part of the runtime API, so the stub has to have it — without
+    // it the version line the entry point writes throws and every test in this file fails at `require`.
+    const logged = [];
+
     return {
         registeredTypes,
         adminRoutes,
         getRoutes,
+        logged,
+        log: {
+            info(message) {
+                logged.push(message);
+            },
+            warn(message) {
+                logged.push(message);
+            },
+            error(message) {
+                logged.push(message);
+            },
+        },
         nodes: {
             registerType(type, constructor, options) {
                 registeredTypes.push({ type, constructor, options });
@@ -66,6 +82,19 @@ describe('entry point registration', () => {
             'telegram client upload',
             'telegram client list',
         ]);
+    });
+
+    it('announces its version on load', () => {
+        const RED = createRedStub();
+        entry(RED);
+
+        // Whatever the wording, it has to carry the version from package.json — a hardcoded one would
+        // drift on the next release and quietly misreport which code is running.
+        const version = require('../package.json').version;
+        assert.ok(
+            RED.logged.some((message) => String(message).includes(version)),
+            `expected the load to log version ${version}, got ${JSON.stringify(RED.logged)}`
+        );
     });
 
     it('registers every node type with a constructor function', () => {
