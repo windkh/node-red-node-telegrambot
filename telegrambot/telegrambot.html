@@ -25,6 +25,9 @@
                 },
             },
             parsemode: { value: '', required: false },
+            // Off by default: switching it on writes the account's auth key to disk. See
+            // doc/architecture/adr/0018-persist-the-entity-cache.md.
+            persistpeers: { value: false, required: false },
 
             host: { value: '', required: false },
             sockstype: { value: '5', required: false },
@@ -291,6 +294,11 @@
                  <input type="text" id="node-config-input-appversion" placeholder="(Optional: app version)">
              </div>
              <div class="form-row">
+                 <label for="node-config-input-persistpeers"><i class="fa fa-database"></i> Remember peers</label>
+                 <input type="checkbox" id="node-config-input-persistpeers" style="display: inline-block; width: auto; vertical-align: top;">
+                 <div class="form-tips" style="width: auto"><b>Careful:</b> this keeps resolved peers on disk so numeric ids survive a restart &mdash; but it also writes this account's <b>session key</b> to a folder under your Node-RED user directory, outside the credentials file. Anyone who can read that folder can use the account. Leave it off unless you address peers by numeric id.</div>
+             </div>
+             <div class="form-row">
                  <label for="node-config-input-parsemode"><i class="fa fa-font"></i> Parse mode</label>
                  <select id="node-config-input-parsemode">
                      <option value="">none (send text as-is)</option>
@@ -424,6 +432,24 @@
         </ul>
         <p>Before version 0.1.11 both shared one input field. If you had entered an account password, it
         now appears prefilled in the proxy field — clear it there and re-enter it in the login panel.</p>
+
+        <h3>Remember peers</h3>
+        <p>Telegram will not let a client address a user by <b>numeric id</b> alone &mdash; it needs an
+        access hash, which the client only holds for peers it has already seen. That list normally lives in
+        memory, so it is empty after every restart: a flow that addresses peers by id works while you build
+        it and then fails with <code>Could not find the input entity</code> after a redeploy.</p>
+
+        <p>Ticking this keeps the list on disk, in
+        <code>&lt;user directory&gt;/telegram-sessions/&lt;node id&gt;</code>, so numeric ids keep
+        working.</p>
+
+        <p><b>The trade:</b> that folder also holds this account's <b>session key</b> &mdash; the same
+        secret as the session string, which otherwise lives only in Node-RED's encrypted credentials file.
+        Anyone who can read the folder can act as your account. Turn this on only if you need it, and treat
+        the folder like the credentials file.</p>
+
+        <p>Usernames and invite links never needed this: they are resolved on demand. If your flows address
+        peers by username, leave it off.</p>
 
         <h3>Device fields</h3>
         <p><b>Device Model</b>, <b>System Version</b> and <b>App Version</b> are optional. Left empty,

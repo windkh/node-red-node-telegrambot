@@ -288,6 +288,23 @@ or for every message this client sends, via **Parse mode** on the config node (`
 > wrongly or make Telegram reject the message outright. If only some of your messages are formatted,
 > leave the config-node setting off and pass `parseMode` per message.
 
+#### Remembering peers across a restart
+
+Telegram will not let a client address a user by **numeric id** alone — it needs an access hash, which the
+client only holds for peers it has already seen. That list normally lives in memory, so it is empty after
+every restart: a flow that addresses peers by id works while you build it and then fails with
+`Could not find the input entity` after a redeploy.
+
+**Remember peers** on the config node keeps the list on disk, in
+`<user directory>/telegram-sessions/<node id>`, so numeric ids keep working.
+
+It is **off by default, deliberately.** That directory also holds this account's session key — the same
+secret as the session string, which otherwise lives only in Node-RED's encrypted credentials file. Anyone
+who can read the directory can act as your account. Turn it on only if you address peers by numeric id, and
+treat the directory like the credentials file.
+
+Usernames and invite links never needed it: they are resolved on demand.
+
 #### Addressing a chat or user
 
 You do not need to resolve peers yourself — both calling conventions accept a username and let teleproto

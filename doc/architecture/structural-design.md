@@ -19,6 +19,7 @@ telegrambot/
     login-credentials.js    resolves the editor's __PWRD__ placeholder against storage
     auth-error.js           authentication failure -> one safe log line
     node-status.js          the node statuses and the connection-state subscription
+    session-store.js        the opt-in on-disk session, so peer ids survive a restart
     list-request.js         read type + limit + search -> a call on the client
     event-filters.js        receiver filter config -> per-builder teleproto options
     media.js                media descriptor -> filename, mime type, download size

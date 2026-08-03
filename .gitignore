@@ -3,3 +3,7 @@ node_modules
 # c8 output (npm run coverage)
 coverage
 .nyc_output
+
+# On-disk Telegram sessions (see ADR 0018). These hold an account auth key —
+# never commit one.
+telegram-sessions

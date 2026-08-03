@@ -4,6 +4,7 @@
 const { UpdateConnectionState } = require('teleproto/network');
 
 const { createTelegramClient } = require('../lib/telegram-client');
+const { describeSessionStore } = require('../lib/session-store');
 
 // teleproto reports these as numbers; map them to names so the nodes do not have to know the encoding.
 const CONNECTION_STATES = new Map([
@@ -38,6 +39,25 @@ module.exports = function (RED) {
         // a meaningful setting here and '' is not.
         const floodSleepThreshold = n.floodsleepthreshold;
         const parseMode = n.parsemode || '';
+
+        // Off unless asked for: switching it on writes this account's auth key to disk, outside the
+        // credential store Node-RED keeps the session in. What it buys is peers addressed by numeric id
+        // surviving a restart. See doc/architecture/adr/0018-persist-the-entity-cache.md.
+        //
+        // The name is derived from the node id, so two config nodes never share a store — which matters
+        // because store2 keys its areas by name process-wide.
+        let sessionStore = '';
+        if (n.persistpeers) {
+            const described = describeSessionStore(RED.settings.userDir, node.id, process.cwd());
+            sessionStore = described.name;
+
+            if (!described.asAsked) {
+                // Only reachable on Windows with the user directory on another drive: StoreSession
+                // resolves its path relative to the working directory and cannot be given an absolute
+                // one, so say where the data actually went rather than leave it to be discovered.
+                node.warn('Peer cache stored in ' + described.directory + ', not under the Node-RED user directory.');
+            }
+        }
 
         if (this.useProxy) {
             this.proxy = {
@@ -97,6 +117,7 @@ module.exports = function (RED) {
                 appVersion: appVersion,
                 floodSleepThreshold: floodSleepThreshold,
                 parseMode: parseMode,
+                sessionStore: sessionStore,
             };
 
             return await createTelegramClient(options, (message) => node.warn(message));
