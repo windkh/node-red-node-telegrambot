@@ -72,6 +72,12 @@ choice is a new feature, not part of a migration.
 `usewss` stays in the editor's `defaults` so saved flows round-trip unchanged; the input row is gone and
 nothing reads the value.
 
+Keeping a `defaults` entry with no input is only safe because of how Node-RED writes properties back. Its
+default edit pane loops over `_def.defaults` and reads `$("#node-config-input-" + d)` without checking
+that the element exists — but `.val()` on an empty jQuery set returns `undefined`, and the assignment
+sits behind `if (newValue != null)`, so the stored value is left alone rather than nulled. Verified in
+`@node-red/editor-client/public/red/red.js`. Worth knowing before dropping any other input row.
+
 ### 2. `broken` has a second emitter now, so the status text was lying
 
 GramJS emitted `UpdateConnectionState.broken` from exactly one place, `_handleBadAuthKey`. That is what

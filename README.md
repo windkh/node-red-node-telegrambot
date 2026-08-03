@@ -50,6 +50,11 @@ The nodes are tested with `Node.js v18.12.1` and `Node-RED v3.0.2`.
 Up to version 0.2.1 this package used [GramJS](https://github.com/gram-js/gramjs), which was archived in 2026. teleproto is a maintained fork of it. Your stored session keeps working — see
 [ADR 0013](doc/architecture/adr/0013-migrate-to-teleproto.md).
 
+# Upgrading
+
+Coming from an earlier version? [MIGRATION.md](/MIGRATION.md) has the upgrade path, including the two
+manual steps anyone on 0.1.x needs.
+
 # Changelog
 
 Changes can be followed [here](/CHANGELOG.md).
