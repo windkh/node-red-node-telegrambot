@@ -168,7 +168,7 @@ describe('telegram client nodes', () => {
         ];
         await helper.load(telegramBotNode, flow);
 
-        // Every GramJS client method is async, so the fake has to be too — a synchronous fake would
+        // Every teleproto client method is async, so the fake has to be too — a synchronous fake would
         // pass even if the node forgot to await the call.
         const calls = [];
         const client = {
@@ -329,7 +329,7 @@ describe('telegram client nodes', () => {
             helper.getNode('n1').processMessage(client, msg, resolve, () => {});
         });
 
-        // A Function node can only produce JSON — GramJS Button objects are not requireable from one — so
+        // A Function node can only produce JSON — teleproto Button objects are not requireable from one — so
         // the node has to do the conversion on the way through.
         const sentButtons = calls[0][1].buttons;
         assert.strictEqual(sentButtons[0][0].className, 'KeyboardButtonUrl', 'the client must receive real buttons');
@@ -375,7 +375,7 @@ describe('telegram client nodes', () => {
         ];
         await helper.load(telegramBotNode, flow);
 
-        // GramJS' own wording, from client/users.js — there is no error class for this, so the node
+        // teleproto's own wording, from client/users.js — there is no error class for this, so the node
         // matches on the message. Keep this string in step with UNRESOLVED_PEER in sender-node.js.
         const failure = new Error('Could not find the input entity for "12345". Please read https://…');
         const client = {
@@ -420,7 +420,7 @@ describe('telegram client nodes', () => {
     });
 
     it('shows a flood wait and still forwards the original error', async () => {
-        const { FloodWaitError } = require('telegram/errors');
+        const { FloodWaitError } = require('teleproto/errors');
         const flow = [
             configNode,
             { id: 'n1', type: 'telegram client sender', bot: 'c1', wires: [['n2']] },
@@ -464,7 +464,7 @@ describe('telegram client nodes', () => {
         // The connection state says something about the client itself, so it outranks throttling.
         n1.onConnectionState('broken');
 
-        assert.deepStrictEqual(statuses.at(-1), { fill: 'red', shape: 'dot', text: 'session invalid: login again' });
+        assert.deepStrictEqual(statuses.at(-1), { fill: 'red', shape: 'dot', text: 'broken: login again or redeploy' });
     });
 
     it('reverts to the steady status once the flood wait elapses', async () => {
@@ -610,11 +610,11 @@ describe('sender node input boundary', () => {
     });
 });
 
-// GramJS routes connection states through the raw handlers as UpdateConnectionState instances. The
+// teleproto routes connection states through the raw handlers as UpdateConnectionState instances. The
 // config node subscribes to them internally so the status is honest whether or not the user enabled
 // "send raw events".
 describe('connection state reporting', () => {
-    const { UpdateConnectionState } = require('telegram/network');
+    const { UpdateConnectionState } = require('teleproto/network');
 
     before(async () => {
         await new Promise((resolve) => helper.startServer(resolve));
@@ -674,9 +674,10 @@ describe('connection state reporting', () => {
 
         nodes.c1.onConnectionState(new UpdateConnectionState(UpdateConnectionState.broken));
 
-        // GramJS emits `broken` only from _handleBadAuthKey, so reconnecting cannot help — the text has
-        // to tell the user to log in again, and the filled dot sets it apart from `disconnected`.
-        const expected = { fill: 'red', shape: 'dot', text: 'session invalid: login again' };
+        // teleproto emits `broken` from _handleBadAuthKey and from a reconnect that failed outright.
+        // Both mark the sender dead, so waiting cannot help — the text has to name a remedy, and the
+        // filled dot sets it apart from `disconnected`.
+        const expected = { fill: 'red', shape: 'dot', text: 'broken: login again or redeploy' };
         assert.deepStrictEqual(statuses.r1.at(-1), expected);
         assert.deepStrictEqual(statuses.s1.at(-1), expected);
     });
@@ -736,7 +737,7 @@ describe('receiver node event handlers', () => {
         await new Promise((resolve) => helper.stopServer(resolve));
     });
 
-    // The handlers are what GramJS calls on an incoming update. Driving them directly checks the
+    // The handlers are what teleproto calls on an incoming update. Driving them directly checks the
     // emitted msg shape — the part flows depend on — without needing a live connection.
     async function capture(handlerName, event) {
         await helper.load(telegramBotNode, receiverFlow);
@@ -821,7 +822,7 @@ describe('receiver node subscriptions', () => {
         await new Promise((resolve) => helper.stopServer(resolve));
     });
 
-    // Records add/removeEventHandler instead of connecting. The second argument is the GramJS event
+    // Records add/removeEventHandler instead of connecting. The second argument is the teleproto event
     // builder, whose class name identifies which Telegram event a subscription is for. `addedBuilders`
     // keeps the instances so tests can check which filters actually reached them.
     function createClientRecorder() {

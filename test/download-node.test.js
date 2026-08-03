@@ -11,7 +11,7 @@ helper.init(require.resolve('node-red'));
 
 const configNode = { id: 'c1', type: 'telegram client config', name: 'test client' };
 
-// A photo message in the shape the receiver emits, built from plain objects with GramJS' `className`
+// A photo message in the shape the receiver emits, built from plain objects with teleproto's `className`
 // discriminator. Nothing here touches the network.
 function photoMessage(sizeInBytes) {
     const message = {

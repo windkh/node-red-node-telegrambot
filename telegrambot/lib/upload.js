@@ -1,11 +1,11 @@
 // Created by Karl-Heinz Wind
 'use strict';
 
-const { CustomFile } = require('telegram/client/uploads');
+const { CustomFile } = require('teleproto/client/uploads');
 
-// Turns what a Node-RED flow has into what GramJS wants to upload.
+// Turns what a Node-RED flow has into what teleproto wants to upload.
 //
-// GramJS does accept a bare Buffer, but look at how it names one (`_fileToMedia` in
+// teleproto does accept a bare Buffer, but look at how it names one (`_fileToMedia` in
 // client/uploads.js):
 //
 //     let name;
@@ -16,7 +16,7 @@ const { CustomFile } = require('telegram/client/uploads');
 // CustomFile ourselves is what makes it arrive with the name the flow intended — and CustomFile is not
 // something a Function node can require, which is why this belongs in the package.
 //
-// A path needs nothing: GramJS stats it and uses the basename.
+// A path needs nothing: teleproto stats it and uses the basename.
 //
 // Returns undefined for anything that is not uploadable, leaving the caller to report it.
 function toUploadFile(payload, filename) {

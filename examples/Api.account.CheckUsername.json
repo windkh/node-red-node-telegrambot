@@ -4,7 +4,7 @@
         "type": "function",
         "z": "3d8bc5187eb93fc0",
         "name": "check username",
-        "func": "// see https://gram.js.org/tl/account/CheckUsername\n\nlet username = msg.payload;\nmsg.payload = {\n    api: \"account\",\n    func: \"CheckUsername\",\n    args: {\n        username: username\n    }\n}\nreturn msg;",
+        "func": "// see https://core.telegram.org/method/account.checkUsername\n\nlet username = msg.payload;\nmsg.payload = {\n    api: \"account\",\n    func: \"CheckUsername\",\n    args: {\n        username: username\n    }\n}\nreturn msg;",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",

@@ -36,25 +36,27 @@ Connecting is best effort. A missing session warns `No session: login first.`; a
 warned and the caller gets `undefined`. Nodes then report `disconnected` and stay loaded, so a Telegram
 outage or a stale session does not break the flow.
 
-Reconnection is left entirely to GramJS — the library retries and reconnects in several places, and a
-second mechanism here would race it. The config node instead _observes_ the state GramJS publishes and
-forwards it to the receiver and sender nodes registered with it, so the canvas keeps telling the truth
-after `start()` has run:
+Reconnection is left entirely to teleproto — the library retries and reconnects in several places, and
+a second mechanism here would race it. The config node instead _observes_ the state teleproto publishes
+and forwards it to the receiver and sender nodes registered with it, so the canvas keeps telling the
+truth after `start()` has run:
 
-| State          | Meaning                                           | Node status                      |
-| -------------- | ------------------------------------------------- | -------------------------------- |
-| `connected`    | connect or reconnect succeeded                    | `connected`                      |
-| `disconnected` | connect failed, ping timed out, or disconnected   | `disconnected` — recovers itself |
-| `broken`       | the stored session's authorization key is invalid | `session invalid: login again`   |
+| State          | Meaning                                            | Node status                       |
+| -------------- | -------------------------------------------------- | --------------------------------- |
+| `connected`    | connect or reconnect succeeded                     | `connected`                       |
+| `disconnected` | connect failed, ping timed out, or disconnected    | `disconnected` — recovers itself  |
+| `broken`       | bad authorization key, or a reconnect that gave up | `broken: login again or redeploy` |
 
-`broken` is the one that cannot heal: GramJS emits it only for an unusable authorization key, so
-rebuilding the client from the same session would fail identically. See
-[ADR 0006](adr/0006-connection-state.md).
+`broken` is the one that cannot heal. teleproto emits it from two places, and both mark that sender
+dead: `_handleBadAuthKey`, where rebuilding the client from the same session would fail identically,
+and `_reconnect` when the reconnect attempt itself throws. GramJS only had the first, which is why the
+status text no longer claims the session is invalid. See [ADR 0006](adr/0006-connection-state.md) and
+[ADR 0013](adr/0013-migrate-to-teleproto.md).
 
 ## Teardown (redeploy)
 
 The config node destroys the client on close and clears its cache, so a redeploy does not leave a live
-session behind. `destroy()` is required rather than `disconnect()`: GramJS runs its update loop as
+session behind. `destroy()` is required rather than `disconnect()`: teleproto runs its update loop as
 `while (!client._destroyed)` and only `destroy()` sets that flag, so after a plain disconnect the loop
 reconnects and the session survives. See [ADR 0003](adr/0003-destroy-the-client-on-close.md).
 

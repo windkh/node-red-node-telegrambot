@@ -6,7 +6,7 @@ const assert = require('node:assert');
 
 const { buildButtons, convertButtonsInArgs } = require('../telegrambot/lib/reply-markup');
 
-// GramJS is not uniform here: the inline factories (url, inline, switchInline) return the TL object
+// teleproto is not uniform here: the inline factories (url, inline, switchInline) return the TL object
 // directly, while the keyboard ones (text, requestLocation, requestPhone) return a `Button` wrapper with
 // the TL object on `.button`. buildReplyMarkup unwraps both, so both are valid to pass on.
 function tlObject(button) {

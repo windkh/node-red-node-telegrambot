@@ -1,7 +1,7 @@
 // Created by Karl-Heinz Wind
 'use strict';
 
-const { FloodWaitError } = require('telegram/errors');
+const { FloodWaitError } = require('teleproto/errors');
 
 const { toUploadFile, needsFilename } = require('../lib/upload');
 
@@ -18,7 +18,7 @@ const STATUS_BY_STATE = {
 // Sends a file to a chat — the mirror of the download node.
 //
 // `sendFile` is reachable through the sender's generic bridge, but a Node-RED flow holds its file as a
-// Buffer, and GramJS names a bare Buffer "unnamed" because Buffers carry no name. Wrapping it in a
+// Buffer, and teleproto names a bare Buffer "unnamed" because Buffers carry no name. Wrapping it in a
 // CustomFile is what fixes that, and CustomFile is not something a Function node can require.
 module.exports = function (RED) {
     function TelegramUploadNode(config) {

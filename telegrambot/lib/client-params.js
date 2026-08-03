@@ -2,17 +2,22 @@
 'use strict';
 
 // Builds the TelegramClient constructor options. The device/system/app version are optional:
-// GramJS applies its own defaults when they are absent, so an empty string must not be passed on.
+// teleproto applies its own defaults when they are absent, so an empty string must not be passed on.
 //
-// `connectionRetries` is deliberately not set. GramJS defaults it to Infinity, which is what a
+// `connectionRetries` is deliberately not set. The library defaults it to Infinity, which is what a
 // long-running Node-RED flow wants: a router reboot or a brief ISP outage must not kill a receiver for
 // good. This used to be pinned to 5 which, with the 1s retryDelay, meant roughly five seconds of
 // network trouble left the client permanently dead — and because the config node caches it,
 // getTelegramClient kept handing back the same dead object until the next redeploy.
 //
 // `retryDelay`, `timeout` and `autoReconnect` are left at their defaults too, for the same reason:
-// GramJS recovers from transient failures on its own, and a second recovery mechanism racing it would
-// be worse than none. See doc/architecture/adr/0006-connection-state.md.
+// the library recovers from transient failures on its own, and a second recovery mechanism racing it
+// would be worse than none. See doc/architecture/adr/0006-connection-state.md.
+//
+// There is no `useWSS`: teleproto dropped it, and in Node it never selected a WebSocket transport
+// anyway — it only chose port 443 over 80 for a session that had no stored DC yet. teleproto uses 443
+// unconditionally, so the one effect the option had is now the default.
+// See doc/architecture/adr/0013-migrate-to-teleproto.md.
 // Unlike the string options, 0 is a meaningful value here — it means "never sleep, fail immediately" —
 // so emptiness cannot be tested with a plain falsy check.
 function parseOptionalSeconds(value) {
@@ -31,11 +36,10 @@ function parseOptionalSeconds(value) {
 function buildClientParams(options) {
     const clientParams = {
         proxy: options.proxy,
-        useWSS: options.useWSS,
     };
 
-    // How long GramJS silently sleeps through a FLOOD_WAIT before giving up and throwing. Omitted when
-    // unset so the library default (60s) applies.
+    // How long the library silently sleeps through a FLOOD_WAIT before giving up and throwing. Omitted
+    // when unset so the library default (60s) applies.
     const floodSleepThreshold = parseOptionalSeconds(options.floodSleepThreshold);
     if (floodSleepThreshold !== undefined) {
         clientParams.floodSleepThreshold = floodSleepThreshold;

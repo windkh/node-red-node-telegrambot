@@ -13,7 +13,7 @@
 [![Closed Issues](https://img.shields.io/github/issues-closed-raw/windkh/node-red-node-telegrambot.svg)](https://github.com/windkh/node-red-node-telegrambot/issues?q=is%3Aissue+is%3Aclosed)
 ...
 
-This package contains a node which act as a Telegram Client. It is based on gramjs which implements the mtproto mobile protocol. (see https://core.telegram.org/mtproto). Unlike node-red-contrib-telegrambot it does not support the telegram bot api. The package can be used to create so-called userbots or selfbots which to automate things under your own user-name. However you should be aware of the fact, that if you cause flooding and other havoc telegram will quickly ban your account either for 24h or even forever. It is recommended to use a test account while developing.
+This package contains a node which act as a Telegram Client. It is based on [teleproto](https://github.com/sanyok12345/teleproto) which implements the mtproto mobile protocol. (see https://core.telegram.org/mtproto). Unlike node-red-contrib-telegrambot it does not support the telegram bot api. The package can be used to create so-called userbots or selfbots which to automate things under your own user-name. However you should be aware of the fact, that if you cause flooding and other havoc telegram will quickly ban your account either for 24h or even forever. It is recommended to use a test account while developing.
 
 # Thanks for your donation
 
@@ -43,8 +43,12 @@ Note that the minimum node-red version 1.3.7 and minimum nodejs version is 20.x.
 
 The nodes are tested with `Node.js v18.12.1` and `Node-RED v3.0.2`.
 
-- [gramjs home](https://gram.js.org/)
-- [gramjs github](https://github.com/gram-js/gramjs)
+- [teleproto docs](https://docs.teleproto.dev/)
+- [teleproto API reference](https://ref.teleproto.dev/classes/TelegramClient.html)
+- [teleproto github](https://github.com/sanyok12345/teleproto)
+
+Up to version 0.2.1 this package used [GramJS](https://github.com/gram-js/gramjs), which was archived in 2026. teleproto is a maintained fork of it. Your stored session keeps working — see
+[ADR 0013](doc/architecture/adr/0013-migrate-to-teleproto.md).
 
 # Changelog
 
@@ -144,7 +148,7 @@ Inputs:
 `msg.payload` becomes the message Telegram created, so a following node can reply to it, edit it or pin
 it. The Buffer is not carried through.
 
-Why `msg.filename` is required: GramJS names an unnamed Buffer literally `unnamed`, so the file would
+Why `msg.filename` is required: teleproto names an unnamed Buffer literally `unnamed`, so the file would
 arrive in the chat called that. The node reports an error instead of sending it wrongly. A path needs no
 filename — Telegram uses the file's basename.
 
@@ -155,12 +159,14 @@ before it can be sent.
 
 ### Sender Node
 
-The _Telegram client sender_ node is able to call nearly all functions provides by gramjs.
-For a full list of methods please visit https://gram.js.org/ under TL.
+The _Telegram client sender_ node is able to call nearly all functions provided by teleproto.
+For a full list of client methods see the
+[TelegramClient reference](https://ref.teleproto.dev/classes/TelegramClient.html); for the raw MTProto
+requests see [core.telegram.org/methods](https://core.telegram.org/methods).
 
 #### Two calling conventions
 
-Leaving `api` out calls a method on the GramJS client directly, with `args` spread as its arguments —
+Leaving `api` out calls a method on the teleproto client directly, with `args` spread as its arguments —
 so `args` must be an **array**:
 
 ```javascript
@@ -195,7 +201,7 @@ or for every message this client sends, via **Parse mode** on the config node (`
 
 #### Addressing a chat or user
 
-You do not need to resolve peers yourself — both calling conventions accept a username and let GramJS
+You do not need to resolve peers yourself — both calling conventions accept a username and let teleproto
 look it up. **How you address a peer decides whether it keeps working, though:**
 
 | You pass       | Works                                                                 |
@@ -235,7 +241,7 @@ msg.payload = {
         {
             message: 'Pick one',
             buttons: [
-                [{ type: 'url', text: 'Open the docs', url: 'https://gram.js.org' }],
+                [{ type: 'url', text: 'Open the docs', url: 'https://docs.teleproto.dev' }],
                 [
                     { type: 'callback', text: 'Yes', data: 'yes' },
                     { type: 'callback', text: 'No', data: 'no' },
@@ -289,7 +295,7 @@ exists.
 
 #### Api.messages.SendMessage
 
-To call the [SendMessage](https://gram.js.org/tl/messages/SendMessage) function, you must do the following:
+To call the [SendMessage](https://core.telegram.org/method/messages.sendMessage) function, you must do the following:
 Create a function node and enter 'messages' for the api property and 'SendMessage' for the func property.
 The arguments described in the api must be added to args. SendMessage contains a field randomId which must be
 set by the user to a random number to prevent message looping in the telegram server. Peer must be set to the
@@ -318,7 +324,7 @@ return msg;
 
 #### Api.account.CheckUsername
 
-To call the [CheckUsername](https://gram.js.org/tl/account/CheckUsername) function, you must do the following:
+To call the [CheckUsername](https://core.telegram.org/method/account.checkUsername) function, you must do the following:
 Create a function node and enter 'account' for the api property and 'CheckUsername' for the func property.
 The arguments described in the api must be added to args. In this case it is only the username property.
 

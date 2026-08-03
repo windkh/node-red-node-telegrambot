@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+# [0.3.0] - 2026-08-03
+
+### moved the MTProto library from GramJS to [teleproto](https://github.com/sanyok12345/teleproto). `gram-js/gramjs` was archived on GitHub and will not be fixed again; teleproto is a maintained fork of it - [#34](https://github.com/windkh/node-red-node-telegrambot/issues/34)
+
+### your stored session keeps working. The session string format is unchanged, so nobody has to log in again after the upgrade
+
+### changed the `broken` node status text from `session invalid: login again` to `broken: login again or redeploy`. teleproto reports `broken` for a failed reconnect as well as for an unusable session, so the old text pointed at the wrong remedy half the time
+
+### removed the **Use WSS** checkbox. It only ever chose port 443 over 80 for a brand-new session and could not be combined with a proxy; teleproto always uses 443. Existing flows are unaffected and keep the stored value
+
 # [0.2.1] - 2026-08-02
 
 ### added button support to the sender node: a plain-JSON `buttons` description in the options object is turned into the objects Telegram needs, since a Function node cannot build them itself. An invalid button is reported with its position - [#27](https://github.com/windkh/node-red-node-telegrambot/issues/27)

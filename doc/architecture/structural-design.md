@@ -16,10 +16,10 @@ telegrambot/
     client-params.js        TelegramClient constructor options, shared by both of the above
     auth-prompt.js          deferred phone-code / password promises
     login-credentials.js    resolves the editor's __PWRD__ placeholder against storage
-    event-filters.js        receiver filter config -> per-builder GramJS options
+    event-filters.js        receiver filter config -> per-builder teleproto options
     media.js                media descriptor -> filename, mime type, download size
     upload.js               Buffer -> CustomFile, so an upload arrives correctly named
-    reply-markup.js         JSON button description -> GramJS Button objects
+    reply-markup.js         JSON button description -> teleproto Button objects
   telegrambot.html          editor definitions and help for all five nodes
   icons/
 ```

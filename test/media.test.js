@@ -6,7 +6,7 @@ const assert = require('node:assert');
 
 const { findMessage, describeMedia, mediaSize } = require('../telegrambot/lib/media');
 
-// Plain objects with the `className` discriminator GramJS puts on every TL object. Verified against the
+// Plain objects with the `className` discriminator teleproto puts on every TL object. Verified against the
 // real shapes: Api.Document carries a BigInt `size`, `mimeType` and an attributes array, and
 // Api.PhotoSize carries a numeric `size`.
 function document(overrides) {

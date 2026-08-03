@@ -10,6 +10,9 @@
             loginmode: { value: 'user', required: true },
 
             useproxy: { value: false, required: false },
+            // Inert since the move to teleproto, which has no useWSS and always uses port 443. Kept in
+            // `defaults` only so an existing flow keeps round-tripping unchanged; there is no longer an
+            // input for it. See doc/architecture/adr/0013-migrate-to-teleproto.md.
             usewss: { value: false, required: false },
             devicemodel: { value: '', required: false },
             systemversion: { value: '', required: false },
@@ -132,7 +135,6 @@
                 let botToken = $('#node-config-input-bottoken').val();
                 let loginMode = $('#node-config-input-loginmode').val();
                 let useProxy = $('#node-config-input-useproxy').prop('checked');
-                let useWSS = $('#node-config-input-usewss').prop('checked');
                 let devicemodel = $('#node-config-input-devicemodel').val();
                 let systemversion = $('#node-config-input-systemversion').val();
                 let appversion = $('#node-config-input-appversion').val();
@@ -161,7 +163,6 @@
                         botToken: botToken,
                         loginMode: loginMode,
                         proxy: proxy,
-                        useWSS: useWSS,
                         devicemodel: devicemodel,
                         systemversion: systemversion,
                         appversion: appversion,
@@ -380,10 +381,6 @@
                      <label for="node-config-input-timeout"><i class="fa fa-clock-o"></i> Timeout s</label>
                      <input type="text" id="node-config-input-timeout" placeholder="(Connect timeout in seconds e.g.: 2)">
                  </div>
-                 <div class="form-row">
-                     <label for="node-config-input-usewss"><i class="fa fa-lock"></i> Use WSS</label>
-                     <input type="checkbox" id="node-config-input-usewss" style="display: inline-block; width: auto; vertical-align: top;">
-                 </div>
              </div>
 
              <div class="form-tips" style="width: auto"><b>Tip:</b> SOCKS proxy support is optional can can only be used with a valid proxy server, port, username and password.</div>
@@ -430,7 +427,7 @@
 
         <h3>Device fields</h3>
         <p><b>Device Model</b>, <b>System Version</b> and <b>App Version</b> are optional. Left empty,
-        GramJS reports the host's own values. Setting them makes the session look like a specific client,
+        teleproto reports the host's own values. Setting them makes the session look like a specific client,
         which some users prefer to reduce the risk of the account being flagged.</p>
 
         <h3>Parse mode</h3>
@@ -658,15 +655,15 @@
         <p>1. Standard Input: receives a message object containing the following fields:</p>
         <p>The <code>msg.payload</code> must be an object that contains the following properties:</p>
             <ul>
-            <li><code>api</code> the api to call e.g. "messages" (see https://gram.js.org/tl/messages/SendMessage)</li>
-            <li><code>func</code> the function of the api to call e.g. "SendMessage" (see https://gram.js.org/tl/messages/SendMessage)</li>
+            <li><code>api</code> the api to call e.g. "messages" (see https://core.telegram.org/method/messages.sendMessage)</li>
+            <li><code>func</code> the function of the api to call e.g. "SendMessage" (see https://core.telegram.org/method/messages.sendMessage)</li>
             <li><code>args</code> arguments of the function.</li>
             </ul>
         <h3>Outputs</h3>
         <p>1. Standard Output: returns the result of the api call.</p>
 
         <h3>Two calling conventions</h3>
-        <p>Leaving <code>api</code> out calls a method on the GramJS client directly, with <code>args</code>
+        <p>Leaving <code>api</code> out calls a method on the teleproto client directly, with <code>args</code>
         spread as its arguments &mdash; so <code>args</code> must be an <b>array</b>:</p>
         <pre>msg.payload = { func: 'sendMessage', args: ['someone', { message: 'Hello' }] };</pre>
         <p>Setting <code>api</code> builds a raw MTProto request, which takes a single options
@@ -679,7 +676,7 @@
         <pre>args: ['someone', {
         message: 'Pick one',
         buttons: [
-            [{ type: 'url', text: 'Docs', url: 'https://gram.js.org' }],
+            [{ type: 'url', text: 'Docs', url: 'https://docs.teleproto.dev' }],
             [{ type: 'callback', text: 'Yes', data: 'yes' }]
         ]
     }]</pre>
@@ -694,7 +691,7 @@
 
         <h3>Addressing a chat or user</h3>
         <p>You do not have to resolve peers yourself &mdash; both conventions accept a username and let
-        GramJS look it up. But <b>how</b> you address a peer decides whether it keeps working:</p>
+        teleproto look it up. But <b>how</b> you address a peer decides whether it keeps working:</p>
         <ul>
             <li>A <b>username</b> or an invite link always works.</li>
             <li>A <b>numeric id</b> works only while that peer is in the session's entity cache. That cache
@@ -722,8 +719,9 @@
         &mdash; are reachable too, and calling them from a flow will disrupt the other nodes.</p>
 
         <h3>Details</h3>
-        <p>Please refer to the examples in the examples folder and the readme. The full method and TL
-        reference is at https://gram.js.org/.</p>
+        <p>Please refer to the examples in the examples folder and the readme. The client methods are at
+        https://ref.teleproto.dev/classes/TelegramClient.html and the TL reference is at
+        https://core.telegram.org/methods.</p>
 </script>
 
 <!-- ------------------------------------------------------------------------------------------ -->

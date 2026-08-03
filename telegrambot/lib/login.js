@@ -1,8 +1,8 @@
 // Created by Karl-Heinz Wind
 'use strict';
 
-const { TelegramClient } = require('telegram');
-const { StringSession } = require('telegram/sessions');
+const { TelegramClient } = require('teleproto');
+const { StringSession } = require('teleproto/sessions');
 
 const { buildClientParams } = require('./client-params');
 
@@ -31,7 +31,6 @@ async function login(parameters, getPhoneCode, getPassword, sessionCreated, erro
 
             const clientParams = buildClientParams({
                 proxy: parameters.proxy,
-                useWSS: parameters.useWSS,
                 deviceModel: parameters.devicemodel,
                 systemVersion: parameters.systemversion,
                 appVersion: parameters.appversion,

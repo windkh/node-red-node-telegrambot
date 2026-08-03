@@ -1,9 +1,9 @@
 {
     "name": "node-red-node-telegrambot",
-    "version": "0.2.1",
+    "version": "0.3.0",
     "description": "Telegram userbot nodes for Node-RED",
     "dependencies": {
-        "telegram": "^2.18.38"
+        "teleproto": "^1.228.5"
     },
     "scripts": {
         "lint": "eslint .",
@@ -38,7 +38,9 @@
         "telegram",
         "bot",
         "userbot",
-        "selfbot"
+        "selfbot",
+        "mtproto",
+        "teleproto"
     ],
     "repository": {
         "type": "git",
