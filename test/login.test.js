@@ -13,17 +13,22 @@ describe('login parameter validation', () => {
     it('reports missing parameters instead of attempting a connection', async () => {
         const errors = [];
         const sessions = [];
+        const warnings = [];
 
         await login(
             {},
             Promise.resolve('code'),
             Promise.resolve('pw'),
             (session) => sessions.push(session),
-            (error) => errors.push(error)
+            (error) => errors.push(error),
+            (message) => warnings.push(message)
         );
 
         assert.deepStrictEqual(errors, ['Parameters are missing: apiId, apiHash, phoneNumber']);
         assert.strictEqual(sessions.length, 0, 'no session may be reported');
+        // The parameter check is not an authentication failure, so it goes to the caller rather than
+        // to the log: the editor dialog is where the user is looking.
+        assert.deepStrictEqual(warnings, []);
     });
 
     it('reports missing parameters when only the api hash is given', async () => {
@@ -34,7 +39,8 @@ describe('login parameter validation', () => {
             Promise.resolve('code'),
             Promise.resolve('pw'),
             () => {},
-            (error) => errors.push(error)
+            (error) => errors.push(error),
+            () => {}
         );
 
         assert.deepStrictEqual(errors, ['Parameters are missing: apiId, apiHash, phoneNumber']);
