@@ -1,0 +1,77 @@
+[
+    {
+        "id": "upload_album_tab",
+        "type": "tab",
+        "label": "Upload an album",
+        "disabled": false,
+        "info": "Sends three files as one Telegram album.\n\nAn array in msg.payload becomes an album. Every Buffer in it needs its own name, so msg.filename is an array aligned by index — a path in the array needs no entry, which is why the middle slot is empty here.\n\nIf any item is wrong the whole album is refused and the error names the position, e.g. \"msg.filename[2] is required when msg.payload[2] is a Buffer.\"\n\nSet the Bot to your telegram client config node and \"Send to\" to a username. Replace the paths with real ones.\n\nThe node status shows uploading n% while the files go up."
+    },
+    {
+        "id": "album_trigger",
+        "type": "inject",
+        "z": "upload_album_tab",
+        "name": "send it",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 150,
+        "y": 120,
+        "wires": [["album_build"]]
+    },
+    {
+        "id": "album_build",
+        "type": "function",
+        "z": "upload_album_tab",
+        "name": "three files, two named",
+        "func": "// Two in-memory files and one path. A Buffer carries no name of its own, so msg.filename\n// supplies one per position; the path in the middle needs no entry.\nmsg.payload = [\n    Buffer.from('the first file'),\n    '/tmp/second.jpg',\n    Buffer.from('the third file'),\n];\nmsg.filename = ['first.txt', undefined, 'third.txt'];\nmsg.caption = 'three at once';\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 350,
+        "y": 120,
+        "wires": [["album_send"]]
+    },
+    {
+        "id": "album_send",
+        "type": "telegram client upload",
+        "z": "upload_album_tab",
+        "name": "upload the album",
+        "bot": "",
+        "peer": "",
+        "caption": "",
+        "forcedocument": false,
+        "silent": false,
+        "x": 580,
+        "y": 120,
+        "wires": [["album_debug"]]
+    },
+    {
+        "id": "album_debug",
+        "type": "debug",
+        "z": "upload_album_tab",
+        "name": "the sent messages",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 800,
+        "y": 120,
+        "wires": []
+    }
+]

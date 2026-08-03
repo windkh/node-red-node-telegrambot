@@ -823,6 +823,7 @@
             peer: { value: '', required: false },
             caption: { value: '', required: false },
             forcedocument: { value: false, required: false },
+            silent: { value: false, required: false },
         },
         inputs: 1,
         outputs: 1,
@@ -859,6 +860,11 @@
         <input type="checkbox" id="node-input-forcedocument" style="display: inline-block; width: auto; vertical-align: top;">
         <div class="form-tips" style="width: auto"><b>Tip:</b> Send as a file rather than letting Telegram re-encode it as a photo or video.</div>
     </div>
+    <div class="form-row">
+        <label for="node-input-silent"><i class="fa fa-bell-slash"></i> Silent</label>
+        <input type="checkbox" id="node-input-silent" style="display: inline-block; width: auto; vertical-align: top;">
+        <div class="form-tips" style="width: auto"><b>Tip:</b> Deliver without a notification sound. Overridden by <code>msg.silent</code>.</div>
+    </div>
 </script>
 
 <script type="text/x-red" data-help-name="telegram client upload">
@@ -868,17 +874,35 @@
     <ul>
         <li><code>msg.payload</code> &mdash; the file, either a <b>Buffer</b> or a <b>path</b> as a
         string. This is what <b>file in</b> and <b>http request</b> produce, so they can feed this node
-        directly.</li>
+        directly. An <b>array</b> of these sends an album (see below).</li>
         <li><code>msg.filename</code> &mdash; <b>required when the payload is a Buffer</b>, because a
         Buffer carries no name of its own. Without it the file would arrive in the chat called
-        <i>unnamed</i>, so the node reports an error instead. A path needs no filename.</li>
+        <i>unnamed</i>, so the node reports an error instead. A path needs no filename. For an album, an
+        array of names aligned with the payload.</li>
         <li><code>msg.peer</code> &mdash; overrides <b>Send to</b>.</li>
-        <li><code>msg.caption</code> &mdash; overrides <b>Caption</b>.</li>
+        <li><code>msg.caption</code> &mdash; overrides <b>Caption</b>. For an album, an array of captions
+        is also accepted.</li>
+        <li><code>msg.silent</code> &mdash; overrides <b>Silent</b>.</li>
+        <li><code>msg.replyTo</code> &mdash; a message id to reply to. Left out entirely when unset.</li>
     </ul>
+
+    <h3>Albums</h3>
+    <p>An <b>array</b> in <code>msg.payload</code> is sent as one album, which is how Telegram groups
+    several photos or videos into a single post. Every Buffer in it still needs its own name, so
+    <code>msg.filename</code> is an array aligned by index; a path in the array needs no entry.</p>
+    <p>If any item is wrong the whole album is refused, naming the position &mdash; for example
+    <code>msg.filename[2] is required when msg.payload[2] is a Buffer.</code> An album is a unit, and half
+    of one arriving is worse than none.</p>
 
     <h3>Outputs</h3>
     <p><code>msg.payload</code> becomes the message Telegram created, so it can be replied to, edited or
-    pinned by a following node. The Buffer is not carried through &mdash; it has served its purpose.</p>
+    pinned by a following node &mdash; an <b>array</b> of them for an album. The Buffer is not carried
+    through &mdash; it has served its purpose.</p>
+
+    <h3>Progress</h3>
+    <p>The status shows <code>uploading <i>n</i>%</code> while the file goes up, so a large one does not
+    look like a hang. A redeploy cancels an upload in flight rather than letting it finish into a node
+    that no longer exists.</p>
 
     <h3>Addressing</h3>
     <p>A <b>username</b> always works. A numeric id only works while that peer is in the session's

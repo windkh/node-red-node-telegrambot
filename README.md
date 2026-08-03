@@ -160,7 +160,38 @@ filename — Telegram uses the file's basename.
 For large files pass a **path** rather than a Buffer: the whole file otherwise has to fit in memory
 before it can be sent.
 
-[**upload file flow**](examples/UploadFile.json)
+#### Albums
+
+An **array** in `msg.payload` is sent as one album, which is how Telegram groups several photos or videos
+into a single post. Every Buffer in it still needs its own name, so `msg.filename` is an array aligned by
+index; a path in the array needs no entry.
+
+```javascript
+msg.payload = [bufferOne, '/tmp/second.jpg', bufferThree];
+msg.filename = ['first.jpg', undefined, 'third.jpg'];
+```
+
+If any item is wrong the whole album is refused, naming the position — `msg.filename[2] is required when
+msg.payload[2] is a Buffer.` An album is a unit, and half of one arriving is worse than none.
+
+The output is an array of the messages Telegram created, one per item.
+
+#### Other options
+
+| Property      | Effect                                                                 |
+| ------------- | ---------------------------------------------------------------------- |
+| `msg.silent`  | overrides **Silent** — deliver without a notification sound.           |
+| `msg.replyTo` | a message id to reply to. Left out of the request entirely when unset. |
+| `msg.caption` | overrides **Caption**. An array is accepted for an album.              |
+
+The node shows `uploading 42%` while the file goes up, so a large one does not look like a hang. A
+redeploy cancels an upload in flight rather than letting it finish into a node that no longer exists.
+
+There is no thumbnail option. Telegram ignores `thumb` unless the file is a JPEG under roughly 20 kB and
+320×320 **and** the underlying media's dimensions are supplied through the raw TL attributes, which this
+node does not expose — a field that mostly does nothing is worse than no field.
+
+[**upload file flow**](examples/UploadFile.json) &nbsp; [**upload album flow**](examples/UploadAlbum.json)
 
 ### List Node
 

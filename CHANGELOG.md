@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+# [1.2.0] - 2026-08-03
+
+### added album support to the upload node: an array in `msg.payload` is sent as one album, with `msg.filename` as an array of names aligned by index. A wrong item names its position and the whole album is refused rather than half of it being sent - [#23](https://github.com/windkh/node-red-node-telegrambot/issues/23)
+
+### added a `Silent` option and `msg.silent` to the upload node, and `msg.replyTo` for replying to a message - [#23](https://github.com/windkh/node-red-node-telegrambot/issues/23)
+
+### added upload progress to the node status (`uploading 42%`), and a redeploy now cancels an upload still in flight instead of letting it push bytes into a closed node - [#23](https://github.com/windkh/node-red-node-telegrambot/issues/23)
+
+### fixed a `msg.filename` of `null` being accepted for a Buffer, which named the file `null` in the chat. It is now reported like a missing name
+
 # [1.1.0] - 2026-08-03
 
 ### added a `telegram client list` node that reads message history, dialogs (the chat list) and the participants of a chat. These use Telegram's async-iterator APIs, which the sender node cannot usefully expose - it would put an iterator object into `msg.payload` - [#25](https://github.com/windkh/node-red-node-telegrambot/issues/25)
