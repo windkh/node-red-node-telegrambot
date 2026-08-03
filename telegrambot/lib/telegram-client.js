@@ -6,6 +6,7 @@ const { StringSession } = require('teleproto/sessions');
 
 const { buildClientParams } = require('./client-params');
 const { describeAuthError } = require('./auth-error');
+const { openStoredSession } = require('./session-store');
 
 // What teleproto's sanitizeParseMode accepts. It *throws* on anything else, and this is only a formatting
 // preference — it must not be able to stop the client connecting, so the value is checked first.
@@ -19,6 +20,28 @@ function applyParseMode(client, parseMode, warn) {
             warn(`Unknown parse mode '${parseMode}': sending messages without one.`);
         }
     }
+}
+
+// Chooses the session the runtime will use.
+//
+// A StringSession keeps nothing on disk, so the peers it has resolved are lost on every restart and a
+// numeric peer id stops working after a redeploy. `sessionStore` opts into an on-disk session that keeps
+// them — at the cost of the auth key being written there too, which is why it is a choice and not the
+// default. See doc/architecture/adr/0018-persist-the-entity-cache.md.
+//
+// Exported for tests, for the same reason applyParseMode is: createTelegramClient builds a real
+// TelegramClient and cannot run offline, but which session it picks decides where this account's key
+// lives, and that is worth pinning down on its own.
+async function openSession(options, warn) {
+    let telegramSession;
+
+    if (options.sessionStore !== undefined && options.sessionStore !== '') {
+        telegramSession = await openStoredSession(options.sessionStore, options.session, warn);
+    } else {
+        telegramSession = new StringSession(options.session);
+    }
+
+    return telegramSession;
 }
 
 // Connects a client from an already stored session string, i.e. the runtime counterpart to
@@ -35,12 +58,12 @@ async function createTelegramClient(options, warn) {
     let client;
     try {
         if (apiId !== undefined && apiId !== '' && session !== undefined && session !== '') {
-            const stringSession = new StringSession(session);
+            const telegramSession = await openSession(options, warn);
             const ID = Number(apiId);
 
             const clientParams = buildClientParams(options);
 
-            client = new TelegramClient(stringSession, ID, options.apiHash, clientParams);
+            client = new TelegramClient(telegramSession, ID, options.apiHash, clientParams);
 
             client.setLogLevel(options.logLevel);
 
@@ -89,6 +112,7 @@ async function createTelegramClient(options, warn) {
 module.exports = {
     createTelegramClient,
     // Exported for tests: createTelegramClient itself builds a real TelegramClient and cannot run
-    // offline, but the parse-mode decision is worth pinning down on its own.
+    // offline, but these two decisions are worth pinning down on their own.
     applyParseMode,
+    openSession,
 };

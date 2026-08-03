@@ -153,6 +153,16 @@ Two of them are worth a second look:
 
 ---
 
+### Peers addressed by numeric id
+
+New in 1.3.0 and **off by default**, including for you after this upgrade: **Remember peers** on the config
+node. Without it, a peer addressed by a bare numeric id only resolves while it is in the in-memory cache,
+which every restart clears — the behaviour every version so far has had.
+
+If your flows address peers by username or invite link, ignore this. If they use numeric ids, read
+[the README section](README.md#remembering-peers-across-a-restart) before switching it on: it writes this
+account's session key to a directory on disk, outside Node-RED's encrypted credentials file.
+
 ### If you scripted against the admin endpoints
 
 The three endpoints behind the Login button — `node-red-node-telegrambot-login`, `-setphonecode` and

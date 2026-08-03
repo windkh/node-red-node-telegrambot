@@ -21,3 +21,4 @@ One file per decision: NNNN-title.md (Context / Decision / Consequences).
 | [0015](0015-share-the-node-status-plumbing.md)     | Share the node status plumbing, and fix the text it hid           |
 | [0016](0016-list-node.md)                          | A node for the async-iterator reads, streaming by default         |
 | [0017](0017-finish-the-upload-node.md)             | Finish the upload node: albums, silent, replyTo, progress         |
+| [0018](0018-persist-the-entity-cache.md)           | Persist the peer cache with StoreSession, opt-in                  |

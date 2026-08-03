@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+# [1.3.0] - 2026-08-03
+
+### added a **Remember peers** option to the config node. With it on, resolved peers are kept on disk, so a chat or user addressed by a bare numeric id keeps working after a restart instead of failing with `Could not find the input entity` - [#32](https://github.com/windkh/node-red-node-telegrambot/issues/32)
+
+### it is **off by default, and should stay off unless you need it**: the directory it uses also holds this account's session key, which otherwise lives only in Node-RED's encrypted credentials file. Anyone who can read the directory can act as your account. Flows that address peers by username never needed this
+
+### the store lives in `<user directory>/telegram-sessions/<node id>`, is seeded from the session credential on first use, and is discarded and rebuilt if you log in again with a different account
+
 # [1.2.0] - 2026-08-03
 
 ### added album support to the upload node: an array in `msg.payload` is sent as one album, with `msg.filename` as an array of names aligned by index. A wrong item names its position and the whole album is refused rather than half of it being sent - [#23](https://github.com/windkh/node-red-node-telegrambot/issues/23)
