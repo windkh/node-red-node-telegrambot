@@ -2,16 +2,13 @@
 'use strict';
 
 const { findMessage, describeMedia } = require('../lib/media');
-
-const CONNECTED = { fill: 'green', shape: 'ring', text: 'connected' };
-const DISCONNECTED = { fill: 'red', shape: 'ring', text: 'disconnected' };
-const BROKEN = { fill: 'red', shape: 'dot', text: 'session invalid: login again' };
-
-const STATUS_BY_STATE = {
-    connected: CONNECTED,
-    disconnected: DISCONNECTED,
-    broken: BROKEN,
-};
+const {
+    CONNECTED,
+    DISCONNECTED,
+    busyStatus,
+    attachConnectionStatus,
+    detachConnectionStatus,
+} = require('../lib/node-status');
 
 // Downloads the media on a received message.
 //
@@ -31,16 +28,7 @@ module.exports = function (RED) {
         // In megabytes, because that is the unit a user thinks in. 0 or empty means no limit.
         this.maxSize = Number(config.maxsize) > 0 ? Number(config.maxsize) * 1024 * 1024 : undefined;
 
-        this.onConnectionState = (state) => {
-            const status = STATUS_BY_STATE[state];
-            if (status !== undefined) {
-                node.status(status);
-            }
-        };
-
-        if (this.config) {
-            this.config.addStatusListener(this);
-        }
+        attachConnectionStatus(node, (status) => node.status(status));
 
         this.start = async () => {
             if (node.config) {
@@ -73,7 +61,7 @@ module.exports = function (RED) {
                     const megabytes = Math.round(description.size / (1024 * 1024));
                     failure = `${description.filename} is ${megabytes} MB, above the configured limit.`;
                 } else {
-                    node.status({ fill: 'blue', shape: 'dot', text: 'downloading' });
+                    node.status(busyStatus('downloading'));
 
                     const buffer = await client.downloadMedia(message, { thumb: node.thumb });
 
@@ -117,9 +105,7 @@ module.exports = function (RED) {
         });
 
         this.on('close', function (removed, done) {
-            if (node.config) {
-                node.config.removeStatusListener(node);
-            }
+            detachConnectionStatus(node);
             node.stop();
             done();
         });

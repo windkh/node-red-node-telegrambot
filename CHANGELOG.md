@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+# [1.0.2] - 2026-08-03
+
+### fixed the download and upload nodes still showing the old `session invalid: login again` status for a broken connection. 1.0.0 corrected that text in the receiver and sender only, so two nodes disagreed with the other two about a status a flow can route on
+
+### changed the node statuses to live in one module instead of being declared in each node, which is why the above could happen at all. No status text changed as part of this
+
 # [1.0.1] - 2026-08-03
 
 ### changed authentication failures to be reported through the Node-RED log instead of `console.log` on stdout, so they carry the node context and respect the configured log level - [#33](https://github.com/windkh/node-red-node-telegrambot/issues/33)

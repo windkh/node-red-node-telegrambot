@@ -4,16 +4,14 @@
 const { FloodWaitError } = require('teleproto/errors');
 
 const { toUploadFile, needsFilename } = require('../lib/upload');
-
-const CONNECTED = { fill: 'green', shape: 'ring', text: 'connected' };
-const DISCONNECTED = { fill: 'red', shape: 'ring', text: 'disconnected' };
-const BROKEN = { fill: 'red', shape: 'dot', text: 'session invalid: login again' };
-
-const STATUS_BY_STATE = {
-    connected: CONNECTED,
-    disconnected: DISCONNECTED,
-    broken: BROKEN,
-};
+const {
+    CONNECTED,
+    DISCONNECTED,
+    busyStatus,
+    floodWaitStatus,
+    attachConnectionStatus,
+    detachConnectionStatus,
+} = require('../lib/node-status');
 
 // Sends a file to a chat — the mirror of the download node.
 //
@@ -31,16 +29,7 @@ module.exports = function (RED) {
         this.caption = config.caption || '';
         this.forceDocument = config.forcedocument || false;
 
-        this.onConnectionState = (state) => {
-            const status = STATUS_BY_STATE[state];
-            if (status !== undefined) {
-                node.status(status);
-            }
-        };
-
-        if (this.config) {
-            this.config.addStatusListener(this);
-        }
+        attachConnectionStatus(node, (status) => node.status(status));
 
         this.start = async () => {
             if (node.config) {
@@ -64,7 +53,7 @@ module.exports = function (RED) {
         this.sendFile = async function (client, peer, file, msg, nodeSend, nodeDone) {
             let failure;
             try {
-                node.status({ fill: 'blue', shape: 'dot', text: 'uploading' });
+                node.status(busyStatus('uploading'));
 
                 const sent = await client.sendFile(peer, {
                     file: file,
@@ -81,7 +70,7 @@ module.exports = function (RED) {
             } catch (error) {
                 failure = error;
                 if (error instanceof FloodWaitError) {
-                    node.status({ fill: 'yellow', shape: 'ring', text: 'flood wait ' + error.seconds + 's' });
+                    node.status(floodWaitStatus(error.seconds));
                 } else {
                     node.status(DISCONNECTED);
                 }
@@ -115,9 +104,7 @@ module.exports = function (RED) {
         });
 
         this.on('close', function (removed, done) {
-            if (node.config) {
-                node.config.removeStatusListener(node);
-            }
+            detachConnectionStatus(node);
             node.stop();
             done();
         });
