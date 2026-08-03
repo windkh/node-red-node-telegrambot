@@ -41,7 +41,7 @@
         "type": "function",
         "z": "3d8bc5187eb93fc0",
         "name": "message echo",
-        "func": "// see https://gram.js.org/tl/messages/SendMessage\n\nlet randomId = BigInt(Math.floor(Math.random() * 1e15));\nif(msg.payload.message.className == \"Message\"){\n    msg.payload = {\n        api: 'messages',\n        func: 'SendMessage',\n        args: {\n            peer: msg.payload.chat,\n            message: msg.payload.message.message,\n            randomId: randomId,\n            noWebpage: true,\n            noforwards: true,\n            scheduleDate: 0,\n            // sendAs: \"username\",\n        }\n    }\n    return msg;\n}\n",
+        "func": "// see https://core.telegram.org/method/messages.sendMessage\n\nlet randomId = BigInt(Math.floor(Math.random() * 1e15));\nif(msg.payload.message.className == \"Message\"){\n    msg.payload = {\n        api: 'messages',\n        func: 'SendMessage',\n        args: {\n            peer: msg.payload.chat,\n            message: msg.payload.message.message,\n            randomId: randomId,\n            noWebpage: true,\n            noforwards: true,\n            scheduleDate: 0,\n            // sendAs: \"username\",\n        }\n    }\n    return msg;\n}\n",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",

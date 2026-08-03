@@ -17,14 +17,14 @@ describe('toUploadFile', () => {
         const buffer = Buffer.from('hello');
         const file = toUploadFile(buffer, 'greeting.txt');
 
-        // Without this GramJS names a bare Buffer "unnamed", because Buffers carry no `name`.
+        // Without this teleproto names a bare Buffer "unnamed", because Buffers carry no `name`.
         assert.strictEqual(file.name, 'greeting.txt');
         assert.strictEqual(file.size, 5, 'the size must come from the Buffer, not from the caller');
         assert.strictEqual(file.buffer, buffer);
     });
 
     it('passes a path through untouched', () => {
-        // GramJS stats a path and uses its basename, so there is nothing to add.
+        // teleproto stats a path and uses its basename, so there is nothing to add.
         assert.strictEqual(toUploadFile('/tmp/clip.mp4', undefined), '/tmp/clip.mp4');
     });
 

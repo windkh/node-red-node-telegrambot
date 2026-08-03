@@ -1,7 +1,7 @@
 // Created by Karl-Heinz Wind
 'use strict';
 
-// Turns the receiver node's filter configuration into the option objects GramJS event builders take.
+// Turns the receiver node's filter configuration into the option objects teleproto event builders take.
 //
 // The builders do not all accept the same options, so this produces one object per group. Verified
 // against telegram@2 (`node_modules/telegram/events/*.d.ts`):
@@ -44,7 +44,7 @@ function compilePattern(value) {
 }
 
 // A fresh object each call, including its own copy of the chat list: the three groups are handed to
-// three separate GramJS builders and must not share mutable state.
+// three separate teleproto builders and must not share mutable state.
 function buildCommonFilters(chats, blacklistChats) {
     const filters = {};
 
@@ -65,7 +65,7 @@ function buildEventFilters(config) {
     const fromUsers = parseEntityList(config.fromusers);
     const pattern = compilePattern(config.pattern);
 
-    // `incoming` and `outgoing` are mutually exclusive in GramJS, so the configuration is a single
+    // `incoming` and `outgoing` are mutually exclusive in teleproto, so the configuration is a single
     // choice rather than two flags: that makes the invalid combination unrepresentable.
     const message = buildCommonFilters(chats, config.blacklistchats);
     if (config.direction === 'incoming') {

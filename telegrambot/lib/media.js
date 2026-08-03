@@ -4,7 +4,7 @@
 // Framework-independent inspection of the media attached to a received Telegram message: finding it,
 // naming it, and working out how big the download will be before starting it.
 //
-// Everything here keys off `className` rather than `instanceof Api.X`. That is the discriminator GramJS
+// Everything here keys off `className` rather than `instanceof Api.X`. That is the discriminator teleproto
 // puts on every TL object, and it lets these functions be unit-tested against plain objects with no
 // client and no network.
 
@@ -84,7 +84,7 @@ function mediaSize(media, thumb) {
     const sizes = findPhotoSizes(media);
 
     if (document !== undefined && document.size !== undefined) {
-        // GramJS models this as a BigInt.
+        // teleproto models this as a BigInt.
         size = Number(document.size);
     } else if (Array.isArray(sizes)) {
         const selected = typeof thumb === 'number' ? [sizes[thumb]] : sizes;

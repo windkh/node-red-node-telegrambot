@@ -6,9 +6,16 @@ const assert = require('node:assert');
 
 // createTelegramClient builds a real TelegramClient, which cannot run offline, so the parse-mode
 // decision is exercised through the same allow-list the client path uses. Keep this list in step with
-// PARSE_MODES in telegrambot/lib/telegram-client.js and with sanitizeParseMode in
-// node_modules/telegram/Utils.js, which is what actually accepts or throws.
-const { sanitizeParseMode } = require('telegram/Utils');
+// PARSE_MODES in telegrambot/lib/telegram-client.js and with what the library actually accepts.
+//
+// GramJS exported that check as `sanitizeParseMode` from `telegram/Utils`. teleproto has it only as
+// `TelegramClient.prototype._sanitizeParseMode`, so that is what is exercised here. It is a private
+// method, and reaching for one in a test is normally wrong — but the alternative is asserting our
+// allow-list against a copy of the library's, which would agree with itself forever while the real
+// check drifted. It touches no instance state, so calling it unbound is safe; if teleproto ever
+// changes that, this test fails, which is the point.
+const { TelegramClient } = require('teleproto');
+const sanitizeParseMode = (mode) => TelegramClient.prototype._sanitizeParseMode(mode);
 const { applyParseMode } = require('../telegrambot/lib/telegram-client');
 
 const OFFERED_BY_THE_EDITOR = ['md', 'md2', 'html'];
@@ -66,13 +73,13 @@ describe('applyParseMode', () => {
 describe('parse mode values', () => {
     it('accepts every mode the editor offers', () => {
         for (const mode of OFFERED_BY_THE_EDITOR) {
-            assert.doesNotThrow(() => sanitizeParseMode(mode), `GramJS rejected '${mode}'`);
+            assert.doesNotThrow(() => sanitizeParseMode(mode), `teleproto rejected '${mode}'`);
         }
     });
 
     it('accepts the long aliases too, so a hand-edited flow still works', () => {
         for (const mode of ALSO_ACCEPTED) {
-            assert.doesNotThrow(() => sanitizeParseMode(mode), `GramJS rejected '${mode}'`);
+            assert.doesNotThrow(() => sanitizeParseMode(mode), `teleproto rejected '${mode}'`);
         }
     });
 

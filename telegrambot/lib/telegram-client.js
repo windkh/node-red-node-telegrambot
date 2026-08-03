@@ -1,12 +1,12 @@
 // Created by Karl-Heinz Wind
 'use strict';
 
-const { TelegramClient } = require('telegram');
-const { StringSession } = require('telegram/sessions');
+const { TelegramClient } = require('teleproto');
+const { StringSession } = require('teleproto/sessions');
 
 const { buildClientParams } = require('./client-params');
 
-// What GramJS' sanitizeParseMode accepts. It *throws* on anything else, and this is only a formatting
+// What teleproto's sanitizeParseMode accepts. It *throws* on anything else, and this is only a formatting
 // preference — it must not be able to stop the client connecting, so the value is checked first.
 const PARSE_MODES = ['md', 'markdown', 'md2', 'markdownv2', 'html'];
 

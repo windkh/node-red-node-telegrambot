@@ -1,15 +1,17 @@
 // Created by Karl-Heinz Wind
 'use strict';
 
-const { UpdateConnectionState } = require('telegram/network');
+const { UpdateConnectionState } = require('teleproto/network');
 
 const { createTelegramClient } = require('../lib/telegram-client');
 
-// GramJS reports these as numbers; map them to names so the nodes do not have to know the encoding.
+// teleproto reports these as numbers; map them to names so the nodes do not have to know the encoding.
 const CONNECTION_STATES = new Map([
     [UpdateConnectionState.connected, 'connected'],
     [UpdateConnectionState.disconnected, 'disconnected'],
-    // Emitted only from _handleBadAuthKey: the stored session is unusable, not a network hiccup.
+    // Two emitters, both terminal for that connection: _handleBadAuthKey (the stored session is
+    // unusable) and _reconnect when the reconnect attempt itself fails, which marks the sender dead.
+    // GramJS only had the first — see doc/architecture/adr/0013-migrate-to-teleproto.md.
     [UpdateConnectionState.broken, 'broken'],
 ]);
 
@@ -28,7 +30,6 @@ module.exports = function (RED) {
         this.logLevel = 'warn'; // 'none', 'error', 'warn','info', 'debug'
         this.verbose = n.verboselogging;
         this.useProxy = n.useproxy || false;
-        this.useWSS = n.usewss || false;
         this.proxy;
         const deviceModel = n.devicemodel || '';
         const systemVersion = n.systemversion || '';
@@ -80,8 +81,7 @@ module.exports = function (RED) {
             phoneNumber,
             botToken,
             logLevel,
-            proxy,
-            useWSS
+            proxy
         ) {
             const options = {
                 apiId: apiId,
@@ -92,7 +92,6 @@ module.exports = function (RED) {
                 loginMode: loginMode,
                 logLevel: logLevel,
                 proxy: proxy,
-                useWSS: useWSS,
                 deviceModel: deviceModel,
                 systemVersion: systemVersion,
                 appVersion: appVersion,
@@ -116,7 +115,7 @@ module.exports = function (RED) {
             node.statusListeners.delete(listener);
         };
 
-        // Called for every raw update; GramJS routes the connection states through the raw handlers.
+        // Called for every raw update; teleproto routes the connection states through the raw handlers.
         this.onConnectionState = function (update) {
             const state = update instanceof UpdateConnectionState ? CONNECTION_STATES.get(update.state) : undefined;
 
@@ -138,14 +137,13 @@ module.exports = function (RED) {
                     this.phoneNumber,
                     this.botToken,
                     this.logLevel,
-                    this.proxy,
-                    this.useWSS
+                    this.proxy
                 );
 
                 if (client) {
                     // Registered here rather than by the nodes, so the state is observed whether or not
                     // anyone enabled "send raw events". A user's own raw handler still receives these
-                    // updates as before — GramJS calls every registered handler.
+                    // updates as before — teleproto calls every registered handler.
                     client.addEventHandler(this.onConnectionState);
                 }
 
@@ -157,7 +155,7 @@ module.exports = function (RED) {
 
         // Tears the client down so a redeploy does not leave a live session behind.
         //
-        // destroy() rather than disconnect(): GramJS runs its update loop as
+        // destroy() rather than disconnect(): teleproto runs its update loop as
         // `while (!client._destroyed)` and only destroy() sets that flag. After a plain disconnect the
         // loop keeps going, reconnects through `_sender.reconnect()` and carries on pinging, so the
         // session would survive every redeploy. destroy() also clears the registered event builders

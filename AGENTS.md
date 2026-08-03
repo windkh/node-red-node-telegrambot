@@ -75,9 +75,16 @@
 
 <!-- Repo-specific rules go here. `nrstd sync` never touches this section. -->
 
-This package is a Telegram **client** (userbot / selfbot) built on [GramJS](https://gram.js.org/) and
-MTProto. It is **not** the Telegram Bot API — that is `node-red-contrib-telegrambot`. Do not reach for
-`node-telegram-bot-api` idioms, webhooks, or `getUpdates` here; the client is a long-lived connection.
+This package is a Telegram **client** (userbot / selfbot) built on
+[teleproto](https://github.com/sanyok12345/teleproto) and MTProto. It is **not** the Telegram Bot API —
+that is `node-red-contrib-telegrambot`. Do not reach for `node-telegram-bot-api` idioms, webhooks, or
+`getUpdates` here; the client is a long-lived connection.
+
+teleproto is a maintained fork of GramJS, which was archived in 2026. The API is the same one GramJS
+had, so its documentation and answers still transfer — but do not assume it: the fork has diverged
+(no `useWSS`, no exported `sanitizeParseMode`, a second emitter for the `broken` connection state).
+Check `node_modules/teleproto` before relying on anything you remember about GramJS, and never add
+`telegram` back as a dependency — `test/dependencies.test.js` fails if you do.
 
 See [doc/architecture/overview.md](doc/architecture/overview.md) for the layout and
 [behavioural-design.md](doc/architecture/behavioural-design.md) for the flows.
@@ -113,10 +120,13 @@ anything, that change is wrong.
 ### Proxy support
 
 The proxy is built once in the config node from the `useproxy` fields and passed straight into the
-`TelegramClient` options — GramJS handles both SOCKS (`socksType`) and MTProxy (`MTProxy` + `secret`).
-`useWSS` is independent of it. The optional `deviceModel` / `systemVersion` / `appVersion` fields must
-be **omitted** when empty rather than passed as `''`, so GramJS applies its own defaults; that is what
+`TelegramClient` options — teleproto handles both SOCKS (`socksType`) and MTProxy (`MTProxy` +
+`secret`). The optional `deviceModel` / `systemVersion` / `appVersion` fields must be **omitted** when
+empty rather than passed as `''`, so teleproto applies its own defaults; that is what
 `lib/client-params.js` is for.
+
+There is no `useWSS` any more. `usewss` survives in the editor's `defaults` so saved flows round-trip,
+but nothing reads it — see [ADR 0013](doc/architecture/adr/0013-migrate-to-teleproto.md).
 
 ### Node contract is public API
 

@@ -45,7 +45,7 @@ describe('buildEventFilters', () => {
         assert.ok(!('blacklistChats' in withoutList.common), 'inverting an absent list means nothing');
     });
 
-    it('maps the direction choice to the mutually exclusive GramJS flags', () => {
+    it('maps the direction choice to the mutually exclusive teleproto flags', () => {
         const incoming = buildEventFilters({ direction: 'incoming' }).message;
         assert.strictEqual(incoming.incoming, true);
         assert.ok(!('outgoing' in incoming), 'incoming and outgoing must never both be set');
@@ -101,7 +101,7 @@ describe('buildEventFilters', () => {
     });
 
     it('does not let the groups share mutable state', () => {
-        // Each group is handed to a different GramJS builder, so a mutation in one must not leak.
+        // Each group is handed to a different teleproto builder, so a mutation in one must not leak.
         const filters = buildEventFilters({ chats: 'alice', fromusers: 'bob' });
 
         filters.message.chats.push('intruder');

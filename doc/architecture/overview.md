@@ -1,16 +1,16 @@
 # Overview
 
 `node-red-node-telegrambot` exposes a Telegram **client** (userbot / selfbot) to Node-RED. It talks
-MTProto through [GramJS](https://gram.js.org/) and acts under a real Telegram user account — it is
+MTProto through [teleproto](https://github.com/sanyok12345/teleproto) and acts under a real Telegram user account — it is
 deliberately _not_ the Telegram Bot API, which is what `node-red-contrib-telegrambot` covers.
 
 ## Node types
 
-| Node                       | Purpose                                                             |
-| -------------------------- | ------------------------------------------------------------------- |
-| `telegram client config`   | Holds the credentials and owns the single shared `TelegramClient`.  |
-| `telegram client receiver` | Subscribes to Telegram events and emits one Node-RED message each.  |
-| `telegram client sender`   | Calls a GramJS client method or a raw MTProto request from a `msg`. |
+| Node                       | Purpose                                                                |
+| -------------------------- | ---------------------------------------------------------------------- |
+| `telegram client config`   | Holds the credentials and owns the single shared `TelegramClient`.     |
+| `telegram client receiver` | Subscribes to Telegram events and emits one Node-RED message each.     |
+| `telegram client sender`   | Calls a teleproto client method or a raw MTProto request from a `msg`. |
 
 ## Runtime model
 

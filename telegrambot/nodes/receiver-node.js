@@ -1,20 +1,21 @@
 // Created by Karl-Heinz Wind
 'use strict';
 
-const { NewMessage } = require('telegram/events');
-const { DeletedMessage } = require('telegram/events/DeletedMessage');
-const { EditedMessage } = require('telegram/events/EditedMessage');
-const { Album } = require('telegram/events/Album');
-const { CallbackQuery } = require('telegram/events/CallbackQuery');
+const { NewMessage } = require('teleproto/events');
+const { DeletedMessage } = require('teleproto/events/DeletedMessage');
+const { EditedMessage } = require('teleproto/events/EditedMessage');
+const { Album } = require('teleproto/events/Album');
+const { CallbackQuery } = require('teleproto/events/CallbackQuery');
 
 const { buildEventFilters } = require('../lib/event-filters');
 
 // The status texts are part of this node's public contract — keep them in one place so every code path
 // reports the same thing. `broken` gets a filled dot rather than a ring because it will not fix itself:
-// GramJS reports it only for an unusable authorization key, so the user has to log in again.
+// teleproto reports it either for an unusable authorization key or for a reconnect that failed
+// outright, and both leave the sender dead — so the text names both remedies.
 const CONNECTED = { fill: 'green', shape: 'ring', text: 'connected' };
 const DISCONNECTED = { fill: 'red', shape: 'ring', text: 'disconnected' };
-const BROKEN = { fill: 'red', shape: 'dot', text: 'session invalid: login again' };
+const BROKEN = { fill: 'red', shape: 'dot', text: 'broken: login again or redeploy' };
 const INVALID_FILTER = { fill: 'red', shape: 'ring', text: 'invalid filter' };
 
 const STATUS_BY_STATE = {
@@ -159,7 +160,7 @@ module.exports = function (RED) {
                     node.rawEventHandlerAdded = false;
                 }
 
-                // The builders below carry the same filters as the ones used to subscribe. GramJS
+                // The builders below carry the same filters as the ones used to subscribe. teleproto
                 // actually matches on the callback, not the builder, so this is for symmetry rather
                 // than correctness — see doc/architecture/adr/0005-receiver-event-filters.md.
                 if (node.newMessageEventHandlerAdded) {
@@ -202,7 +203,7 @@ module.exports = function (RED) {
                 const client = await node.config.getTelegramClient(node);
                 if (client) {
                     if (node.sendRawEvents) {
-                        // No builder, so no filters: GramJS' Raw builder accepts only `types` and
+                        // No builder, so no filters: teleproto's Raw builder accepts only `types` and
                         // `func`, and raw updates arrive before entities are resolved anyway.
                         client.addEventHandler(node.rawEventHandler);
                         node.rawEventHandlerAdded = true;

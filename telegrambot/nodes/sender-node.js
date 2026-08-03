@@ -1,8 +1,8 @@
 // Created by Karl-Heinz Wind
 'use strict';
 
-const { Api } = require('telegram');
-const { FloodWaitError } = require('telegram/errors');
+const { Api } = require('teleproto');
+const { FloodWaitError } = require('teleproto/errors');
 
 const { convertButtonsInArgs } = require('../lib/reply-markup');
 
@@ -10,9 +10,10 @@ const { convertButtonsInArgs } = require('../lib/reply-markup');
 // path reports the same thing.
 const CONNECTED = { fill: 'green', shape: 'ring', text: 'connected' };
 const DISCONNECTED = { fill: 'red', shape: 'ring', text: 'disconnected' };
-// A filled dot, not a ring, because this one will not fix itself: GramJS reports `broken` only for an
-// unusable authorization key, so reconnecting cannot help and the user has to log in again.
-const BROKEN = { fill: 'red', shape: 'dot', text: 'session invalid: login again' };
+// A filled dot, not a ring, because this one will not fix itself: teleproto reports `broken` for an
+// unusable authorization key or for a reconnect that failed outright, and in both cases the sender is
+// marked dead — so waiting will not help.
+const BROKEN = { fill: 'red', shape: 'dot', text: 'broken: login again or redeploy' };
 
 const STATUS_BY_STATE = {
     connected: CONNECTED,
@@ -25,8 +26,8 @@ function floodWaitStatus(seconds) {
     return { fill: 'yellow', shape: 'ring', text: 'flood wait ' + seconds + 's' };
 }
 
-// GramJS throws a plain Error for an unresolvable peer — there is no class to match on, so this has to
-// go by the message, and it points at Telethon's Python documentation. If GramJS rewords it the hint is
+// teleproto throws a plain Error for an unresolvable peer — there is no class to match on, so this has to
+// go by the message, and it points at Telethon's Python documentation. If teleproto rewords it the hint is
 // simply lost; the original error reaches the flow either way.
 const UNRESOLVED_PEER = 'Could not find the input entity';
 
@@ -69,7 +70,7 @@ module.exports = function (RED) {
             node.status(status);
         };
 
-        // Telegram is throttling us. GramJS sleeps through anything up to floodSleepThreshold on its
+        // Telegram is throttling us. teleproto sleeps through anything up to floodSleepThreshold on its
         // own; this only runs for the waits it gives up on and throws.
         this.showFloodWait = (seconds) => {
             clearFloodTimer();
@@ -126,7 +127,7 @@ module.exports = function (RED) {
                     const request = new Api[call.api][call.func](call.args);
                     result = await client.invoke(request);
                 } else {
-                    // Any method on the GramJS client, called with `args` spread as its arguments.
+                    // Any method on the teleproto client, called with `args` spread as its arguments.
                     // Sending:   sendMessage, sendFile, forwardMessages, editMessage, deleteMessages
                     // Chats:     pinMessage, unpinMessage, markAsRead, kickParticipant
                     // Reading:   getMessages, getDialogs, getParticipants, iterMessages, iterDialogs
@@ -138,7 +139,7 @@ module.exports = function (RED) {
                     // auth methods (connect, start, signIn*, addEventHandler, …) are reachable but will
                     // disrupt the other nodes. See the node help.
                     //
-                    // A plain-JSON `buttons` in the options object becomes real GramJS buttons first: a
+                    // A plain-JSON `buttons` in the options object becomes real teleproto buttons first: a
                     // Function node cannot require them, so the flow can only produce JSON.
                     result = await client[call.func](...convertButtonsInArgs(call.args));
                 }

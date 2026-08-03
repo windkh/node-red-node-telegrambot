@@ -1,12 +1,12 @@
 // Created by Karl-Heinz Wind
 'use strict';
 
-const { Button } = require('telegram/tl/custom/button');
+const { Button } = require('teleproto/tl/custom/button');
 
-// Turns a plain-JSON button description into the GramJS `Button` objects that `sendMessage` and
+// Turns a plain-JSON button description into the teleproto `Button` objects that `sendMessage` and
 // `sendFile` accept as their `buttons` option.
 //
-// This exists because a Function node cannot `require` GramJS: a flow can only produce JSON, so
+// This exists because a Function node cannot `require` teleproto: a flow can only produce JSON, so
 // something in the package has to do the conversion.
 //
 // Shape — an array of rows, each row an array of buttons:
@@ -16,7 +16,7 @@ const { Button } = require('telegram/tl/custom/button');
 //         [{ type: 'callback', text: 'Yes', data: 'yes' }, { type: 'callback', text: 'No', data: 'no' }]
 //     ]
 //
-// A single row may be given flat, and a single button on its own, mirroring what GramJS itself accepts.
+// A single row may be given flat, and a single button on its own, mirroring what teleproto itself accepts.
 
 // `auth` needs a bot entity, and `requestPoll` / `clear` / `forceReply` describe the markup rather than a
 // button, so none of them fit this shape. Left out rather than half-supported.
