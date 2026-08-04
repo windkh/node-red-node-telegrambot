@@ -5,7 +5,7 @@ const { TelegramClient } = require('teleproto');
 const { StringSession } = require('teleproto/sessions');
 
 const { buildClientParams } = require('./client-params');
-const { shortFailureReason } = require('./auth-error');
+const { describeForLog, shortFailureReason } = require('./auth-error');
 const { openStoredSession } = require('./session-store');
 
 // What teleproto's sanitizeParseMode accepts. It *throws* on anything else, and this is only a formatting
@@ -115,9 +115,12 @@ async function createTelegramClient(options, warn, fail) {
             fail('no session: login first');
         }
     } catch (error) {
-        // Logged in full and reported in short: the status has room for a few words, the log does not have
-        // that limit and a Catch node may want the whole thing.
-        warn(error);
+        // An expired session is ordinary and actionable, not a crash — but it arrives as an RPCError whose
+        // stack is seven frames of teleproto internals, which reads like something broke and tells the
+        // reader nothing to do. describeForLog decides: Telegram's answer becomes one line, anything
+        // unexpected keeps its stack. The status gets the short form either way.
+        // See doc/architecture/adr/0024-log-an-expired-session-as-a-line.md.
+        warn(describeForLog(error));
         fail(shortFailureReason(error));
     }
 

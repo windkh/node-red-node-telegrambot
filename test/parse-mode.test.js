@@ -132,6 +132,15 @@ describe('a connect that fails', () => {
         assert.strictEqual(warnings.length, 1);
     });
 
+    it('logs an unexpected error whole, stack and all', async () => {
+        // A session string that is not one throws a plain Error from StringSession's constructor — not a
+        // Telegram answer, so the stack is worth keeping and `warn` must receive the Error itself.
+        const { warnings } = await run({ apiId: '12345', apiHash: 'hash', session: 'not-a-session-string' });
+
+        assert.strictEqual(warnings.length, 1);
+        assert.ok(warnings[0] instanceof Error, 'an unexpected failure must reach the log with its stack');
+    });
+
     it('says nothing on the failure channel about a merely odd parse mode', async () => {
         // `warn` is for notes that do not stop the connect; `fail` is only for there being no client.
         const { failures, warnings } = await run({

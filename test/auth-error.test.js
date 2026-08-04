@@ -8,7 +8,14 @@ const util = require('node:util');
 const { Api } = require('teleproto');
 const { RPCMessageToError } = require('teleproto/errors');
 
-const { describeAuthError, shortFailureReason, REMEDY, STATUS_LIMIT } = require('../telegrambot/lib/auth-error');
+const {
+    describeAuthError,
+    describeForLog,
+    isTelegramError,
+    shortFailureReason,
+    REMEDY,
+    STATUS_LIMIT,
+} = require('../telegrambot/lib/auth-error');
 
 // These are not real values, and they are not credential-shaped either — they only have to be findable.
 // `AGENTS.md` forbids a real hash, token, session or phone number in a fixture.
@@ -179,6 +186,14 @@ describe('the logging channel', () => {
 describe('the runtime connect', () => {
     const runtime = () => readSource('lib/telegram-client.js');
 
+    it('sends a failed connect through describeForLog rather than logging it raw', () => {
+        // Source-level, and it has to be: the two differ only for an error Telegram sent, and getting one
+        // of those requires a real answer from Telegram. Everything reachable offline throws a plain Error,
+        // which describeForLog returns unchanged — so a behavioural test cannot tell `warn(describeForLog(e))`
+        // from `warn(e)`. This can.
+        assert.match(runtime(), /warn\(describeForLog\(error\)\)/, 'an expired session must not log a stack');
+    });
+
     it('never asks teleproto for an interactive login', () => {
         const source = runtime();
 
@@ -260,5 +275,81 @@ describe('shortFailureReason', () => {
             assert.ok(remedy.length <= STATUS_LIMIT, `${code}'s remedy does not fit a status`);
             assert.notStrictEqual(remedy, code, `${code} maps to itself, so the entry adds nothing`);
         }
+    });
+});
+
+// What reaches the log. An expired session used to arrive as an RPCError logged whole — seven frames of
+// MtpDispatcher and MTProtoSender for a condition whose remedy is "log in again". It read like a crash.
+describe('describeForLog', () => {
+    it('reduces a Telegram answer to one line', () => {
+        const error = RPCMessageToError({ errorMessage: 'AUTH_KEY_UNREGISTERED', errorCode: 401 }, signInRequest());
+        const logged = describeForLog(error);
+
+        assert.strictEqual(typeof logged, 'string', 'an Error would be printed with its stack');
+        assert.match(logged, /AUTH_KEY_UNREGISTERED/);
+        // The stack is all teleproto frames; the line has to carry what the reader can act on instead.
+        assert.match(logged, /401/);
+    });
+
+    it('keeps the whole error when the failure is not Telegram answering', () => {
+        // A bug on our side: there the stack *is* the diagnosis, and reducing it to a line would throw the
+        // only useful part away.
+        const bug = new TypeError('client.sendMessage is not a function');
+
+        assert.strictEqual(describeForLog(bug), bug, 'an unexpected error must keep its stack');
+    });
+
+    it('carries no request field into the log either', () => {
+        for (const failure of TELEGRAM_FAILURES) {
+            const logged = String(
+                describeForLog(RPCMessageToError({ errorMessage: failure, errorCode: 400 }, signInRequest()))
+            );
+
+            for (const canary of [CANARY_PHONE, CANARY_HASH, CANARY_CODE]) {
+                assert.ok(!logged.includes(canary), `${failure} leaked ${canary}`);
+            }
+        }
+    });
+});
+
+describe('isTelegramError', () => {
+    it('is true for an answer from Telegram', () => {
+        assert.strictEqual(
+            isTelegramError(RPCMessageToError({ errorMessage: 'FLOOD_WAIT_5', errorCode: 420 }, signInRequest())),
+            true
+        );
+    });
+
+    it('is false for everything that broke on our side', () => {
+        for (const other of [new TypeError('boom'), new Error('socket hang up'), 'a string', undefined, null, {}]) {
+            assert.strictEqual(isTelegramError(other), false, JSON.stringify(String(other)));
+        }
+    });
+
+    it("is false for Node's own system errors, which also have a code", () => {
+        // The trap this predicate walked into once. A `code !== undefined` test called ENOENT a Telegram
+        // answer, so a filesystem failure from the session store would have been logged as a line and lost
+        // the stack that explains it. An RPC code is a number and comes with an errorMessage; ENOENT is a
+        // string and comes with neither.
+        let system;
+        try {
+            require('node:fs').readFileSync('nope/definitely/missing');
+        } catch (error) {
+            system = error;
+        }
+
+        assert.strictEqual(typeof system.code, 'string', 'precondition: a system error has a string code');
+        assert.strictEqual(isTelegramError(system), false);
+        assert.strictEqual(describeForLog(system), system, 'it must keep its stack');
+    });
+
+    it('needs both halves, not either', () => {
+        assert.strictEqual(isTelegramError({ code: 401 }), false, 'a number alone is not enough');
+        assert.strictEqual(isTelegramError({ errorMessage: 'AUTH_KEY_UNREGISTERED' }), false, 'nor a message alone');
+        assert.strictEqual(
+            isTelegramError({ code: '401', errorMessage: 'X' }),
+            false,
+            'a string code is not an RPC code'
+        );
     });
 });

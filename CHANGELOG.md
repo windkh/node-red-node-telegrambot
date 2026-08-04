@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+# [1.7.3] - 2026-08-04
+
+### changed an expired session to be logged as one line instead of a seven-frame stack trace of teleproto internals. The behaviour was already right - the error is reported rather than a login started - but it read like a crash, which is how it was reported. A failure that is genuinely a bug still keeps its stack
+
 # [1.7.2] - 2026-08-04
 
 ### fixed a typo in the receiver node: the checkbox read "Albums (list of mesages)"
