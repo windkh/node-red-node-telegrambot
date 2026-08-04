@@ -99,5 +99,7 @@ matches one of them:
 | `client/users.js:529` | `Could not find the input entity for …`       | yes     |
 | `client/users.js:608` | `Cannot find any entity corresponding to "…"` | no      |
 
-So the hint added in #24 does not appear for a username that cannot be resolved at all — only for the
-cached-id case. Found in the same session, left alone here to keep this change to one thing.
+So the hint added in #24 did not appear for a username that cannot be resolved at all — only for the
+cached-id case. Found in the same session and fixed separately in 1.7.1: the two get **different** advice,
+because the cached-id hint says "a username always works", which is exactly wrong when the username is what
+Telegram could not find.

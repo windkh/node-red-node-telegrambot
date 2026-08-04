@@ -14,20 +14,51 @@ const {
     detachConnectionStatus,
 } = require('../lib/node-status');
 
-// teleproto throws a plain Error for an unresolvable peer — there is no class to match on, so this has to
-// go by the message, and it points at Telethon's Python documentation. If teleproto rewords it the hint is
-// simply lost; the original error reaches the flow either way.
-const UNRESOLVED_PEER = 'Could not find the input entity';
+// teleproto throws a plain Error for a peer it cannot resolve, and it has **two** messages for two
+// different problems. There is no class to match on, so this goes by the wording; if teleproto rewords
+// either one the hint is simply lost, and the original error reaches the flow untouched either way.
+//
+// The distinction matters more than it looks. The first hint tells the user a username always works — which
+// is exactly wrong for the second case, where the username *is* what Telegram could not find. One hint for
+// both would send them looking in the wrong place.
+const PEER_HINTS = [
+    {
+        // client/users.js `getInputEntity`: it has the peer but no access hash for it — in practice, a bare
+        // numeric id that is not in this session's cache.
+        wording: 'Could not find the input entity',
+        hint:
+            'Telegram could not resolve that peer. A username or an invite link always works. A bare ' +
+            "numeric id only works while that peer is in this session's entity cache, which is held in " +
+            'memory and lost on every restart — so a flow that worked before a redeploy can fail after ' +
+            'one. Address the peer by username, resolve it once with getEntity in the same flow, or turn ' +
+            'on "Remember peers" on the config node.',
+    },
+    {
+        // client/users.js `_getEntityFromString`: a username, phone number or invite link that Telegram does
+        // not know at all.
+        wording: 'Cannot find any entity corresponding to',
+        hint:
+            'Telegram does not know that username or link. Check the spelling — a leading @ is optional, ' +
+            'but a space is not part of a username, so a leftover placeholder like "to username" from an ' +
+            'example flow will fail here. A phone number only resolves if that person is in your ' +
+            'contacts, and a private channel needs an invite link you have already joined.',
+    },
+];
 
-function isUnresolvedPeer(error) {
-    return error instanceof Error && typeof error.message === 'string' && error.message.includes(UNRESOLVED_PEER);
+// The hint for this error, or undefined when it is not about a peer at all.
+function peerHint(error) {
+    let hint;
+
+    if (error instanceof Error && typeof error.message === 'string') {
+        const matched = PEER_HINTS.find((entry) => error.message.includes(entry.wording));
+
+        if (matched !== undefined) {
+            hint = matched.hint;
+        }
+    }
+
+    return hint;
 }
-
-const UNRESOLVED_PEER_HINT =
-    'Telegram could not resolve that peer. A username or an invite link always works. A bare numeric id ' +
-    "only works while that peer is in this session's entity cache, which is held in memory and lost on " +
-    'every restart — so a flow that worked before a redeploy can fail after one. Address the peer by ' +
-    'username, or resolve it once with getEntity in the same flow.';
 
 // The sender node is a generic bridge to the Telegram client: `msg.payload.func` names either a
 // convenience method on the client itself (no `api`) or a raw MTProto request under `Api[api]`.
@@ -137,8 +168,12 @@ module.exports = function (RED) {
                 // nodeDone untouched, because a Catch node may well be inspecting it.
                 if (error instanceof FloodWaitError) {
                     node.showFloodWait(error.seconds);
-                } else if (isUnresolvedPeer(error)) {
-                    node.warn(UNRESOLVED_PEER_HINT);
+                } else {
+                    const hint = peerHint(error);
+
+                    if (hint !== undefined) {
+                        node.warn(hint);
+                    }
                 }
             } finally {
                 nodeDone(failure);

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+# [1.7.1] - 2026-08-04
+
+### fixed the sender node giving no hint when a **username** could not be resolved. teleproto has two different messages for an unresolvable peer and only one was matched, so the explanation added in #24 never appeared for a misspelled or placeholder username - including the `"to username"` left in the SendMessage example flow
+
+### the two cases now get different advice, because the old text says "a username always works" - which is exactly wrong when the username is what Telegram could not find
+
 # [1.7.0] - 2026-08-03
 
 ### changed a failed connect to show **why** on the node status instead of a generic `disconnected`: `no session: login first`, `session invalid: login again`, `api id or hash is wrong`, or Telegram's own error code for anything else. A red filled dot, because unlike a dropped connection this one needs you to do something. It turns green as soon as a connection works

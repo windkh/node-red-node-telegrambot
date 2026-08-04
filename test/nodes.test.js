@@ -398,6 +398,35 @@ describe('telegram client nodes', () => {
         assert.match(warnings[0], /entity cache/);
     });
 
+    it('explains an unresolvable username differently, because the username is the problem', async () => {
+        const flow = [configNode, { id: 'n1', type: 'telegram client sender', bot: 'c1' }];
+        await helper.load(telegramBotNode, flow);
+
+        // client/users.js `_getEntityFromString` — the other wording, and the one a leftover example
+        // placeholder hits. Keep it in step with PEER_HINTS in sender-node.js.
+        const failure = new Error('Cannot find any entity corresponding to "to username"');
+        const client = {
+            sendMessage: async () => {
+                throw failure;
+            },
+        };
+
+        const n1 = helper.getNode('n1');
+        const warnings = [];
+        n1.warn = (message) => warnings.push(message);
+
+        const msg = { payload: { func: 'sendMessage', args: ['to username', { message: 'hi' }] } };
+        const error = await new Promise((resolve) => {
+            n1.processMessage(client, msg, () => {}, resolve);
+        });
+
+        assert.strictEqual(error, failure, 'the original error must reach nodeDone untouched');
+        assert.strictEqual(warnings.length, 1, 'the hint is an addition, not a replacement');
+        assert.match(warnings[0], /does not know that username/);
+        // The other hint says a username always works, which is the wrong advice here.
+        assert.ok(!warnings[0].includes('always works'), 'that advice belongs to the numeric-id case');
+    });
+
     it('does not explain unrelated errors', async () => {
         const flow = [configNode, { id: 'n1', type: 'telegram client sender', bot: 'c1' }];
         await helper.load(telegramBotNode, flow);
