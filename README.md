@@ -79,6 +79,18 @@ one, and that was bad advice. A session string authenticates your whole Telegram
 someone else's site means handing that site your phone number, your login code and, with them, your account.
 Both routes in the config node keep it on your own machine.
 
+#### Login with a phone code
+
+Press **Login**. The panel asks for one thing at a time:
+
+1. Telegram sends a code. Type it into **Phone-Code** and **click outside the field** — leaving the field is
+   what submits it.
+2. The **Password** field appears next. It is only needed if your account has two-step verification; if it
+   has none, the login finishes on its own and the panel closes.
+
+If a password is already stored for this config node, it travels with the login and step 2 is skipped — the
+tip under the button says so. You do not need to clear the field first.
+
 #### Login with a QR code
 
 Instead of waiting for a phone code, click **Login with QR** and scan the code with a Telegram app that is

@@ -106,6 +106,14 @@ cannot be one call. `lib/auth-prompt.js` parks the resolve/reject of a pending p
 - An **empty** phone code or password must reject, not resolve — that is how the editor aborts a login.
 - The `…-login` response stays open until a session exists. Errors go to the `error` callback and come
   back as `{ type: 'error', error }`; never let a login failure reject the HTTP request.
+- `authParams.password` must be a **function**, even when the password is already known: teleproto calls
+  it (`await authParams.password(hint)`). `passwordSource` in `lib/login.js` is what guarantees that —
+  passing the string through aborted every re-login of a 2FA account, see
+  [ADR 0026](doc/architecture/adr/0026-one-login-step-at-a-time.md).
+- The dialog asks for one thing at a time and posts nothing out of turn, driven by `loginStage` in
+  `telegrambot.html`. It is testable: `test-helpers/editor-dialog.js` runs the shipped editor script
+  against a stand-in for jQuery, so a change to the login panel can be asserted rather than clicked
+  through. The QR login shares the password field, so anything that hides it has to account for that.
 
 ### Sessions are credentials, and they are account-wide
 

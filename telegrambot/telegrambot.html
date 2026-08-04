@@ -105,18 +105,45 @@
                 });
             };
 
+            // What the login is waiting for: 'idle', 'code' or 'password'. It drives both the tips and
+            // which fields are posted, so a keystroke in a field nothing is waiting for does nothing.
+            //
+            // Telegram asks for the code first and for the password only afterwards, and only when the
+            // account has two-step verification. Showing both fields at once left the user guessing which
+            // one to fill and when.
+            let loginStage = 'idle';
+
+            // Whether the login request already carried a password. If it did, there is nothing to ask
+            // for: the runtime hands that one to Telegram when it gets to the password check.
+            let passwordWasSupplied = false;
+
+            let showPasswordStep = function (show) {
+                if (show) {
+                    $('#twofapassword').show();
+                } else {
+                    $('#twofapassword').hide();
+                }
+            };
+
+            // Nothing is waiting any more: the login finished, failed, or was stopped.
+            let endLogin = function () {
+                loginStage = 'idle';
+                showPasswordStep(false);
+            };
+
             // polling or webhook
             let updateLoginMode = function () {
                 let mode = $('#node-config-input-loginmode').val();
                 if (mode == 'user') {
                     $('#phonenumber').show();
-                    $('#twofapassword').show();
                     $('#bottoken').hide();
                 } else {
                     $('#phonenumber').hide();
-                    $('#twofapassword').hide();
                     $('#bottoken').show();
                 }
+
+                // Not shown by the mode: it belongs to a step of the login, and the steps decide.
+                showPasswordStep(false);
             };
             updateLoginMode();
             $('#node-config-input-loginmode').change(updateLoginMode);
@@ -174,10 +201,20 @@
                         appversion: appversion,
                     };
 
-                    $('#loginbuttontip').text('Login started: enter code in field below.');
+                    // Step 1 of 2. The password field stays out of the way until Telegram could actually
+                    // want it, and the tip says how the code is submitted — leaving the field is easy to
+                    // miss when nothing else on the panel is a button.
+                    loginStage = 'code';
+                    passwordWasSupplied = password !== '';
+                    showPasswordStep(false);
+                    $('#loginbuttontip').text(
+                        'Step 1 of 2: Telegram is sending a code to your phone. Type it in the field below, then click outside the field to submit it.'
+                    );
                     $('#node-config-input-phonecode').val('');
                     $('#node-config-input-session').val('');
                     postJson('node-red-node-telegrambot-login', parameters, function (data) {
+                        endLogin();
+
                         if (data.session) {
                             $('#node-config-input-session').val(data.session);
                             $('#loginbuttontip').text(
@@ -189,28 +226,44 @@
 
                         if (data.error) {
                             $('#node-config-input-session').val('');
-                            $('#loginbuttontip').text('Login failed: ' + data.error);
+                            $('#loginbuttontip').text('Login failed: ' + data.error + '. Click Login to start over.');
                         }
                     });
                 }
             };
 
+            // Only while a login is actually waiting for a code. Posting one at any other time settles
+            // nothing on the server and the "signing in" tip would be a lie.
             let setPhoneCode = function () {
                 let phoneCode = $('#node-config-input-phonecode').val();
-                if (phoneCode != '') {
-                    $('#loginbuttontip').text('Signing in using phone code ....');
+                if (loginStage === 'code' && phoneCode != '') {
+                    loginStage = 'password';
                     let parameters = {
                         phoneCode: phoneCode,
                     };
                     postJson('node-red-node-telegrambot-setphonecode', parameters, function (data) {
                         // TODO:
                     });
+
+                    // Step 2, or no step at all. Whether Telegram asks for a password is up to the
+                    // account, and the editor is not told — so the field is offered rather than demanded,
+                    // and the panel closes on its own if the login completes without it.
+                    if (passwordWasSupplied) {
+                        $('#loginbuttontip').text(
+                            'Signing in with the code and the two-step-verification password you entered ....'
+                        );
+                    } else {
+                        showPasswordStep(true);
+                        $('#loginbuttontip').text(
+                            'Step 2 of 2: signing in .... If your account has two-step verification, type the password below and click outside the field. If it has none, you are done in a moment.'
+                        );
+                    }
                 }
             };
 
             let setPassword = function () {
                 let password = $('#node-config-input-twofapassword').val();
-                if (password != '') {
+                if (loginStage === 'password' && password != '') {
                     $('#loginbuttontip').text('Signing in using password ....');
                     let parameters = {
                         password: password,
@@ -257,19 +310,24 @@
                     // is an <svg> element, not text.
                     $('#qrcode').html(data.svg);
                     $('#qrcodelink').attr('href', data.url);
-                    $('#loginqrtip').text('Scan this in Telegram: Settings, Devices, Link Desktop Device.');
+                    $('#loginqrtip').text(
+                        'Scan this in Telegram: Settings, Devices, Link Desktop Device. If your account has two-step verification, type the password in the field below afterwards.'
+                    );
                 } else if (data.type === 'session') {
                     stopQrPolling();
+                    endLogin();
                     $('#qrcode').empty();
                     $('#node-config-input-session').val(data.session);
                     $('#loginqrtip').text('Signed in. Click Done to save the session.');
                     showLoginButton();
                 } else if (data.type === 'error') {
                     stopQrPolling();
+                    endLogin();
                     $('#qrcode').empty();
                     $('#loginqrtip').text('QR login failed: ' + data.error);
                 } else if (data.type === 'idle') {
                     stopQrPolling();
+                    endLogin();
                     $('#loginqrtip').text('QR login stopped. Click again to retry.');
                 }
             };
@@ -302,6 +360,11 @@
                     }
 
                     stopQrPolling();
+                    // A QR login has no code step: the scan replaces it, so the password is the only
+                    // thing it can ever ask for. It uses the same prompt as the phone-code flow
+                    // (lib/login-qr.js), hence the same field.
+                    loginStage = 'password';
+                    showPasswordStep(true);
                     $('#loginqrtip').text('Starting QR login ...');
                     $('#node-config-input-session').val('');
 
@@ -536,8 +599,15 @@
 
         <h3>Logging in</h3>
         <p>Create an API ID and API Hash at <i>my.telegram.org</i> under <i>API Development Tools</i>, then
-        press <b>Login</b>. Telegram sends a phone code; enter it in the <b>Phone-Code</b> field. If your
-        account has two-step verification enabled, also fill in <b>Password</b> in the login panel.</p>
+        press <b>Login</b>. The panel then asks for one thing at a time:</p>
+        <ol>
+            <li>Telegram sends a phone code. Type it into <b>Phone-Code</b> and <b>click outside the
+            field</b> &mdash; leaving the field is what submits it.</li>
+            <li>The <b>Password</b> field appears next. It is only needed if your account has two-step
+            verification; if it has none, the login finishes on its own and the panel closes.</li>
+        </ol>
+        <p>If a password is already stored for this config, it is sent with the login and step 2 is skipped
+        &mdash; the tip says so. You do not have to clear the field first.</p>
         <p>The login runs once and produces a <b>session string</b>, which is what the deployed flow
         actually uses. Treat it like a password: it authenticates the whole account.</p>
 

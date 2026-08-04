@@ -27,16 +27,29 @@ Tick as you go:
 Nothing else works until this does.
 
 - [ ] **1.1 Fresh config, phone-code login.** New _telegram client config_, enter ApiID and ApiHash, Login
-      Mode `user`, Phone-Number. Click **Login**. Expect: the tip says a code was requested, you get a code,
-      entering it in **Phone-Code** fills **Session**. Click Done, Deploy.
-- [ ] **1.2 Two-step verification.** If the account has it, 1.1 should ask for **Password** after the code.
-      Expect: an empty password aborts the login rather than hanging.
+      Mode `user`, Phone-Number. Expect: **no Password field yet** — nothing has asked for one. Click
+      **Login**. Expect: the tip says `Step 1 of 2` and how to submit the code. Type the code into
+      **Phone-Code** and click outside the field. Expect: the tip goes to `Step 2 of 2` and the **Password**
+      field appears. Without two-step verification the login finishes on its own, **Session** fills and the
+      panel closes. Click Done, Deploy.
+- [ ] **1.2 Two-step verification.** If the account has it, enter the password in step 2 and leave the field.
+      Expect: Session fills. Then repeat and leave the password **empty**: expect the login to abort with a
+      message rather than hang.
 - [ ] **1.3 Secrets are not shown back.** Reopen the config node. Expect: ApiHash, Session, Bot-Token and
       Password show `__PWRD__`, not their values. Click Done without touching them and Deploy. Expect: the
       login still works, i.e. nothing was overwritten with the placeholder.
+- [ ] **1.3a Re-login with a stored password.** ⚠ The bug fixed in 1.7.7. On a config node that already has
+      a two-step-verification password stored, click **Login** without clearing the Password field (it shows
+      `__PWRD__`). Expect: after the code, the tip says the stored password is being used, the Password field
+      stays hidden, and the login succeeds. Before the fix this always ended in `AUTH_USER_CANCEL`.
+- [ ] **1.3b Nothing is posted out of turn.** Click **Login**, then type something into Password _before_
+      entering the code. Expect: no reaction at all — the tip stays on `Step 1 of 2`. Then enter the code and
+      finish normally.
 - [ ] **1.4 QR login.** In a second config node, ApiID and ApiHash only, then **Login with QR**. Expect: a
-      QR code appears within a couple of seconds, and it is **replaced roughly every 30 seconds**. Scan it in
-      Telegram → _Settings, Devices, Link Desktop Device_. Expect: Session fills.
+      QR code appears within a couple of seconds, it is **replaced roughly every 30 seconds**, and the
+      **Password** field is offered right away — a QR login has no code step, so the password is the only
+      thing it can ask for. Scan it in Telegram → _Settings, Devices, Link Desktop Device_. Expect: Session
+      fills.
 - [ ] **1.5 QR link fallback.** Before scanning, click _Open the login link_ under the code on a machine
       where Telegram Desktop is installed. Expect: the same login completes.
 - [ ] **1.6 QR replaces a running attempt.** Click **Login with QR** twice in a row. Expect: the second code
