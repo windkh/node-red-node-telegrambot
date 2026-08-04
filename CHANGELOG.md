@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+# [1.7.2] - 2026-08-04
+
+### fixed a typo in the receiver node: the checkbox read "Albums (list of mesages)"
+
 # [1.7.1] - 2026-08-04
 
 ### fixed the sender node giving no hint when a **username** could not be resolved. teleproto has two different messages for an unresolvable peer and only one was matched, so the explanation added in #24 never appeared for a misspelled or placeholder username - including the `"to username"` left in the SendMessage example flow

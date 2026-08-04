@@ -4,6 +4,9 @@ Press **F5** and pick **Run Node-RED**. That starts your real Node-RED — real 
 real logged-in session — with this working tree loaded, so a breakpoint anywhere under
 `telegrambot/nodes/` or `telegrambot/lib/` is hit. The editor is on <http://localhost:1880> as usual.
 
+Once it runs, [manual-tests.md](manual-tests.md) is the checklist for everything the automated suite cannot
+reach — it never talks to Telegram, and this does.
+
 ## The link is what makes it work
 
 Node-RED loads whatever is in its user directory's `node_modules`. Without a link that is the **published**
