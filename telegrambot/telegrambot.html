@@ -946,7 +946,18 @@
             after a redeploy with <i>Could not find the input entity for &hellip;</i></li>
             <li>A <b>phone number</b> works only for people in your account's contacts.</li>
         </ul>
-        <p>Address peers by username and this never comes up. If you only have an id, resolve it once with
+        <p>Two further messages mean a peer problem without saying so, and the node explains both in the
+        log:</p>
+        <ul>
+            <li><i>Cannot cast undefined to any kind of undefined</i> &mdash; no peer was passed at all. In a
+            flow built on a received message this is usually <code>msg.payload.chat</code>, which is empty
+            when the session has no access hash for the chat. Fall back to
+            <code>msg.payload.message.peerId</code>, which every message carries.</li>
+            <li><i>Cannot cast User to any kind of peer</i> &mdash; the peer is an object teleproto does not
+            recognise. It checks the class, not the fields, so an entity that went through JSON fails with
+            everything still in place.</li>
+        </ul>
+        <p>Address peers by username and none of this comes up. If you only have an id, resolve it once with
         <code>getEntity</code> in the same flow and pass the result on.</p>
 
         <h3>Useful client methods</h3>

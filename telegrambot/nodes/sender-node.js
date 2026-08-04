@@ -44,6 +44,34 @@ const PEER_HINTS = [
             'example flow will fail here. A phone number only resolves if that person is in your ' +
             'contacts, and a private channel needs an invite link you have already joined.',
     },
+    {
+        // Utils.js `getPeer`, reached through `getInputEntity`, for a peer that is not merely unknown but
+        // absent. `Cannot cast undefined to any kind of undefined` is what a missing `peer` reads like, and
+        // it names neither the argument nor the request — the only wording in this list that says nothing
+        // at all on its own.
+        //
+        // Before this entry existed the same message had already cost a debugging session: the request that
+        // was logged alongside it showed a full peer, because a request is built and invoked in one step and
+        // the failing one was a *different* message.
+        wording: 'Cannot cast undefined to any kind of undefined',
+        hint:
+            'No peer was passed: `peer` in the arguments is undefined. In a flow built on a received ' +
+            'message this is usually `msg.payload.chat`, which the receiver fills with `getChat()` — and ' +
+            'that comes back empty when this session holds no access hash for the chat. Fall back to ' +
+            '`msg.payload.message.peerId`, which every message carries, or turn on "Remember peers" on ' +
+            'the config node so the hashes survive a restart.',
+    },
+    {
+        // Utils.js `getInputPeer` tests `entity instanceof Api.User` and its siblings, so a structurally
+        // identical object is not enough. Kept after the entry above: that message does not contain this
+        // wording, but a reader should not have to check.
+        wording: 'to any kind of peer',
+        hint:
+            'That peer is an object teleproto does not recognise. Its entities are class instances and it ' +
+            'checks the class, not the fields — so anything that went through JSON on the way here, out of ' +
+            'a file or flow context or rebuilt by hand, keeps every field and still fails. Pass the ' +
+            'username or the numeric id and let the client resolve it.',
+    },
 ];
 
 // The hint for this error, or undefined when it is not about a peer at all.

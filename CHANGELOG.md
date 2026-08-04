@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+# [2.0.1] - 2026-08-04
+
+### the sender node now explains two teleproto errors that say nothing on their own. `Cannot cast undefined to any kind of undefined` means no peer was passed - it names neither the argument nor the request - and `Cannot cast User to any kind of peer` means the peer is an object that lost its class on the way in, which is what happens to an entity that went through JSON
+
+### fixed the `EchoMessage` example failing on a chat the session cannot resolve. It passed `msg.payload.chat`, which the receiver fills with `getChat()`, and that comes back empty when there is no access hash for the chat. It now falls back to `msg.payload.message.peerId`, which every message carries, and sends nothing when there is no peer at all
+
 # [2.0.0] - 2026-08-04
 
 ### **breaking:** raw events now use the same payload shape as every other event type - `msg.payload.type` is `'Raw'` and `msg.payload.event` is the update. Before this the update sat directly in `msg.payload`, so a Function node switching on `msg.payload.type` needed a special case for raw updates, and one that forgot looked correct until a raw update arrived. `msg.type = 'Raw'` is still set, so only reading a field **out of** the update changes: `msg.payload.className` becomes `msg.payload.event.className`. See [MIGRATION.md](/MIGRATION.md) and [ADR 0027](doc/architecture/adr/0027-symmetric-raw-events.md)

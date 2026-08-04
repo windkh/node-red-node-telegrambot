@@ -145,6 +145,36 @@ describe('EchoMessage', () => {
         }
     });
 
+    it('falls back to the message peer when the chat could not be resolved', () => {
+        // getChat() returns undefined when this session holds no access hash for the chat, and
+        // SendMessage then fails with "Cannot cast undefined to any kind of undefined" - which names
+        // neither the argument nor the request. peerId is on every message.
+        const msg = payloads.NewMessage();
+        msg.payload.chat = undefined;
+        msg.payload.message = { className: 'Message', message: 'hello', peerId: { className: 'PeerUser' } };
+
+        const out = echo(msg);
+
+        assert.deepStrictEqual(out.payload.args.peer, { className: 'PeerUser' });
+    });
+
+    it('prefers the resolved chat when there is one', () => {
+        // The better peer: an entity teleproto can turn into an InputPeer without asking Telegram.
+        const msg = payloads.NewMessage();
+        msg.payload.chat = { className: 'User', id: 7 };
+        msg.payload.message = { className: 'Message', message: 'hello', peerId: { className: 'PeerUser' } };
+
+        assert.deepStrictEqual(echo(msg).payload.args.peer, { className: 'User', id: 7 });
+    });
+
+    it('sends nothing when there is no peer at all', () => {
+        const msg = payloads.NewMessage();
+        msg.payload.chat = undefined;
+        msg.payload.message = { className: 'Message', message: 'hello' };
+
+        assert.strictEqual(echo(msg), undefined);
+    });
+
     it('listens to incoming messages only, or it echoes its own echo', () => {
         // The sender's message comes back to the receiver as a new outgoing message. Without this the
         // flow answers itself, forever, on the user's own account.
