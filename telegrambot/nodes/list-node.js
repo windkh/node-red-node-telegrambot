@@ -4,6 +4,7 @@
 const { FloodWaitError } = require('teleproto/errors');
 
 const { LIST_KINDS, resolveLimit, buildListArgs, emitCount } = require('../lib/list-request');
+const { hideClientReferences } = require('../lib/hide-client');
 const {
     CONNECTED,
     DISCONNECTED,
@@ -77,7 +78,7 @@ module.exports = function (RED) {
                 type: 'array',
             };
 
-            nodeSend(emitted);
+            nodeSend(hideClientReferences(emitted));
         };
 
         // Pulls the iterator dry, or until the limit, the close handler or an error stops it.
@@ -119,7 +120,7 @@ module.exports = function (RED) {
                 if (node.mode === 'array') {
                     msg.payload = collected;
                     msg.total = iterator.total;
-                    nodeSend(msg);
+                    nodeSend(hideClientReferences(msg));
                 }
 
                 node.status(CONNECTED);

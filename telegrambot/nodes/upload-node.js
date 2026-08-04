@@ -4,6 +4,7 @@
 const { FloodWaitError } = require('teleproto/errors');
 
 const { describeUpload } = require('../lib/upload');
+const { hideClientReferences } = require('../lib/hide-client');
 const {
     CONNECTED,
     DISCONNECTED,
@@ -98,7 +99,7 @@ module.exports = function (RED) {
                 msg.payload = sent;
 
                 node.status(CONNECTED);
-                nodeSend(msg);
+                nodeSend(hideClientReferences(msg));
             } catch (error) {
                 failure = error;
                 if (error instanceof FloodWaitError) {

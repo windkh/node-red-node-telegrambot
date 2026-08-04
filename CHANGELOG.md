@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+# [1.7.5] - 2026-08-04
+
+### fixed the session leaking into every message a node sent. teleproto hangs the client on every event it builds (`event._client = client`), and the client owns `session._authKey` - which authenticates the whole Telegram account - next to the api id and hash. Node-RED's debug sidebar printed it: the event wrappers `NewMessageEvent` and `UpdateConnectionState` have no `toJSON`, so the encoder followed the reference all the way to the auth key. Attaching a debug node and copying the output into a bug report published the account
+
+### the reference is now non-enumerable rather than removed, so `message.reply()`, `download()`, `getSender()` and the `client` getter keep working while no serialiser can see it. Applied to the receiver's six event types, the sender's result, the upload node's sent message and both list modes. See [ADR 0025](doc/architecture/adr/0025-keep-the-client-out-of-msg.md)
+
+### if you have ever pasted a debug output of one of these nodes anywhere, treat the session as compromised: end the session in Telegram under Settings, Devices, and log in again
+
 # [1.7.4] - 2026-08-04
 
 ### removed a dead link from the README and from the config node's help. It pointed at a third-party website that would generate a session string for you, and it now 404s. It is not replaced: a session string authenticates the whole Telegram account, so producing one on someone else's site means handing over the phone number, the login code and the account with them. Both routes in the config node - phone code and QR - keep it on your own machine
