@@ -422,7 +422,19 @@ fail after a redeploy with:
 Could not find the input entity for ...
 ```
 
-Address peers by **username** and this never happens. If you only have an id, resolve it once in the
+Two more messages mean a peer problem without saying so. The node adds an explanation to the log for
+both:
+
+| Error                                            | What it means                                                               |
+| ------------------------------------------------ | --------------------------------------------------------------------------- |
+| `Cannot cast undefined to any kind of undefined` | No peer was passed at all — `peer` is `undefined`.                          |
+| `Cannot cast User to any kind of peer`           | The peer is an object that lost its class, e.g. one that went through JSON. |
+
+The first is the one a flow built on a received message hits: `msg.payload.chat` comes from `getChat()`,
+which returns nothing when the session has no access hash for that chat. `msg.payload.message.peerId` is
+on every message and is the fallback to use — the shipped `EchoMessage` example does exactly that.
+
+Address peers by **username** and none of this happens. If you only have an id, resolve it once in the
 same flow with `getEntity` and pass the result on:
 
 ```javascript

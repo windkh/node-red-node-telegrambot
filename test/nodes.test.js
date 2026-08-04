@@ -398,6 +398,62 @@ describe('telegram client nodes', () => {
         assert.match(warnings[0], /entity cache/);
     });
 
+    it('explains a missing peer, which teleproto reports as a cast of undefined', async () => {
+        const flow = [configNode, { id: 'n1', type: 'telegram client sender', bot: 'c1' }];
+        await helper.load(telegramBotNode, flow);
+
+        // Utils.js `getPeer` when `peer` is absent rather than unknown. The message names neither the
+        // argument nor the request, which is what makes a hint worth more here than anywhere else.
+        const failure = new Error('Cannot cast undefined to any kind of undefined.');
+        const client = {
+            sendMessage: async () => {
+                throw failure;
+            },
+        };
+
+        const n1 = helper.getNode('n1');
+        const warnings = [];
+        n1.warn = (message) => warnings.push(message);
+
+        const msg = { payload: { func: 'sendMessage', args: [undefined, { message: 'hi' }] } };
+        const error = await new Promise((resolve) => {
+            n1.processMessage(client, msg, () => {}, resolve);
+        });
+
+        assert.strictEqual(error, failure, 'the original error must reach nodeDone untouched');
+        assert.strictEqual(warnings.length, 1);
+        assert.match(warnings[0], /No peer was passed/);
+        assert.match(warnings[0], /peerId/, 'the hint has to say what to use instead');
+    });
+
+    it('explains a peer object that lost its class on the way in', async () => {
+        const flow = [configNode, { id: 'n1', type: 'telegram client sender', bot: 'c1' }];
+        await helper.load(telegramBotNode, flow);
+
+        // Utils.js `getInputPeer` tests `instanceof`, so an entity that went through JSON fails with the
+        // fields still in place. A different problem from a missing peer, and a different remedy.
+        const failure = new Error('Cannot cast User to any kind of peer.');
+        const client = {
+            sendMessage: async () => {
+                throw failure;
+            },
+        };
+
+        const n1 = helper.getNode('n1');
+        const warnings = [];
+        n1.warn = (message) => warnings.push(message);
+
+        const msg = { payload: { func: 'sendMessage', args: [{ className: 'User' }] } };
+        const error = await new Promise((resolve) => {
+            n1.processMessage(client, msg, () => {}, resolve);
+        });
+
+        assert.strictEqual(error, failure);
+        assert.strictEqual(warnings.length, 1);
+        assert.match(warnings[0], /does not recognise/);
+        assert.ok(!warnings[0].includes('No peer was passed'), 'the missing-peer hint is the wrong one here');
+    });
+
     it('explains an unresolvable username differently, because the username is the problem', async () => {
         const flow = [configNode, { id: 'n1', type: 'telegram client sender', bot: 'c1' }];
         await helper.load(telegramBotNode, flow);
