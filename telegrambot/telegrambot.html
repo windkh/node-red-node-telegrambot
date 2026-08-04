@@ -379,6 +379,48 @@
              </div>
     <div class="form-tips" style="width: auto"><b>Tip:</b> If you don't have an application ID yet, you can create a new one here: <a href="https://my.telegram.org/auth">Telegram</a>.</div>
 
+             <div class="form-row">
+                 <label for="node-config-input-session"><i class="fa fa-link"></i> Session</label>
+                 <input type="password" id="node-config-input-session" placeholder="(Enter the session here)">
+             </div>
+             <div class="form-tips" style="width: auto">
+                 <b>Tip:</b> If you don't have a session string yet, create one below &mdash; either with a phone code or with a QR code. Do not use a website that offers to generate one for you: a session string authenticates your whole account.</div>
+
+             <div class="form-row hidden" id="loginpanel" style="background: var(--red-ui-tertiary-background)">
+                 <hr align="middle"/>
+                 <div class="form-row">
+                     <input id='loginbutton' type='button' value=' Login ' style="width: auto"/></i></input>
+                     <div class="form-tips" id='loginbuttontip' style="width: auto">
+                         Click Login button to request code for login: code will be sent via your phone.</div>
+                 </div>
+
+                 <div class="form-row">
+                     <label></label>
+                     <input id='loginqrbutton' type='button' value=' Login with QR ' style="width: auto"/></i></input>
+                     <div class="form-tips" id='loginqrtip' style="width: auto">
+                         Or scan a QR code with a Telegram app that is already signed in &mdash; no phone code needed.</div>
+                 </div>
+
+                 <div class="form-row">
+                     <label></label>
+                     <div id="qrcode" style="width: 220px; background: #fff; padding: 4px"></div>
+                     <div class="form-tips" style="width: auto">
+                         Cannot scan? <a id="qrcodelink" href="#" target="_blank">Open the login link</a> on a device
+                         where Telegram is installed. The code is replaced every half minute until you scan it.</div>
+                 </div>
+
+                 <div class="form-row">
+                     <label for="node-config-input-phonecode"><i class="fa fa-sign-in"></i> Phone-Code</label>
+                     <input type="text" id="node-config-input-phonecode" placeholder="(Enter phone code here)">
+                 </div>
+
+                 <div class="form-row hidden" id="twofapassword">
+                     <label for="node-config-input-twofapassword"><i class="fa fa-lock"></i> Password</label>
+                     <input type="password" id="node-config-input-twofapassword" placeholder="(Only needed if Two-Step-Verification is on)">
+                 </div>
+                 <hr align="middle"/>
+             </div>
+
              <!-- optional client configuration parameters -->
              <div class="form-row">
                  <label for="node-config-input-devicemodel"><i class="fa fa-caret-right"></i> Device Model</label>
@@ -417,50 +459,6 @@
                  <input type="text" id="node-config-input-floodsleepthreshold" placeholder="(Optional: seconds, default 60)">
                  <div class="form-tips" style="width: auto"><b>Tip:</b> Flood waits up to this many seconds are slept through silently; longer ones are reported as an error. Lower fails fast, higher hides throttling. 0 never sleeps.</div>
              </div>
-         </div>
-
-         <div class="form-row">
-    <div class="form-row">
-    	<label for="node-config-input-session"><i class="fa fa-link"></i> Session</label>
-    	<input type="password" id="node-config-input-session" placeholder="(Enter the session here)">
-    </div>
-    <div class="form-tips" style="width: auto">
-                 <b>Tip:</b> If you don't have a session string yet, create one below &mdash; either with a phone code or with a QR code. Do not use a website that offers to generate one for you: a session string authenticates your whole account.</div>
-     	</div>
-
-         <div class="form-row hidden" id="loginpanel" style="background: var(--red-ui-tertiary-background)">
-             <hr align="middle"/>
-             <div class="form-row">
-                 <input id='loginbutton' type='button' value=' Login ' style="width: auto"/></i></input>
-                 <div class="form-tips" id='loginbuttontip' style="width: auto">
-                     Click Login button to request code for login: code will be sent via your phone.</div>
-             </div>
-
-             <div class="form-row">
-                 <label></label>
-                 <input id='loginqrbutton' type='button' value=' Login with QR ' style="width: auto"/></i></input>
-                 <div class="form-tips" id='loginqrtip' style="width: auto">
-                     Or scan a QR code with a Telegram app that is already signed in &mdash; no phone code needed.</div>
-             </div>
-
-             <div class="form-row">
-                 <label></label>
-                 <div id="qrcode" style="width: 220px; background: #fff; padding: 4px"></div>
-                 <div class="form-tips" style="width: auto">
-                     Cannot scan? <a id="qrcodelink" href="#" target="_blank">Open the login link</a> on a device
-                     where Telegram is installed. The code is replaced every half minute until you scan it.</div>
-             </div>
-
-             <div class="form-row">
-                 <label for="node-config-input-phonecode"><i class="fa fa-sign-in"></i> Phone-Code</label>
-                 <input type="text" id="node-config-input-phonecode" placeholder="(Enter phone code here)">
-             </div>
-
-             <div class="form-row hidden" id="twofapassword">
-                 <label for="node-config-input-twofapassword"><i class="fa fa-lock"></i> Password</label>
-                 <input type="password" id="node-config-input-twofapassword" placeholder="(Only needed if Two-Step-Verification is on)">
-             </div>
-             <hr align="middle"/>
          </div>
 
          <hr align="middle"/>
