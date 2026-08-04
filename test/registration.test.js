@@ -3,6 +3,8 @@
 
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
+const { readFileSync } = require('node:fs');
+const { join } = require('node:path');
 
 const entry = require('../telegrambot/telegrambot.js');
 
@@ -152,5 +154,50 @@ describe('entry point registration', () => {
         // query parameters they reach access logs, browser history and Referer headers.
         assert.deepStrictEqual(RED.getRoutes, [], 'no login route may be a GET');
         assert.strictEqual(RED.adminRoutes.length, 5);
+    });
+});
+
+// The config dialog's order is the only thing about it worth asserting, and it is worth asserting: the
+// optional client parameters were added above the session field, which pushed the one control the dialog
+// exists for below the fold. Order is what a reader of the template would have to notice; a test says it.
+describe('the config dialog puts first things first', () => {
+    const template = (() => {
+        const html = readFileSync(join(__dirname, '..', 'telegrambot', 'telegrambot.html'), 'utf8');
+        const found = html.match(
+            /<script type="text\/x-red" data-template-name="telegram client config">([\s\S]*?)<\/script>/
+        );
+
+        return found[1];
+    })();
+
+    it('runs identity, then session, then login, then the optional parameters', () => {
+        const expected = [
+            'node-config-input-loginmode',
+            'node-config-input-apihash',
+            'node-config-input-session',
+            'loginbutton',
+            'loginqrbutton',
+            'node-config-input-phonecode',
+            'node-config-input-devicemodel',
+            'node-config-input-useproxy',
+        ];
+
+        const positions = expected.map((id) => template.indexOf(id));
+        positions.forEach((at, index) => assert.ok(at > -1, expected[index] + ' is not in the dialog'));
+
+        expected.forEach((id, index) => {
+            if (index > 0) {
+                assert.ok(positions[index] > positions[index - 1], id + ' must come after ' + expected[index - 1]);
+            }
+        });
+    });
+
+    it('keeps the divs balanced', () => {
+        // The reorder moved two blocks between nesting levels, and an unbalanced template does not fail
+        // to load — it silently swallows whatever follows it.
+        const opened = template.match(/<div\b/g).length;
+        const closed = template.match(/<\/div>/g).length;
+
+        assert.strictEqual(opened, closed);
     });
 });

@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+# [1.7.6] - 2026-08-04
+
+### changed the config dialog so the session field and the login buttons come directly above "Device Model". The optional client parameters added since 0.1.x had grown to seven rows and pushed the one control the dialog exists for below the fold
+
 # [1.7.5] - 2026-08-04
 
 ### fixed the session leaking into every message a node sent. teleproto hangs the client on every event it builds (`event._client = client`), and the client owns `session._authKey` - which authenticates the whole Telegram account - next to the api id and hash. Node-RED's debug sidebar printed it: the event wrappers `NewMessageEvent` and `UpdateConnectionState` have no `toJSON`, so the encoder followed the reference all the way to the auth key. Attaching a debug node and copying the output into a bug report published the account
