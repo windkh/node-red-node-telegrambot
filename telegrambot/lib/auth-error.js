@@ -20,6 +20,27 @@
 // three appears anywhere in the formatted error. So nothing here needs redacting — but a summary is
 // still what gets logged, because a stack trace from inside teleproto tells the reader nothing and
 // because a summary is something a test can hold to.
+// True when Telegram answered with an error, as opposed to something breaking on our side.
+//
+// It matters for logging. An RPCError's stack is entirely teleproto's own frames — MtpDispatcher,
+// MTProtoSender, the read loop — so printing it says nothing a reader can act on, while the one-line
+// description says all of it. A TypeError from our own code is the opposite: there the stack *is* the
+// diagnosis.
+//
+// Both parts of the test are needed. A bare `code !== undefined` looked sufficient and is not: Node's own
+// system errors carry one too, so a filesystem failure from the session store — `ENOENT` while creating its
+// directory — would have been mistaken for a Telegram answer and stripped of the stack that explains it.
+// An RPCError's code is a **number** and it always carries an `errorMessage`; `ENOENT` is a string and
+// carries neither.
+function isTelegramError(error) {
+    return (
+        error !== null &&
+        typeof error === 'object' &&
+        typeof error.code === 'number' &&
+        typeof error.errorMessage === 'string'
+    );
+}
+
 function describeAuthError(error) {
     let description;
 
@@ -78,8 +99,22 @@ function shortFailureReason(error) {
     return reason.length > STATUS_LIMIT ? reason.slice(0, STATUS_LIMIT - 1) + '…' : reason;
 }
 
+// What to hand a log for this error.
+//
+// One line when Telegram answered — its stack is teleproto's own frames and reads like a crash for what is
+// an ordinary, actionable condition. The error itself when something unexpected broke, because then the
+// stack is the diagnosis and throwing it away would be the mistake.
+//
+// A named function rather than a ternary at the call site, so the rule can be tested: reaching the RPC
+// branch through createTelegramClient needs a real Telegram answer, and the suite never talks to Telegram.
+function describeForLog(error) {
+    return isTelegramError(error) ? describeAuthError(error) : error;
+}
+
 module.exports = {
+    isTelegramError,
     describeAuthError,
+    describeForLog,
     shortFailureReason,
     REMEDY,
     STATUS_LIMIT,
