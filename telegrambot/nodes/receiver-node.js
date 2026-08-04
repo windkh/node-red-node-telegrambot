@@ -8,6 +8,7 @@ const { Album } = require('teleproto/events/Album');
 const { CallbackQuery } = require('teleproto/events/CallbackQuery');
 
 const { buildEventFilters } = require('../lib/event-filters');
+const { hideClientReferences } = require('../lib/hide-client');
 const {
     CONNECTED,
     DISCONNECTED,
@@ -66,7 +67,7 @@ module.exports = function (RED) {
                 type: 'Raw',
                 payload: event,
             };
-            node.send(msg);
+            node.send(hideClientReferences(msg));
         };
 
         this.newMessageEventHandler = async (event) => {
@@ -81,7 +82,7 @@ module.exports = function (RED) {
                     event: event,
                 },
             };
-            node.send(msg);
+            node.send(hideClientReferences(msg));
         };
 
         this.deletedMessageEventHandler = async (event) => {
@@ -93,7 +94,7 @@ module.exports = function (RED) {
                     event: event,
                 },
             };
-            node.send(msg);
+            node.send(hideClientReferences(msg));
         };
 
         this.editedMessageEventHandler = async (event) => {
@@ -107,7 +108,7 @@ module.exports = function (RED) {
                     event: event,
                 },
             };
-            node.send(msg);
+            node.send(hideClientReferences(msg));
         };
 
         this.albumEventHandler = async (event) => {
@@ -119,7 +120,7 @@ module.exports = function (RED) {
                     event: event,
                 },
             };
-            node.send(msg);
+            node.send(hideClientReferences(msg));
         };
 
         this.callbackQueryEventHandler = async (event) => {
@@ -130,7 +131,7 @@ module.exports = function (RED) {
                     event: event,
                 },
             };
-            node.send(msg);
+            node.send(hideClientReferences(msg));
         };
 
         this.stop = async () => {

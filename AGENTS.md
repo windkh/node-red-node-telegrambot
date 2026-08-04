@@ -117,6 +117,14 @@ which is exactly what keeps the suite offline).
 The runtime path only ever restores a stored session. If a change makes deploy-time code prompt for
 anything, that change is wrong.
 
+"Never put it in a `msg`" means **nothing that can reach it**, not just the string itself. teleproto hangs
+the client on every event it builds (`event._client = client`), and the client owns `session._authKey` — so
+passing an event straight through put the session in every message, and Node-RED's debug sidebar printed
+it. Every node send therefore goes through `hideClientReferences` from `lib/hide-client.js`, which makes
+those references non-enumerable; see [ADR 0025](doc/architecture/adr/0025-keep-the-client-out-of-msg.md).
+If you add a node, or a new send path in an existing one, it needs the same treatment — and when you put a
+library object in a `msg`, ask what the library hung on it.
+
 ### Proxy support
 
 The proxy is built once in the config node from the `useproxy` fields and passed straight into the

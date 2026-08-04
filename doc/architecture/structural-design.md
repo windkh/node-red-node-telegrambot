@@ -28,6 +28,7 @@ telegrambot/
     media.js                media descriptor -> filename, mime type, download size
     upload.js               Buffer or array -> CustomFile, named, or a positioned error
     reply-markup.js         JSON button description -> teleproto Button objects
+    hide-client.js          keeps the client, and so the session, out of every sent msg
   telegrambot.html          editor definitions and help for all six nodes
   icons/
 ```

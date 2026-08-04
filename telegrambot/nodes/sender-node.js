@@ -5,6 +5,7 @@ const { Api } = require('teleproto');
 const { FloodWaitError } = require('teleproto/errors');
 
 const { convertButtonsInArgs } = require('../lib/reply-markup');
+const { hideClientReferences } = require('../lib/hide-client');
 const {
     CONNECTED,
     DISCONNECTED,
@@ -160,7 +161,7 @@ module.exports = function (RED) {
                 }
 
                 msg.payload = result;
-                nodeSend(msg);
+                nodeSend(hideClientReferences(msg));
             } catch (error) {
                 failure = error;
 

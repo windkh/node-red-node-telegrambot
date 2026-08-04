@@ -28,3 +28,4 @@ One file per decision: NNNN-title.md (Context / Decision / Consequences).
 | [0022](0022-never-log-in-at-deploy-time.md)        | The runtime connect must not be able to start a login             |
 | [0023](0023-put-the-reason-in-the-status.md)       | Put the reason for a failed connect in the node status            |
 | [0024](0024-log-an-expired-session-as-a-line.md)   | Log an expired session as a line, not a stack                     |
+| [0025](0025-keep-the-client-out-of-msg.md)         | Keep the TelegramClient out of the messages a flow sees           |
