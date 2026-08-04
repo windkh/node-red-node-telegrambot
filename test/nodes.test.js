@@ -398,6 +398,35 @@ describe('telegram client nodes', () => {
         assert.match(warnings[0], /entity cache/);
     });
 
+    it('explains an unresolvable username differently, because the username is the problem', async () => {
+        const flow = [configNode, { id: 'n1', type: 'telegram client sender', bot: 'c1' }];
+        await helper.load(telegramBotNode, flow);
+
+        // client/users.js `_getEntityFromString` — the other wording, and the one a leftover example
+        // placeholder hits. Keep it in step with PEER_HINTS in sender-node.js.
+        const failure = new Error('Cannot find any entity corresponding to "to username"');
+        const client = {
+            sendMessage: async () => {
+                throw failure;
+            },
+        };
+
+        const n1 = helper.getNode('n1');
+        const warnings = [];
+        n1.warn = (message) => warnings.push(message);
+
+        const msg = { payload: { func: 'sendMessage', args: ['to username', { message: 'hi' }] } };
+        const error = await new Promise((resolve) => {
+            n1.processMessage(client, msg, () => {}, resolve);
+        });
+
+        assert.strictEqual(error, failure, 'the original error must reach nodeDone untouched');
+        assert.strictEqual(warnings.length, 1, 'the hint is an addition, not a replacement');
+        assert.match(warnings[0], /does not know that username/);
+        // The other hint says a username always works, which is the wrong advice here.
+        assert.ok(!warnings[0].includes('always works'), 'that advice belongs to the numeric-id case');
+    });
+
     it('does not explain unrelated errors', async () => {
         const flow = [configNode, { id: 'n1', type: 'telegram client sender', bot: 'c1' }];
         await helper.load(telegramBotNode, flow);
@@ -580,7 +609,7 @@ describe('sender node input boundary', () => {
         assert.strictEqual(await error, 'No telegram client config node configured.');
     });
 
-    it('reports a missing client and shows disconnected', async () => {
+    it('reports a missing client and shows why, not just that', async () => {
         const flow = [configNode, { id: 'n1', type: 'telegram client sender', bot: 'c1' }];
         await helper.load(telegramBotNode, flow);
 
@@ -592,7 +621,9 @@ describe('sender node input boundary', () => {
         n1.receive({ payload: { func: 'sendMessage', args: [] } });
 
         assert.strictEqual(await error, 'No telegram client: check the config node and login first.');
-        assert.deepStrictEqual(statuses.at(-1), { fill: 'red', shape: 'ring', text: 'disconnected' });
+        // No credentials in this flow, so the config node never got as far as a session. A filled dot
+        // rather than a ring: this one does not heal on its own.
+        assert.deepStrictEqual(statuses.at(-1), { fill: 'red', shape: 'dot', text: 'no session: login first' });
     });
 
     it('does not drop a falsy payload', async () => {

@@ -113,6 +113,24 @@ Not every filter applies to every event type, because Telegram's builders differ
 
 Leaving every field empty reproduces the behaviour of earlier versions: no filtering.
 
+#### Node status
+
+Every node that talks to Telegram shows what the connection is doing:
+
+| Status                                    | Meaning                                        |
+| ----------------------------------------- | ---------------------------------------------- |
+| green ring `connected`                    | the client is up                               |
+| red ring `disconnected`                   | the connection dropped; it recovers on its own |
+| red dot `broken: login again or redeploy` | the session is unusable or a reconnect gave up |
+| red dot with a **reason**                 | the connect never succeeded — see below        |
+| yellow ring `flood wait Ns`               | Telegram is throttling; it clears itself       |
+| blue dot                                  | working: uploading, downloading, reading       |
+
+When a connect fails, the red dot names the cause rather than just saying `disconnected`:
+`no session: login first` if the config node was never logged in, `session invalid: login again` if the
+session died, `api id or hash is wrong`, and otherwise Telegram's own error code — which is worth searching
+for or quoting in an issue. It turns green as soon as a connection works, and the reason is dropped then.
+
 ### Download Node
 
 The _Telegram client download_ node fetches the media on a received message — a photo, video, voice note

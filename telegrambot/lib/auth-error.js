@@ -37,6 +37,50 @@ function describeAuthError(error) {
     return description;
 }
 
+// Telegram's error codes, and what they mean for someone reading a node status. Only the ones where the
+// code alone would leave the user guessing: `AUTH_KEY_UNREGISTERED` is accurate but says nothing about what
+// to do, and doing something is the whole reason a status is red.
+const REMEDY = {
+    AUTH_KEY_UNREGISTERED: 'session invalid: login again',
+    AUTH_KEY_INVALID: 'session invalid: login again',
+    AUTH_KEY_DUPLICATED: 'session used elsewhere: login again',
+    SESSION_REVOKED: 'session revoked: login again',
+    SESSION_EXPIRED: 'session expired: login again',
+    USER_DEACTIVATED: 'account deactivated',
+    USER_DEACTIVATED_BAN: 'account banned',
+    API_ID_INVALID: 'api id or hash is wrong',
+    API_ID_PUBLISHED_FLOOD: 'api id is flood-limited',
+};
+
+// How long a status may be before the canvas turns it into an ellipsis. Long enough for the remedies above.
+const STATUS_LIMIT = 40;
+
+// One line for a node status, as opposed to describeAuthError's one line for a log.
+//
+// A status has room for a few words, so this prefers Telegram's own error code over the sentence around it
+// — and a remedy over the code where there is one to give. Anything unrecognised is passed through
+// truncated rather than replaced by something vague: a code the user can search for beats "error".
+function shortFailureReason(error) {
+    let reason;
+
+    if (error !== undefined && error !== null && REMEDY[error.errorMessage] !== undefined) {
+        reason = REMEDY[error.errorMessage];
+    } else if (error !== undefined && error !== null && typeof error.errorMessage === 'string') {
+        reason = error.errorMessage;
+    } else if (typeof error === 'string') {
+        reason = error;
+    } else if (error !== undefined && error !== null && typeof error.message === 'string') {
+        reason = error.message;
+    } else {
+        reason = 'not connected';
+    }
+
+    return reason.length > STATUS_LIMIT ? reason.slice(0, STATUS_LIMIT - 1) + '…' : reason;
+}
+
 module.exports = {
     describeAuthError,
+    shortFailureReason,
+    REMEDY,
+    STATUS_LIMIT,
 };

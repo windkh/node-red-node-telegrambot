@@ -30,6 +30,11 @@ module.exports = function (RED) {
         // shadows this one — theirs is the *calling* receiver or sender, used for its warn channel.
         const node = this;
 
+        // The same object under a name nothing shadows. Anything that has to reach *this* node from inside
+        // those two functions goes through it: writing to `node` in there sets a field on whichever
+        // receiver or sender happened to ask, which is a bug that reads like working code.
+        const configNode = this;
+
         this.config = n;
         this.client = null;
         this.logLevel = 'warn'; // 'none', 'error', 'warn','info', 'debug'
@@ -108,6 +113,10 @@ module.exports = function (RED) {
             this.twoFaPassword = this.credentials.twofapassword || '';
         }
 
+        // Why the last connect produced no client, for the nodes to show. Undefined once one succeeds, so
+        // a stale reason cannot outlive the problem it described.
+        this.lastFailure = undefined;
+
         this.createTelegramClient = async function (
             node,
             apiId,
@@ -135,7 +144,13 @@ module.exports = function (RED) {
                 sessionStore: sessionStore,
             };
 
-            return await createTelegramClient(options, (message) => node.warn(message));
+            return await createTelegramClient(
+                options,
+                (message) => node.warn(message),
+                (reason) => {
+                    configNode.lastFailure = reason;
+                }
+            );
         };
 
         // Receiver and sender nodes register here so they can be told when the connection changes.
@@ -216,6 +231,10 @@ module.exports = function (RED) {
                 );
 
                 if (client) {
+                    // Cleared on success, so a node that connects on its second attempt does not keep
+                    // showing why the first one failed.
+                    this.lastFailure = undefined;
+
                     // Registered here rather than by the nodes, so the state is observed whether or not
                     // anyone enabled "send raw events". A user's own raw handler still receives these
                     // updates as before — teleproto calls every registered handler.

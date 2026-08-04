@@ -32,6 +32,12 @@ Receiver and sender both call `configNode.getTelegramClient(node)`, which create
 call and caches it on the config node. `lib/telegram-client.js` restores the stored session string —
 no prompting, no interaction.
 
+The runtime connect **cannot start a login**, and that is enforced rather than assumed: user mode hands
+`client.start()` empty auth params, so a session that no longer works surfaces the real authorization error
+instead of entering teleproto's interactive flow — which would send the account a login code before
+discovering there is nobody to type it. Bot mode keeps its token, because re-authorising from one is a
+single silent request. See [ADR 0022](adr/0022-never-log-in-at-deploy-time.md).
+
 Connecting is best effort. A missing session warns `No session: login first.`; any other failure is
 warned and the caller gets `undefined`. Nodes then report `disconnected` and stay loaded, so a Telegram
 outage or a stale session does not break the flow.
@@ -46,6 +52,11 @@ truth after `start()` has run:
 | `connected`    | connect or reconnect succeeded                     | `connected`                       |
 | `disconnected` | connect failed, ping timed out, or disconnected    | `disconnected` — recovers itself  |
 | `broken`       | bad authorization key, or a reconnect that gave up | `broken: login again or redeploy` |
+
+A connect that never produced a client is separate from all three: the config node records why, and every
+node shows that reason on a red **dot** — `no session: login first`, `session invalid: login again`, or
+Telegram's own code for anything unrecognised. The reason is dropped the moment a connect succeeds. See
+[ADR 0023](adr/0023-put-the-reason-in-the-status.md).
 
 `broken` is the one that cannot heal. teleproto emits it from two places, and both mark that sender
 dead: `_handleBadAuthKey`, where rebuilding the client from the same session would fail identically,
