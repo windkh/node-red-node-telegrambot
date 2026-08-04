@@ -580,7 +580,7 @@ describe('sender node input boundary', () => {
         assert.strictEqual(await error, 'No telegram client config node configured.');
     });
 
-    it('reports a missing client and shows disconnected', async () => {
+    it('reports a missing client and shows why, not just that', async () => {
         const flow = [configNode, { id: 'n1', type: 'telegram client sender', bot: 'c1' }];
         await helper.load(telegramBotNode, flow);
 
@@ -592,7 +592,9 @@ describe('sender node input boundary', () => {
         n1.receive({ payload: { func: 'sendMessage', args: [] } });
 
         assert.strictEqual(await error, 'No telegram client: check the config node and login first.');
-        assert.deepStrictEqual(statuses.at(-1), { fill: 'red', shape: 'ring', text: 'disconnected' });
+        // No credentials in this flow, so the config node never got as far as a session. A filled dot
+        // rather than a ring: this one does not heal on its own.
+        assert.deepStrictEqual(statuses.at(-1), { fill: 'red', shape: 'dot', text: 'no session: login first' });
     });
 
     it('does not drop a falsy payload', async () => {

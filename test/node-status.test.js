@@ -7,7 +7,7 @@ const helper = require('node-red-node-test-helper');
 const { UpdateConnectionState } = require('teleproto/network');
 
 const telegramBotNode = require('../telegrambot/telegrambot.js');
-const { CONNECTED, DISCONNECTED, BROKEN } = require('../telegrambot/lib/node-status');
+const { CONNECTED, DISCONNECTED, BROKEN, failureStatus } = require('../telegrambot/lib/node-status');
 
 // Every node that shows a connection status, not just the two that happened to be tested. This file
 // exists because they were not: the `broken` text was corrected in the receiver and the sender and left
@@ -126,5 +126,76 @@ describe('the shared status constants', () => {
         assert.deepStrictEqual(CONNECTED, EXPECTED.connected);
         assert.deepStrictEqual(DISCONNECTED, EXPECTED.disconnected);
         assert.deepStrictEqual(BROKEN, EXPECTED.broken);
+    });
+});
+
+describe('failureStatus', () => {
+    it('is red, and a dot rather than a ring', () => {
+        // A ring means "this heals itself", which is what `disconnected` from the connection-state stream
+        // is. A failed connect needs somebody to do something, so it gets the dot.
+        const status = failureStatus('session invalid: login again');
+
+        assert.strictEqual(status.fill, 'red');
+        assert.strictEqual(status.shape, 'dot');
+        assert.notStrictEqual(status.shape, DISCONNECTED.shape, 'it must not look like a transient drop');
+    });
+
+    it('carries the reason it was given', () => {
+        assert.strictEqual(failureStatus('api id or hash is wrong').text, 'api id or hash is wrong');
+    });
+
+    it('says something when there is no reason to give', () => {
+        assert.strictEqual(failureStatus(undefined).text, 'not connected');
+    });
+});
+
+// A red status that names the cause is only useful if *every* node shows it. Testing one of them let a
+// reversal of the other four pass unnoticed — the same gap that shipped two different `broken` texts.
+describe('the reason for a failed connect', () => {
+    before(async () => {
+        await new Promise((resolve) => helper.startServer(resolve));
+    });
+
+    afterEach(async () => {
+        await helper.unload();
+    });
+
+    after(async () => {
+        await new Promise((resolve) => helper.stopServer(resolve));
+    });
+
+    for (const type of STATUS_NODES) {
+        it(`is what ${type} shows when there is no client`, async () => {
+            await helper.load(telegramBotNode, [configNode, { id: 'n1', type: type, bot: 'c1' }]);
+
+            const n1 = helper.getNode('n1');
+            const statuses = [];
+            n1.status = (status) => statuses.push(status);
+
+            // Driven explicitly rather than relying on the start() that ran during load: that one is async
+            // and its status may already have been written before the recorder was attached.
+            await n1.start();
+
+            // No credentials in this flow, so the config node never got as far as a session.
+            assert.deepStrictEqual(statuses.at(-1), {
+                fill: 'red',
+                shape: 'dot',
+                text: 'no session: login first',
+            });
+        });
+    }
+
+    it('is forgotten once a connect succeeds', async () => {
+        await helper.load(telegramBotNode, [configNode]);
+        const c1 = helper.getNode('c1');
+
+        // A reason left over from an earlier attempt would keep being shown by every node that asks, long
+        // after the problem was fixed.
+        c1.lastFailure = 'session invalid: login again';
+        c1.createTelegramClient = async () => ({ addEventHandler() {}, destroy: async () => {} });
+
+        await c1.getTelegramClient(c1);
+
+        assert.strictEqual(c1.lastFailure, undefined, 'a stale reason must not outlive the failure');
     });
 });

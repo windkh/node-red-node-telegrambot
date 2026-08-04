@@ -8,7 +8,7 @@ const util = require('node:util');
 const { Api } = require('teleproto');
 const { RPCMessageToError } = require('teleproto/errors');
 
-const { describeAuthError } = require('../telegrambot/lib/auth-error');
+const { describeAuthError, shortFailureReason, REMEDY, STATUS_LIMIT } = require('../telegrambot/lib/auth-error');
 
 // These are not real values, and they are not credential-shaped either — they only have to be findable.
 // `AGENTS.md` forbids a real hash, token, session or phone number in a fixture.
@@ -147,12 +147,14 @@ describe('the logging channel', () => {
         assert.deepStrictEqual(offenders, [], 'report through node.warn or RED.log instead');
     });
 
-    it('is warn in both onError callbacks', () => {
-        for (const file of ['lib/login.js', 'lib/telegram-client.js']) {
+    it('is warn in the interactive logins, which are the only ones that can fail this way', () => {
+        // The editor's login flows legitimately prompt, so they have an onError, and it has to reach the
+        // Node-RED log rather than stdout.
+        for (const file of ['lib/login.js', 'lib/login-qr.js']) {
             const body = onErrorBody(readSource(file));
 
             assert.notStrictEqual(body, null, `${file} no longer has a recognisable onError callback`);
-            assert.match(body, /\bwarn\(/, `${file} must report the failure through warn`);
+            assert.match(body, /\b(warn|error)\(/, `${file} must report the failure through a callback`);
         }
     });
 
@@ -162,5 +164,101 @@ describe('the logging channel', () => {
         const source = readSource('nodes/login-endpoints.js');
 
         assert.match(source, /RED\.log\.warn\(/, 'the login route must pass the runtime logger to login()');
+    });
+});
+
+// The runtime connect must never start a login. teleproto's `start()` probes the session and returns when
+// it is valid; when it is not, the auth params decide what happens next — and a `phoneNumber` sends it into
+// `signInUser`, which calls `sendCode` *before* asking for the code. So a deploy with a stale session used
+// to make Telegram text the user a login code and then fail with "Code is empty" — every redeploy, which is
+// how an account earns a FLOOD_WAIT on the code endpoint.
+//
+// With neither phoneNumber nor botAuthToken, `start()` throws the real reason instead. These assertions are
+// source-level for the same reason as the ones above: reaching this code needs a real account.
+// See doc/architecture/adr/0022-never-log-in-at-deploy-time.md.
+describe('the runtime connect', () => {
+    const runtime = () => readSource('lib/telegram-client.js');
+
+    it('never asks teleproto for an interactive login', () => {
+        const source = runtime();
+
+        // A phoneNumber in the auth params is the switch that turns a failed session probe into a code
+        // being sent. It belongs to lib/login.js, which the editor drives, and nowhere near here.
+        assert.ok(!/phoneNumber\s*:/.test(source), 'the runtime auth params must not carry a phoneNumber');
+        assert.strictEqual(onErrorBody(source), null, 'an onError here means something interactive can run');
+    });
+
+    it('still authorises a bot from its token, which prompts nobody', () => {
+        // The one non-interactive re-authorisation worth keeping: a single request, and the account is sent
+        // nothing at all.
+        assert.match(runtime(), /botAuthToken\s*:/, 'bot mode must keep its token');
+    });
+
+    it('hands start() nothing at all in user mode', () => {
+        // The literal shape that makes teleproto surface the real authorization error instead of starting
+        // a login.
+        assert.match(runtime(), /authParams = \{\};/, 'user mode must pass empty auth params');
+    });
+});
+
+// What a node shows on its status when there is no client. describeAuthError writes for a log, which has no
+// width limit; this writes for a canvas, which has very little.
+describe('shortFailureReason', () => {
+    it('turns the codes that need an action into that action', () => {
+        // `AUTH_KEY_UNREGISTERED` is accurate and tells the user nothing about what to do next, which is
+        // the entire purpose of a red status.
+        const error = RPCMessageToError({ errorMessage: 'AUTH_KEY_UNREGISTERED', errorCode: 401 }, signInRequest());
+
+        assert.strictEqual(shortFailureReason(error), 'session invalid: login again');
+    });
+
+    it('passes an unrecognised code through, because a code can be searched for', () => {
+        const error = RPCMessageToError({ errorMessage: 'SOMETHING_NEW', errorCode: 400 }, signInRequest());
+
+        // Better than "error": this is the string the user can paste into an issue.
+        assert.strictEqual(shortFailureReason(error), 'SOMETHING_NEW');
+    });
+
+    it('never carries a request field into the status either', () => {
+        for (const failure of TELEGRAM_FAILURES) {
+            const reason = shortFailureReason(
+                RPCMessageToError({ errorMessage: failure, errorCode: 400 }, signInRequest())
+            );
+
+            for (const canary of [CANARY_PHONE, CANARY_HASH, CANARY_CODE]) {
+                assert.ok(!reason.includes(canary), `${failure} leaked ${canary}`);
+            }
+        }
+    });
+
+    it('fits on a status, whatever the message', () => {
+        const long = new Error('x'.repeat(500));
+
+        const reason = shortFailureReason(long);
+        assert.ok(reason.length <= STATUS_LIMIT, `${reason.length} characters is too many for a status`);
+        assert.ok(reason.endsWith('…'), 'a truncated reason should say it was truncated');
+    });
+
+    it('takes a plain string as it is, which is how the no-session case arrives', () => {
+        assert.strictEqual(shortFailureReason('no session: login first'), 'no session: login first');
+    });
+
+    it('falls back to the message when there is no code', () => {
+        assert.strictEqual(shortFailureReason(new Error('socket hang up')), 'socket hang up');
+    });
+
+    it('says something rather than nothing when handed nothing', () => {
+        for (const nothing of [undefined, null, {}]) {
+            assert.strictEqual(shortFailureReason(nothing), 'not connected', JSON.stringify(nothing));
+        }
+    });
+
+    it('offers a remedy for every unauthorised code it claims to know', () => {
+        // The table is the contract: each entry has to name an action, or it may as well be the raw code.
+        for (const [code, remedy] of Object.entries(REMEDY)) {
+            assert.ok(remedy.length > 0, `${code} has no remedy`);
+            assert.ok(remedy.length <= STATUS_LIMIT, `${code}'s remedy does not fit a status`);
+            assert.notStrictEqual(remedy, code, `${code} maps to itself, so the entry adds nothing`);
+        }
     });
 });

@@ -19,7 +19,7 @@ telegrambot/
     client-params.js        TelegramClient constructor options, shared by both of the above
     auth-prompt.js          deferred phone-code / password promises
     login-credentials.js    resolves the editor's __PWRD__ placeholder against storage
-    auth-error.js           authentication failure -> one safe log line
+    auth-error.js           authentication failure -> one safe log line, or a short status
     node-status.js          the node statuses and the connection-state subscription
     session-store.js        the opt-in on-disk session, so peer ids survive a restart
     update-state.js         the opt-in update position, so missed messages can be fetched

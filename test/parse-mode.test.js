@@ -16,7 +16,7 @@ const assert = require('node:assert');
 // changes that, this test fails, which is the point.
 const { TelegramClient } = require('teleproto');
 const sanitizeParseMode = (mode) => TelegramClient.prototype._sanitizeParseMode(mode);
-const { applyParseMode } = require('../telegrambot/lib/telegram-client');
+const { applyParseMode, createTelegramClient } = require('../telegrambot/lib/telegram-client');
 
 const OFFERED_BY_THE_EDITOR = ['md', 'md2', 'html'];
 const ALSO_ACCEPTED = ['markdown', 'markdownv2'];
@@ -89,5 +89,59 @@ describe('parse mode values', () => {
         // preference.
         assert.throws(() => sanitizeParseMode('markdown-v2'));
         assert.throws(() => sanitizeParseMode('MD'));
+    });
+});
+
+// createTelegramClient builds a real TelegramClient and cannot connect offline — but it can be made to fail
+// before it tries, which is the path that decides what a node's status says. A session string that is not
+// one throws inside StringSession's constructor, well before any network call.
+describe('a connect that fails', () => {
+    async function run(options) {
+        const warnings = [];
+        const failures = [];
+
+        const client = await createTelegramClient(
+            options,
+            (message) => warnings.push(message),
+            (reason) => failures.push(reason)
+        );
+
+        return { client: client, warnings: warnings, failures: failures };
+    }
+
+    it('reports no session separately from a broken one', async () => {
+        const { client, failures } = await run({ apiId: '12345', apiHash: 'hash', session: '' });
+
+        assert.strictEqual(client, undefined);
+        // The two are different problems and a status that conflated them would send the user the wrong way.
+        assert.deepStrictEqual(failures, ['no session: login first']);
+    });
+
+    it('reports a short reason for a session it cannot even parse', async () => {
+        const { client, warnings, failures } = await run({
+            apiId: '12345',
+            apiHash: 'hash',
+            session: 'not-a-session-string',
+        });
+
+        assert.strictEqual(client, undefined);
+        assert.strictEqual(failures.length, 1, 'the node needs exactly one reason to show');
+        assert.ok(failures[0].length > 0);
+        // Logged in full as well: the status has a width limit, the log does not, and a Catch node may want
+        // the whole error.
+        assert.strictEqual(warnings.length, 1);
+    });
+
+    it('says nothing on the failure channel about a merely odd parse mode', async () => {
+        // `warn` is for notes that do not stop the connect; `fail` is only for there being no client.
+        const { failures, warnings } = await run({
+            apiId: '12345',
+            apiHash: 'hash',
+            session: 'not-a-session-string',
+            parseMode: 'markdown-v2',
+        });
+
+        assert.strictEqual(failures.length, 1, 'the parse mode must not add a second reason');
+        assert.ok(warnings.length >= 1);
     });
 });

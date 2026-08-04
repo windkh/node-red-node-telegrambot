@@ -8,6 +8,7 @@ const { convertButtonsInArgs } = require('../lib/reply-markup');
 const {
     CONNECTED,
     DISCONNECTED,
+    failureStatus,
     floodWaitStatus,
     attachConnectionStatus,
     detachConnectionStatus,
@@ -84,7 +85,9 @@ module.exports = function (RED) {
                 if (client) {
                     node.setConnectionStatus(CONNECTED);
                 } else {
-                    node.setConnectionStatus(DISCONNECTED);
+                    // Through setConnectionStatus, so a later flood wait still reverts to this rather than
+                    // to a stale `connected`.
+                    node.setConnectionStatus(failureStatus(node.config.lastFailure));
                 }
             } else {
                 // no config node?
@@ -183,7 +186,7 @@ module.exports = function (RED) {
                     if (client) {
                         node.processMessage(client, msg, nodeSend, nodeDone);
                     } else {
-                        node.setConnectionStatus(DISCONNECTED);
+                        node.setConnectionStatus(failureStatus(node.config.lastFailure));
                         nodeDone('No telegram client: check the config node and login first.');
                     }
                 } else {

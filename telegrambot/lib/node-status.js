@@ -24,6 +24,16 @@ const STATUS_BY_STATE = {
     broken: BROKEN,
 };
 
+// A connect that failed, with the reason in the text — a filled dot rather than a ring because it needs
+// somebody to do something. `disconnected` keeps the ring: that one comes from the connection-state stream
+// and heals itself.
+//
+// The reason is the point. Before this, every failure showed the same word regardless of cause, and the
+// only way to find out was the log. See doc/architecture/adr/0023-put-the-reason-in-the-status.md.
+function failureStatus(reason) {
+    return { fill: 'red', shape: 'dot', text: reason === undefined ? 'not connected' : reason };
+}
+
 // Yellow, because unlike the red states this is Telegram throttling a working connection.
 function floodWaitStatus(seconds) {
     return { fill: 'yellow', shape: 'ring', text: 'flood wait ' + seconds + 's' };
@@ -69,6 +79,7 @@ module.exports = {
     DISCONNECTED,
     BROKEN,
     STATUS_BY_STATE,
+    failureStatus,
     floodWaitStatus,
     busyStatus,
     attachConnectionStatus,

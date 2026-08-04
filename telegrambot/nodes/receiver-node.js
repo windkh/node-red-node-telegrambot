@@ -8,7 +8,13 @@ const { Album } = require('teleproto/events/Album');
 const { CallbackQuery } = require('teleproto/events/CallbackQuery');
 
 const { buildEventFilters } = require('../lib/event-filters');
-const { CONNECTED, DISCONNECTED, attachConnectionStatus, detachConnectionStatus } = require('../lib/node-status');
+const {
+    CONNECTED,
+    DISCONNECTED,
+    failureStatus,
+    attachConnectionStatus,
+    detachConnectionStatus,
+} = require('../lib/node-status');
 
 // Specific to this node, so it stays here rather than in lib/node-status: the others have no filters.
 const INVALID_FILTER = { fill: 'red', shape: 'ring', text: 'invalid filter' };
@@ -222,7 +228,9 @@ module.exports = function (RED) {
 
                     node.status(CONNECTED);
                 } else {
-                    node.status(DISCONNECTED);
+                    // The reason, not just "disconnected": the config node recorded why there is no
+                    // client, and a red status that names the cause saves a trip to the log.
+                    node.status(failureStatus(node.config.lastFailure));
                 }
             } else {
                 // no config node?

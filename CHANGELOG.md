@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+# [1.7.0] - 2026-08-03
+
+### changed a failed connect to show **why** on the node status instead of a generic `disconnected`: `no session: login first`, `session invalid: login again`, `api id or hash is wrong`, or Telegram's own error code for anything else. A red filled dot, because unlike a dropped connection this one needs you to do something. It turns green as soon as a connection works
+
+# [1.6.1] - 2026-08-03
+
+### fixed a deploy being able to trigger a Telegram login code. When the stored session was no longer valid, the runtime connect passed a phone number to the client, which sent the account a login code and only then failed with `Code is empty` and `AUTH_USER_CANCEL` - and it did that again on every redeploy, which is how an account earns a `FLOOD_WAIT` on the code endpoint. A stale session now reports the real reason instead, and the deploy path cannot start a login at all
+
+### note bot mode is unchanged: re-authorising from a bot token is a single silent request and stays. Only the interactive user login was ever the problem, and it belongs to the editor
+
 # [1.6.0] - 2026-08-03
 
 ### fixed the download node's **Max size** limit understating a photo, often badly. Only one of Telegram's five photo-size variants carries a plain size, and the largest entry of a real photo is usually one of the others - measured on a realistic photo, the node reported 90 KB for a 4.5 MB download, so a 1 MB limit let it through. Photos that only offer progressive sizes reported nothing at all and skipped the check entirely

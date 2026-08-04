@@ -25,3 +25,5 @@ One file per decision: NNNN-title.md (Context / Decision / Consequences).
 | [0019](0019-catch-up-on-missed-updates.md)         | Catch up on missed updates by persisting the position, opt-in     |
 | [0020](0020-qr-code-login.md)                      | QR-code login, rendered on the server                             |
 | [0021](0021-lean-on-the-library.md)                | Three things the teleproto audit turned up                        |
+| [0022](0022-never-log-in-at-deploy-time.md)        | The runtime connect must not be able to start a login             |
+| [0023](0023-put-the-reason-in-the-status.md)       | Put the reason for a failed connect in the node status            |

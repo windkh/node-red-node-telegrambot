@@ -5,6 +5,7 @@ const { findMessage, describeMedia } = require('../lib/media');
 const {
     CONNECTED,
     DISCONNECTED,
+    failureStatus,
     busyStatus,
     attachConnectionStatus,
     detachConnectionStatus,
@@ -44,7 +45,9 @@ module.exports = function (RED) {
                 if (client) {
                     node.status(CONNECTED);
                 } else {
-                    node.status(DISCONNECTED);
+                    // The reason, not just "disconnected": the config node recorded why there is no
+                    // client, and a red status that names the cause saves a trip to the log.
+                    node.status(failureStatus(node.config.lastFailure));
                 }
             } else {
                 // no config node?

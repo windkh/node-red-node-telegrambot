@@ -5,7 +5,7 @@ const { TelegramClient } = require('teleproto');
 const { StringSession } = require('teleproto/sessions');
 
 const { buildClientParams } = require('./client-params');
-const { describeAuthError } = require('./auth-error');
+const { shortFailureReason } = require('./auth-error');
 const { openStoredSession } = require('./session-store');
 
 // What teleproto's sanitizeParseMode accepts. It *throws* on anything else, and this is only a formatting
@@ -48,9 +48,15 @@ async function openSession(options, warn) {
 // ./login. Without a session there is nothing to restore, so the caller is told to log in first.
 //
 // Connecting is best effort: a Telegram outage or a stale session must not take the flow down, so
-// failures are reported through `warn` and the caller gets `undefined` instead of a client.
-// `warn` keeps this module free of any Node-RED dependency.
-async function createTelegramClient(options, warn) {
+// failures are reported and the caller gets `undefined` instead of a client.
+//
+// Two channels, because they mean different things. `warn` is for notes that do not stop the connect — an
+// unknown parse mode, a bot config with no token. `fail` is for the reason there is no client at all, which
+// is what a node turns into its status; before it existed the reason only ever reached the log, and every
+// failure looked identical on the canvas.
+//
+// Both are plain callbacks, which is what keeps this module free of any Node-RED dependency.
+async function createTelegramClient(options, warn, fail) {
     const apiId = options.apiId;
     const session = options.session;
     const botToken = options.botToken;
@@ -75,8 +81,23 @@ async function createTelegramClient(options, warn) {
             // a token left over from experimenting with bot mode would otherwise hijack the auth of
             // a config that has since been switched back to user mode. This also matches ./login.js,
             // which already keys off loginMode.
+            //
+            // **No `phoneNumber` in user mode, and that is the point.** `client.start()` probes the
+            // session first and returns immediately when it is valid, which is the normal case. When it is
+            // not, teleproto reads the auth params to decide what to do — and a `phoneNumber` sends it
+            // into the interactive flow, where `signInUser` calls `sendCode` *before* asking for the code.
+            // That means a deploy with a stale session made Telegram text the user a login code and then
+            // failed with "Code is empty", and every redeploy did it again, which is how an account earns
+            // a FLOOD_WAIT on the code endpoint.
+            //
+            // With neither `phoneNumber` nor `botAuthToken`, `start()` throws the real reason instead —
+            // AuthKeyUnregisteredError, SessionRevokedError, UnauthorizedError — which is what the flow
+            // should see. AGENTS.md has said all along that deploy-time code must never prompt; this is
+            // what makes that true. See doc/architecture/adr/0022-never-log-in-at-deploy-time.md.
             let authParams;
             if (options.loginMode === 'bot') {
+                // A bot token is different: re-authorising from it is a single non-interactive request,
+                // sends the account nothing, and is exactly how a bot is meant to sign in.
                 authParams = {
                     botAuthToken: botToken,
                 };
@@ -85,25 +106,19 @@ async function createTelegramClient(options, warn) {
                     warn('Login mode is bot but no bot token is stored: log in again.');
                 }
             } else {
-                authParams = {
-                    phoneNumber: options.phoneNumber,
-                    // Through `warn`, not `console.log`: this belongs in the Node-RED log with the
-                    // calling node's context, at the runtime's own log level, rather than on stdout
-                    // where it bypasses both. See ./auth-error for what is safe to log here (#33).
-                    onError: (err) => {
-                        warn('Telegram login failed: ' + describeAuthError(err));
-                        return true; // abort
-                    },
-                };
+                authParams = {};
             }
 
             await client.start(authParams);
             await client.connect();
         } else {
-            warn('No session: login first.');
+            fail('no session: login first');
         }
     } catch (error) {
+        // Logged in full and reported in short: the status has room for a few words, the log does not have
+        // that limit and a Catch node may want the whole thing.
         warn(error);
+        fail(shortFailureReason(error));
     }
 
     return client;
