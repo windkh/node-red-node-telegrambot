@@ -7,7 +7,9 @@
         "bot": "b4217d5b3ad6f705",
         "x": 200,
         "y": 460,
-        "wires": [["02cf6e59480bab3a"]]
+        "wires": [["02cf6e59480bab3a"]],
+        "sendnewmessage": true,
+        "direction": "incoming"
     },
     {
         "id": "7f66f74d4da2179d",
@@ -41,7 +43,7 @@
         "type": "function",
         "z": "3d8bc5187eb93fc0",
         "name": "message echo",
-        "func": "// see https://core.telegram.org/method/messages.sendMessage\n\nlet randomId = BigInt(Math.floor(Math.random() * 1e15));\nif(msg.payload.message.className == \"Message\"){\n    msg.payload = {\n        api: 'messages',\n        func: 'SendMessage',\n        args: {\n            peer: msg.payload.chat,\n            message: msg.payload.message.message,\n            randomId: randomId,\n            noWebpage: true,\n            noforwards: true,\n            scheduleDate: 0,\n            // sendAs: \"username\",\n        }\n    }\n    return msg;\n}\n",
+        "func": "// see https://core.telegram.org/method/messages.sendMessage\n\n// Only new messages. The receiver can emit deleted messages, albums, callback queries and raw\n// updates as well, and none of those carries msg.payload.message - reaching into it regardless is\n// how this used to fail with \"Cannot read properties of undefined (reading 'className')\" on every\n// update. msg.payload.type is what tells the shapes apart.\nif (msg.payload.type === 'NewMessage') {\n    // A photo or a sticker with no caption has no text to echo, and Telegram rejects an empty one\n    // with MESSAGE_EMPTY.\n    let text = msg.payload.message.message;\n\n    if (text !== '' && text !== undefined && text !== null) {\n        let randomId = BigInt(Math.floor(Math.random() * 1e15));\n\n        msg.payload = {\n            api: 'messages',\n            func: 'SendMessage',\n            args: {\n                peer: msg.payload.chat,\n                message: text,\n                randomId: randomId,\n                noWebpage: true,\n                noforwards: true,\n                scheduleDate: 0,\n                // sendAs: \"username\",\n            }\n        }\n        return msg;\n    }\n}\n",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
@@ -51,5 +53,10 @@
         "y": 460,
         "wires": [["7f66f74d4da2179d"]]
     },
-    { "id": "b4217d5b3ad6f705", "type": "telegram client config", "botname": "Martina", "verboselogging": false }
+    {
+        "id": "b4217d5b3ad6f705",
+        "type": "telegram client config",
+        "botname": "Martina",
+        "verboselogging": false
+    }
 ]

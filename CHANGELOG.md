@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+# [1.7.8] - 2026-08-04
+
+### fixed the `EchoMessage` example throwing `TypeError: Cannot read properties of undefined (reading 'className')` on every update. Its Function node reached into `msg.payload.message`, which four of the receiver's six payload shapes do not have - raw events, deleted messages, albums and callback queries. It now switches on `msg.payload.type`
+
+### the example also enabled no event type at all, so an import received nothing until the user ticked a box - which is how the raw path, and the crash, were found. It now ships with **New messages** on and **Direction: incoming only**, without which the receiver sees the message the sender just sent and the flow echoes its own echo, forever
+
+### note edited messages are no longer echoed. The old condition matched them too, so a correction was replayed as a new message
+
+### new `test/examples.test.js`: every example is parsed, every Function node compiled, and every flow fed by a receiver has to survive all six payload shapes
+
 # [1.7.7] - 2026-08-04
 
 ### fixed a login being cancelled when a two-step-verification password was already in the field. teleproto **calls** `authParams.password`, and a password that was already known was passed through as a string - so the call threw `authParams.password is not a function` into `onError`, which aborts, and the dialog reported `AUTH_USER_CANCEL`. Since Node-RED fills a stored password field with `__PWRD__` itself, **every re-login of an account with two-step verification failed** unless the field was cleared first. That is what made it look like a rule about the order of entry
