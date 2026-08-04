@@ -120,8 +120,9 @@ Every event becomes one message. `msg.payload.type` names the event (`NewMessage
 `EditedMessage`, `Album`, `CallbackQuery`) alongside the raw `event`. For `NewMessage` and
 `EditedMessage` the node additionally awaits `getSender()` and `getChat()`, so flows do not have to.
 
-Raw events are the exception: they emit `msg.type = 'Raw'` with the update in `msg.payload`, rather
-than the nested `msg.payload.type` shape. This is kept for backwards compatibility.
+Raw events are no exception since 2.0.0: `msg.payload.type` is `'Raw'` and `msg.payload.event` is the
+update. `msg.type = 'Raw'` is set as well, which is what it used to be instead of the nested shape — see
+[ADR 0027](adr/0027-symmetric-raw-events.md).
 
 ## Sending
 

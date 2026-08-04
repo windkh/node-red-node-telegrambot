@@ -88,9 +88,9 @@ Import **EchoMessage** from Import → Examples for a working starting point.
 - [ ] **3.3 Deleted messages.** Tick _Deleted messages_, delete one. Expect an event.
 - [ ] **3.4 Albums.** Tick _Albums_, send several photos as one group. Expect **one** event with the group,
       not one per photo.
-- [ ] **3.5 Raw events.** Tick _Raw events_. Expect a much noisier stream, and note the deliberate oddity:
-      raw events carry `msg.type = 'Raw'` at the **top level** while everything else uses
-      `msg.payload.type`.
+- [ ] **3.5 Raw events.** Tick _Raw events_. Expect a much noisier stream, in the same shape as every other
+      event: `msg.payload.type` is `Raw` and `msg.payload.event` is the update. ⚠ Changed in 2.0.0 — before
+      it, the update sat directly in `msg.payload`. `msg.type` is still `Raw` as well.
 - [ ] **3.6 Callback query.** Only reachable in **bot** mode — see 5.6. In user mode this stays silent by
       design: Telegram sends the press to the bot that created the button.
 - [ ] **3.7 Filter: Chats.** Put one username in _Chats_. Expect messages from anywhere else to stop

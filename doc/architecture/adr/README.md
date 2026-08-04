@@ -30,3 +30,4 @@ One file per decision: NNNN-title.md (Context / Decision / Consequences).
 | [0024](0024-log-an-expired-session-as-a-line.md)   | Log an expired session as a line, not a stack                     |
 | [0025](0025-keep-the-client-out-of-msg.md)         | Keep the TelegramClient out of the messages a flow sees           |
 | [0026](0026-one-login-step-at-a-time.md)           | One login step at a time, and a password that is a function       |
+| [0027](0027-symmetric-raw-events.md)               | Raw events get the same payload shape as every other event        |

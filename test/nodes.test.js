@@ -782,14 +782,46 @@ describe('receiver node event handlers', () => {
         return sent;
     }
 
-    it('passes a raw event through untouched', async () => {
+    it('passes a raw event through untouched, in the same shape as the others', async () => {
         const event = { some: 'update' };
         const sent = await capture('rawEventHandler', event);
 
         assert.strictEqual(sent.length, 1);
+        // Symmetric since 2.0.0: `payload.type` names the event and `payload.event` carries it, exactly
+        // as for NewMessage and the rest. See ADR 0027.
+        assert.strictEqual(sent[0].payload.type, 'Raw');
+        assert.strictEqual(sent[0].payload.event, event, 'the update itself must not be copied or wrapped');
+        // Kept as well, because it is the check most existing flows use.
         assert.strictEqual(sent[0].type, 'Raw');
-        assert.strictEqual(sent[0].payload, event);
     });
+
+    // The point of ADR 0027: one place to look, whatever the event. A flow that switches on
+    // `msg.payload.type` needs no special case for raw updates any more. One `it` each, because
+    // `capture` loads a flow and the helper only takes one load per test.
+    const NAMED_TYPES = [
+        ['rawEventHandler', { some: 'update' }, 'Raw'],
+        [
+            'newMessageEventHandler',
+            { message: { getSender: async () => ({}), getChat: async () => ({}) } },
+            'NewMessage',
+        ],
+        ['deletedMessageEventHandler', { deletedIds: [1] }, 'DeletedMessage'],
+        [
+            'editedMessageEventHandler',
+            { message: { getSender: async () => ({}), getChat: async () => ({}) } },
+            'EditedMessage',
+        ],
+        ['albumEventHandler', { messages: [] }, 'Album'],
+        ['callbackQueryEventHandler', { query: {} }, 'CallbackQuery'],
+    ];
+
+    for (const [handler, event, expected] of NAMED_TYPES) {
+        it(`names ${expected} in payload.type`, async () => {
+            const sent = await capture(handler, event);
+
+            assert.strictEqual(sent[0].payload.type, expected);
+        });
+    }
 
     it('resolves sender and chat for a new message', async () => {
         const message = {

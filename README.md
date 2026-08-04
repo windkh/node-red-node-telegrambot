@@ -107,6 +107,32 @@ Both routes produce the same session string, so it makes no difference afterward
 The _Telegram client receiver_ node receives message which are sent to your account or bot. Just add a debug node to the
 output and investigate the objects in `msg.payload`.
 
+#### Message shape
+
+Every event arrives in the same shape, so a flow can switch on one field:
+
+```js
+msg.payload.type; // 'NewMessage' | 'EditedMessage' | 'DeletedMessage' | 'Album' | 'CallbackQuery' | 'Raw'
+msg.payload.event; // the event itself, whatever the type
+```
+
+What each type adds next to those two:
+
+| `type`           | Also in `msg.payload`                         |
+| ---------------- | --------------------------------------------- |
+| `NewMessage`     | `message`, `sender`, `chat`, `originalUpdate` |
+| `EditedMessage`  | `message`, `sender`, `chat`                   |
+| `DeletedMessage` | `deletedIds`                                  |
+| `Album`          | `messages`, `originalUpdates`                 |
+| `CallbackQuery`  | `query`                                       |
+| `Raw`            | nothing — the update is `msg.payload.event`   |
+
+`sender` and `chat` are resolved for you, which costs a lookup per message; that is why the filters below are
+worth setting on a busy account. Raw events also set `msg.type = 'Raw'` at the top level.
+
+⚠ **Changed in 2.0.0.** Raw events used to put the update directly in `msg.payload`, with no
+`msg.payload.type`. See [MIGRATION.md](/MIGRATION.md) — it is one path segment.
+
 #### Filters
 
 Tick the event types you want, and optionally narrow them down. Filtering is done by Telegram's event

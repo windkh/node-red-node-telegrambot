@@ -166,8 +166,12 @@ Note `password` is a _config_ property holding the SOCKS proxy password, while t
 two-step-verification password is the `twofapassword` credential. They used to share both a name and a
 DOM element id. Do not merge them again.
 
-Note the raw-event asymmetry: raw events emit `msg.type = 'Raw'` at the top level, while all other
-events use `msg.payload.type`. This is inconsistent but intentional — do not "fix" it silently.
+All six event types share one payload shape: `msg.payload.type` names the event and `msg.payload.event`
+carries it. Raw events used to be the exception — the update went straight into `msg.payload` and the name
+into `msg.type` — which 2.0.0 corrected, see
+[ADR 0027](doc/architecture/adr/0027-symmetric-raw-events.md). `msg.type = 'Raw'` is still set, because it
+is the check most existing flows use. A seventh event type must use the same shape; there is no longer an
+exception to copy.
 
 ### Testing against Telegram
 
