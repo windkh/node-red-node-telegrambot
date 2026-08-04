@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+# [1.7.7] - 2026-08-04
+
+### fixed a login being cancelled when a two-step-verification password was already in the field. teleproto **calls** `authParams.password`, and a password that was already known was passed through as a string - so the call threw `authParams.password is not a function` into `onError`, which aborts, and the dialog reported `AUTH_USER_CANCEL`. Since Node-RED fills a stored password field with `__PWRD__` itself, **every re-login of an account with two-step verification failed** unless the field was cleared first. That is what made it look like a rule about the order of entry
+
+### changed the login panel to ask for one thing at a time: after **Login** only the code is asked for, with a tip that says leaving the field is what submits it; the password appears afterwards and only if it is still needed. A password that came with the login request is used instead of asked for again, and nothing is posted while the server is not waiting for it. See [ADR 0026](doc/architecture/adr/0026-one-login-step-at-a-time.md)
+
+### the editor dialog is now testable: `test-helpers/editor-dialog.js` runs the shipped editor script against a stand-in for jQuery. It caught that hiding the password field by default would have broken the **QR** login, which has no code step but shares the same password prompt
+
 # [1.7.6] - 2026-08-04
 
 ### changed the config dialog so the session field and the login buttons come directly above "Device Model". The optional client parameters added since 0.1.x had grown to seven rows and pushed the one control the dialog exists for below the fold

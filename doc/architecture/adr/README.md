@@ -29,3 +29,4 @@ One file per decision: NNNN-title.md (Context / Decision / Consequences).
 | [0023](0023-put-the-reason-in-the-status.md)       | Put the reason for a failed connect in the node status            |
 | [0024](0024-log-an-expired-session-as-a-line.md)   | Log an expired session as a line, not a stack                     |
 | [0025](0025-keep-the-client-out-of-msg.md)         | Keep the TelegramClient out of the messages a flow sees           |
+| [0026](0026-one-login-step-at-a-time.md)           | One login step at a time, and a password that is a function       |
