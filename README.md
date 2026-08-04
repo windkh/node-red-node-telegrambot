@@ -69,9 +69,15 @@ The _Telegram client receiver_ node receives messages from like a telegram clien
 In addition to that you can also login using a bot token retrieved from @botfather.
 
 You can create an API ID and Hash when you login to your telegram account here https://my.telegram.org/auth
-Then go to 'API Development Tools' and create your API ID and API Hash. Both are required when configuring your nodes. The nodes login only once to create a so-called session string. This string can be created from within
-the config node or as an alternative you can also create it online here https://tgsnake.js.org/login
-This session string is used instead of interactive login (where you need to enter a phone-code and your password if set).
+Then go to 'API Development Tools' and create your API ID and API Hash. Both are required when configuring your nodes.
+
+The nodes log in only once, to produce a so-called **session string**, which is then used instead of an
+interactive login. Create it **in the config node** — either with a phone code or with a QR code, see below.
+
+Do not use one of the websites that offer to generate a session string for you — this page used to link to
+one, and that was bad advice. A session string authenticates your whole Telegram account, so producing one on
+someone else's site means handing that site your phone number, your login code and, with them, your account.
+Both routes in the config node keep it on your own machine.
 
 #### Login with a QR code
 

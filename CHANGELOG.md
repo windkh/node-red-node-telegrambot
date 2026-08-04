@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+# [1.7.4] - 2026-08-04
+
+### removed a dead link from the README and from the config node's help. It pointed at a third-party website that would generate a session string for you, and it now 404s. It is not replaced: a session string authenticates the whole Telegram account, so producing one on someone else's site means handing over the phone number, the login code and the account with them. Both routes in the config node - phone code and QR - keep it on your own machine
+
 # [1.7.3] - 2026-08-04
 
 ### changed an expired session to be logged as one line instead of a seven-frame stack trace of teleproto internals. The behaviour was already right - the error is reported rather than a login started - but it read like a crash, which is how it was reported. A failure that is genuinely a bug still keeps its stack
