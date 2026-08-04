@@ -15,12 +15,12 @@ const EXAMPLES = join(__dirname, '..', 'examples');
 const FILES = readdirSync(EXAMPLES).filter((name) => name.endsWith('.json'));
 
 // Every shape telegrambot/nodes/receiver-node.js emits. Keep in step with the six handlers there.
-// Note the documented asymmetry: a raw event carries `msg.type`, everything else `msg.payload.type`.
+// A raw event also carries `msg.type`, kept from before 2.0.0; `msg.payload.type` is set for all six.
 function receiverPayloads() {
     const message = { className: 'Message', message: 'hello', id: 7 };
 
     return {
-        Raw: () => ({ type: 'Raw', payload: { state: 1 } }),
+        Raw: () => ({ type: 'Raw', payload: { type: 'Raw', event: { state: 1 } } }),
         NewMessage: () => ({
             payload: { type: 'NewMessage', message: message, originalUpdate: {}, sender: {}, chat: {}, event: {} },
         }),

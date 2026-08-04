@@ -819,6 +819,23 @@
     <h3>Outputs</h3>
     <p>1. Standard Output: Event message is sent to output.</p>
 
+    <p>Every event arrives in the same shape, so a flow can switch on one field:
+    <code>msg.payload.type</code> names it and <code>msg.payload.event</code> carries it.</p>
+    <table>
+        <tr><th align="left"><code>type</code></th><th align="left">Also in <code>msg.payload</code></th></tr>
+        <tr><td><code>NewMessage</code></td><td><code>message</code>, <code>sender</code>, <code>chat</code>,
+            <code>originalUpdate</code></td></tr>
+        <tr><td><code>EditedMessage</code></td><td><code>message</code>, <code>sender</code>,
+            <code>chat</code></td></tr>
+        <tr><td><code>DeletedMessage</code></td><td><code>deletedIds</code></td></tr>
+        <tr><td><code>Album</code></td><td><code>messages</code>, <code>originalUpdates</code></td></tr>
+        <tr><td><code>CallbackQuery</code></td><td><code>query</code></td></tr>
+        <tr><td><code>Raw</code></td><td>nothing &mdash; the update is <code>msg.payload.event</code></td></tr>
+    </table>
+    <p><b>Changed in 2.0.0:</b> raw events used to put the update directly in <code>msg.payload</code>, with no
+    <code>msg.payload.type</code>. They still set <code>msg.type = 'Raw'</code> at the top level as well, so a
+    flow that only checks which kind of event arrived needs no change.</p>
+
     <h3>Filters</h3>
     <p>Filtering is done by Telegram's event builders, not downstream, so traffic you are not
     interested in never reaches the flow at all. Leave a field empty to not filter on it.</p>

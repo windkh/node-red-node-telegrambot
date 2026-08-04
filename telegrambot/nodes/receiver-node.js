@@ -62,10 +62,20 @@ module.exports = function (RED) {
         this.albumEventHandlerAdded = false;
         this.callbackQueryEventHandlerAdded = false;
 
+        // Shaped like the other five: `msg.payload.type` says which event it is and `msg.payload.event`
+        // carries it. Until 2.0.0 this one put the update straight into `msg.payload` and named it in
+        // `msg.type` instead, which meant every flow reading raw events had to special-case it.
+        //
+        // `msg.type` is still set. It costs one line and it is the check most flows use, so the break is
+        // limited to reading a field of the update: `msg.payload.className` became
+        // `msg.payload.event.className`. See doc/architecture/adr/0027-symmetric-raw-events.md.
         this.rawEventHandler = async (event) => {
             const msg = {
                 type: 'Raw',
-                payload: event,
+                payload: {
+                    type: 'Raw',
+                    event: event,
+                },
             };
             node.send(hideClientReferences(msg));
         };

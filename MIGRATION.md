@@ -1,5 +1,41 @@
 # Migration guide
 
+## 2.0.0 — raw events use the same payload shape as the rest
+
+One change, and only if your flow handles **raw events**. Nothing else about 2.0.0 is breaking: node types,
+credentials, config properties, the other five event shapes and the sender's payload are all unchanged.
+
+Five of the six event types always named themselves in `msg.payload.type` and carried the event in
+`msg.payload.event`. Raw events did neither — the update went straight into `msg.payload`. Now they match:
+
+```js
+// before
+{ type: 'Raw', payload: { pts: 474, className: 'UpdateNewMessage', … } }
+
+// 2.0.0
+{ type: 'Raw', payload: { type: 'Raw', event: { pts: 474, className: 'UpdateNewMessage', … } } }
+```
+
+### What you have to change
+
+| If your flow does this           | Change it to                           |
+| -------------------------------- | -------------------------------------- |
+| `msg.payload.className`          | `msg.payload.event.className`          |
+| `msg.payload.updates`, `.pts`, … | `msg.payload.event.updates`, `.pts`, … |
+| `msg.type === 'Raw'`             | nothing — it still works               |
+
+`msg.type` is deliberately kept, so a flow that only tests which kind of event arrived needs no edit at all.
+The one thing that moved is reading a field **out of** the update: put `.event` in the path.
+
+**Why break it.** A Function node that switches on `msg.payload.type` had to carry a special case for raw
+updates, and one that forgot looked correct until a raw update arrived — which is exactly how the shipped
+`EchoMessage` example came to throw `Cannot read properties of undefined`. See
+[ADR 0027](doc/architecture/adr/0027-symmetric-raw-events.md).
+
+Raw events are off by default, so if you never ticked that box there is nothing to do.
+
+---
+
 ## 1.0.0 — from GramJS to teleproto
 
 Version 1.0.0 replaces the MTProto library underneath these nodes. [GramJS](https://github.com/gram-js/gramjs)

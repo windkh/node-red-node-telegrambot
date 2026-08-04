@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+# [2.0.0] - 2026-08-04
+
+### **breaking:** raw events now use the same payload shape as every other event type - `msg.payload.type` is `'Raw'` and `msg.payload.event` is the update. Before this the update sat directly in `msg.payload`, so a Function node switching on `msg.payload.type` needed a special case for raw updates, and one that forgot looked correct until a raw update arrived. `msg.type = 'Raw'` is still set, so only reading a field **out of** the update changes: `msg.payload.className` becomes `msg.payload.event.className`. See [MIGRATION.md](/MIGRATION.md) and [ADR 0027](doc/architecture/adr/0027-symmetric-raw-events.md)
+
+### raw events are off by default and support no filters, so this affects the smallest group of flows of the six event types
+
+### documented the payload shape of all six event types in the README and in the receiver's node help, which had never stated it
+
 # [1.7.8] - 2026-08-04
 
 ### fixed the `EchoMessage` example throwing `TypeError: Cannot read properties of undefined (reading 'className')` on every update. Its Function node reached into `msg.payload.message`, which four of the receiver's six payload shapes do not have - raw events, deleted messages, albums and callback queries. It now switches on `msg.payload.type`

@@ -156,7 +156,7 @@ describe('a raw connection-state event', () => {
         const update = new UpdateConnectionState(UpdateConnectionState.connected);
         update._client = createFakeClient();
 
-        return { type: 'Raw', payload: update };
+        return { type: 'Raw', payload: { type: 'Raw', event: update } };
     }
 
     it('is printed with the session in it, before anything is hidden', () => {
