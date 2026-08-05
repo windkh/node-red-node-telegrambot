@@ -1,7 +1,13 @@
 {
     "name": "node-red-node-telegrambot",
-    "version": "2.1.0",
+    "version": "2.1.1",
     "description": "Telegram userbot nodes for Node-RED",
+    "files": [
+        "telegrambot/",
+        "examples/",
+        "MIGRATION.md",
+        "CHANGELOG.md"
+    ],
     "dependencies": {
         "qrcode-generator": "^2.0.4",
         "teleproto": "^1.228.5"
