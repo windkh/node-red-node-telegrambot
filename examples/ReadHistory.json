@@ -4,7 +4,7 @@
         "type": "tab",
         "label": "Read history",
         "disabled": false,
-        "info": "Reads the last 50 messages of a chat and joins them back into one array.\n\nThe list node streams one message per item, so a large history never has to fit in memory at once. The join node in automatic mode uses msg.parts, which the list node sets â€” count comes from Telegram's own total for the query, capped at the limit.\n\nSet the Bot to your telegram client config node and inject. It reads your own Saved Messages, which every account has - put a username or a chat id under \"Read from\" to read something else.\n\nMind the limit: 0 means no limit, which on a busy channel reads it back to the first message and can earn a FLOOD_WAIT."
+        "info": "Reads the last 50 messages of a chat and joins them back into one array.\n\nThe Function node in front sets msg.payload with the same settings the list node offers - Read, Read from, Limit and Output. What arrives with the message wins over what is configured, so one node can serve several reads. Delete the Function node and the node's own settings apply.\n\nThe list node streams one message per item, so a large history never has to fit in memory at once. The join node in automatic mode uses msg.parts, which the list node sets - count comes from Telegram's own total for the query, capped at the limit. Switching Output to array makes the list node send one message with everything, and then the join node has nothing to do.\n\nSet the Bot to your telegram client config node and inject. It reads your own Saved Messages, which every account has - put a username or a chat id in the Function node to read something else.\n\nMind the limit: 0 means no limit, which on a busy channel reads it back to the first message and can earn a FLOOD_WAIT."
     },
     {
         "id": "history_trigger",
@@ -25,6 +25,21 @@
         "payloadType": "date",
         "x": 150,
         "y": 120,
+        "wires": [["history_settings"]]
+    },
+    {
+        "id": "history_settings",
+        "type": "function",
+        "z": "read_history_tab",
+        "name": "what to read",
+        "func": "// Everything the list node offers in its dialog can also arrive with the message, and what arrives\n// wins over what is configured. So one configured node can serve a flow that reads different things,\n// and this Function node is where that choice lives.\n//\n// Leave a field out - or delete this node - to use the node's own settings instead.\nmsg.payload = {\n    what: 'messages', // \"Read\":      messages | dialogs | participants\n    peer: 'me', // \"Read from\": a username, a chat id, or \"me\" for your own Saved Messages\n    limit: 50, // \"Limit\":     0 means everything, which on a busy chat can earn a FLOOD_WAIT\n    mode: 'stream', // \"Output\":    stream = one message per item, array = one message with all of them\n    // search: 'invoice',        // only messages and participants can be searched\n};\n\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 330,
+        "y": 120,
         "wires": [["history_read"]]
     },
     {
@@ -38,7 +53,7 @@
         "limit": "50",
         "search": "",
         "mode": "stream",
-        "x": 340,
+        "x": 540,
         "y": 120,
         "wires": [["history_join"]]
     },
@@ -62,7 +77,7 @@
         "reduceInit": "",
         "reduceInitType": "",
         "reduceFixup": "",
-        "x": 560,
+        "x": 740,
         "y": 120,
         "wires": [["history_debug"]]
     },
@@ -79,7 +94,7 @@
         "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 780,
+        "x": 940,
         "y": 120,
         "wires": []
     }
