@@ -79,6 +79,56 @@ describe('the example flows', () => {
     }
 });
 
+// An example that errors on the first inject is indistinguishable from a broken package. Both rules
+// below come from that being reported twice: `ReadHistory` shipped an empty peer and failed with
+// `No chat: set "Read from" on the node or msg.peer.`, and `Api.messages.SendMessage` shipped the
+// placeholder `"to username"`, which cannot resolve because a username has no space in it.
+describe('every example runs on the first inject', () => {
+    // Nodes whose `peer` decides where the call goes. A list node reading dialogs needs none.
+    function peersThatMustBeSet(flow) {
+        return flow.filter((node) => {
+            let needed = false;
+
+            if (node.type === 'telegram client upload' || node.type === 'telegram client sender') {
+                needed = node.peer !== undefined;
+            } else if (node.type === 'telegram client list') {
+                needed = node.what === 'messages' || node.what === 'participants';
+            }
+
+            return needed;
+        });
+    }
+
+    for (const file of FILES) {
+        it(`${file} addresses a peer it can reach`, () => {
+            const flow = load(file);
+
+            peersThatMustBeSet(flow).forEach((node) => {
+                assert.ok(
+                    typeof node.peer === 'string' && node.peer.length > 0,
+                    `${node.type} ${node.id} ships an empty peer, so the example fails on import`
+                );
+            });
+        });
+
+        it(`${file} builds no peer that cannot resolve`, () => {
+            // A Function node that hands the sender a peer must hand it a usable one. A space is the
+            // giveaway: no username contains one, so "to username" was never going to work.
+            const flow = load(file);
+
+            flow.filter((node) => node.type === 'function').forEach((node) => {
+                const out = asFunction(node)({ payload: {} });
+                const peer = out && out.payload && out.payload.args ? out.payload.args.peer : undefined;
+
+                if (typeof peer === 'string') {
+                    assert.ok(peer.length > 0, `${node.name} builds an empty peer`);
+                    assert.ok(!peer.includes(' '), `${node.name} builds "${peer}", which cannot resolve`);
+                }
+            });
+        });
+    }
+});
+
 // A receiver in the flow means its Function nodes are fed by one, and then they meet whatever the user
 // ticks — not only the event type the example had in mind.
 describe('an example driven by a receiver', () => {

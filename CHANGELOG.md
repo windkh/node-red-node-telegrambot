@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+# [2.0.2] - 2026-08-04
+
+### fixed four examples failing on the first inject. `ReadHistory`, `UploadFile` and `UploadAlbum` shipped an empty **peer** and stopped with `No chat: set "Read from" on the node or msg.peer.`, and `Api.messages.SendMessage` shipped the placeholder `"to username"`, which can never resolve because a username has no space in it. All four now address `me` - your own Saved Messages, which exists on every account, needs no access hash and touches nobody else. The tab notes say how to point them elsewhere
+
+### two rules in `test/examples.test.js` keep it that way: a node whose peer decides where the call goes must ship a non-empty one, and no Function node may build a peer containing a space
+
 # [2.0.1] - 2026-08-04
 
 ### the sender node now explains two teleproto errors that say nothing on their own. `Cannot cast undefined to any kind of undefined` means no peer was passed - it names neither the argument nor the request - and `Cannot cast User to any kind of peer` means the peer is an object that lost its class on the way in, which is what happens to an entity that went through JSON
@@ -236,7 +242,7 @@ All notable changes to this project will be documented in this file.
 
 ### changed minimum nodejs version to 20
 
-### split the monolithic node file into telegrambot/nodes/ and telegrambot/lib/ — no behaviour change
+### split the monolithic node file into telegrambot/nodes/ and telegrambot/lib/ â€” no behaviour change
 
 ### added a test suite (node:test + node-red-node-test-helper) and architecture docs
 

@@ -31,7 +31,7 @@
         "type": "function",
         "z": "3d8bc5187eb93fc0",
         "name": "send message",
-        "func": "// see https://core.telegram.org/method/messages.sendMessage\nlet randomId = BigInt(Math.floor(Math.random() * 1e15));\nlet username = msg.payload;\nmsg.payload = {\n    api: 'messages',\n    func: 'SendMessage',\n    args: {\n        peer: \"to username\",\n        message: \"Test1\",\n        randomId: randomId,\n        noWebpage: true,\n        noforwards: true,\n        scheduleDate: 0,\n        // sendAs: \"from username\",\n    }\n}\nreturn msg;",
+        "func": "// see https://core.telegram.org/method/messages.sendMessage\nlet randomId = BigInt(Math.floor(Math.random() * 1e15));\nmsg.payload = {\n    api: 'messages',\n    func: 'SendMessage',\n    args: {\n        peer: \"me\", // your own Saved Messages; a username or a chat id works too\n        message: \"Test1\",\n        randomId: randomId,\n        noWebpage: true,\n        noforwards: true,\n        scheduleDate: 0,\n        // sendAs: \"from username\",\n    }\n}\nreturn msg;",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
@@ -56,5 +56,10 @@
         "y": 460,
         "wires": [["48d2b7cfa10e35d4"]]
     },
-    { "id": "b4217d5b3ad6f705", "type": "telegram client config", "botname": "Martina", "verboselogging": false }
+    {
+        "id": "b4217d5b3ad6f705",
+        "type": "telegram client config",
+        "botname": "Martina",
+        "verboselogging": false
+    }
 ]
