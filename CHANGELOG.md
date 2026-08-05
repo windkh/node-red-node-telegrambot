@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+# [2.1.1] - 2026-08-04
+
+### the published package now contains only what a Node-RED installation needs. `package.json` had no `files` field and there was no `.npmignore`, so every release shipped the test suite, the ADRs, the manual test plan and the editor settings as well - 109 files and 209 kB, now 40 files and 84 kB. Nothing a flow uses was removed: the runtime, all eight examples, the editor html, the icon, README, MIGRATION and CHANGELOG are all in
+
+### new `test/package.test.js` guards it in both directions: the entry point and the examples must stay in the list, the repository-only directories must stay out, and no runtime file may `require` its way outside the package - the one mistake that turns a smaller tarball into a broken install
+
 # [2.1.0] - 2026-08-04
 
 ### added `msg.payload` as the list node's request: **Read**, **Read from**, **Limit**, **Output** and **Search** can all arrive with the message and override what is configured, so one node can serve a flow that reads different things. `what` and `mode` were not overridable at all before; `msg.peer`, `msg.limit` and `msg.search` keep working and `msg.payload` wins where both are given
