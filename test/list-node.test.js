@@ -12,6 +12,7 @@ const {
     resolveLimit,
     buildListArgs,
     emitCount,
+    resolveListSettings,
 } = require('../telegrambot/lib/list-request');
 
 helper.init(require.resolve('node-red'));
@@ -150,6 +151,100 @@ function createFakeClient(items, total, options) {
     };
 }
 
+// Loads a one-node flow with the client faked. Output is captured by replacing node.send, which is
+// what the other node tests in this suite do — nodeSend wraps it, so every emitted message lands in
+// .
+async function load(nodeConfig, client) {
+    const flow = [configNode, { id: 'n1', type: 'telegram client list', bot: 'c1', ...nodeConfig }];
+    await helper.load(telegramBotNode, flow);
+
+    const n1 = helper.getNode('n1');
+    n1.config.getTelegramClient = async () => client;
+
+    const sent = [];
+    n1.send = (msg) => sent.push(msg);
+
+    return { n1: n1, sent: sent };
+}
+
+// Node-RED completes a message through `done`; waiting on that rather than on a timer is what makes
+// these deterministic.
+function whenDone(node) {
+    return new Promise((resolve) => {
+        const original = node._complete ? node._complete.bind(node) : undefined;
+        node._complete = function (msg, error) {
+            if (original) {
+                original(msg, error);
+            }
+            resolve(error);
+        };
+    });
+}
+
+// Every setting the dialog offers can also arrive with the message. Two ways in: `msg.payload` as an
+// object, which is what a Function node in front of the node builds, and the flat `msg.peer` /
+// `msg.limit` / `msg.search` that predate it and have to keep working.
+describe('resolveListSettings', () => {
+    const CONFIGURED = { what: 'messages', peer: 'somechat', limit: 50, search: '', mode: 'stream' };
+
+    it('uses the node configuration when the message says nothing', () => {
+        assert.deepStrictEqual(resolveListSettings(CONFIGURED, { payload: 'go' }), CONFIGURED);
+    });
+
+    it('takes every setting from msg.payload', () => {
+        const settings = resolveListSettings(CONFIGURED, {
+            payload: { what: 'dialogs', peer: 'me', limit: 5, search: 'invoice', mode: 'array' },
+        });
+
+        assert.deepStrictEqual(settings, {
+            what: 'dialogs',
+            peer: 'me',
+            limit: 5,
+            search: 'invoice',
+            mode: 'array',
+        });
+    });
+
+    it('still takes the flat fields, which came first', () => {
+        const settings = resolveListSettings(CONFIGURED, { payload: 'go', peer: 'other', limit: 7, search: 'x' });
+
+        assert.strictEqual(settings.peer, 'other');
+        assert.strictEqual(settings.limit, 7);
+        assert.strictEqual(settings.search, 'x');
+    });
+
+    it('lets msg.payload win over a flat field, because it is the more specific ask', () => {
+        const settings = resolveListSettings(CONFIGURED, { peer: 'flat', payload: { peer: 'from-payload' } });
+
+        assert.strictEqual(settings.peer, 'from-payload');
+    });
+
+    it('ignores a payload that is not a settings object', () => {
+        // The usual trigger is an inject, whose payload is a timestamp or a string. Reading fields off
+        // that would turn every such trigger into a request full of undefined.
+        for (const payload of [Date.now(), 'go', ['a'], null, undefined, true]) {
+            assert.deepStrictEqual(
+                resolveListSettings(CONFIGURED, { payload: payload }),
+                CONFIGURED,
+                JSON.stringify(payload) + ' must contribute nothing'
+            );
+        }
+    });
+
+    it('treats an empty string as "not given", so a blank field does not erase a setting', () => {
+        const settings = resolveListSettings(CONFIGURED, { peer: '', payload: { what: '', search: '' } });
+
+        assert.strictEqual(settings.peer, 'somechat');
+        assert.strictEqual(settings.what, 'messages');
+        assert.strictEqual(settings.search, '');
+    });
+
+    it('passes a limit of 0 through, which is how unbounded is asked for', () => {
+        // 0 is falsy and meaningful here — resolveLimit turns it into undefined for the library.
+        assert.strictEqual(resolveListSettings(CONFIGURED, { payload: { limit: 0 } }).limit, 0);
+    });
+});
+
 describe('list node', () => {
     before(async () => {
         await new Promise((resolve) => helper.startServer(resolve));
@@ -162,36 +257,6 @@ describe('list node', () => {
     after(async () => {
         await new Promise((resolve) => helper.stopServer(resolve));
     });
-
-    // Loads a one-node flow with the client faked. Output is captured by replacing node.send, which is
-    // what the other node tests in this suite do — nodeSend wraps it, so every emitted message lands in
-    // .
-    async function load(nodeConfig, client) {
-        const flow = [configNode, { id: 'n1', type: 'telegram client list', bot: 'c1', ...nodeConfig }];
-        await helper.load(telegramBotNode, flow);
-
-        const n1 = helper.getNode('n1');
-        n1.config.getTelegramClient = async () => client;
-
-        const sent = [];
-        n1.send = (msg) => sent.push(msg);
-
-        return { n1: n1, sent: sent };
-    }
-
-    // Node-RED completes a message through `done`; waiting on that rather than on a timer is what makes
-    // these deterministic.
-    function whenDone(node) {
-        return new Promise((resolve) => {
-            const original = node._complete ? node._complete.bind(node) : undefined;
-            node._complete = function (msg, error) {
-                if (original) {
-                    original(msg, error);
-                }
-                resolve(error);
-            };
-        });
-    }
 
     it('emits one message per item with joinable parts', async () => {
         const client = createFakeClient(['a', 'b', 'c'], 3);
@@ -408,5 +473,107 @@ describe('list node', () => {
 
         assert.strictEqual(emittedBeforeClose, 1, 'the first item should already be out');
         assert.strictEqual(sent.length, 1, 'nothing may be emitted after close');
+    });
+});
+
+// The node level, because resolveListSettings alone cannot show that the resolved values actually reach
+// the client call - `what` picks the iterator, `mode` decides the shape of the output, and both were
+// read straight off the node before.
+describe('list node settings from the message', () => {
+    before(async () => {
+        await new Promise((resolve) => helper.startServer(resolve));
+    });
+
+    afterEach(async () => {
+        await helper.unload();
+    });
+
+    after(async () => {
+        await new Promise((resolve) => helper.stopServer(resolve));
+    });
+
+    it('reads what the message asks for, not what is configured', async () => {
+        const client = createFakeClient(['a'], 1);
+        const { n1 } = await load({ what: 'messages', peer: 'somechat' }, client);
+
+        const done = whenDone(n1);
+        n1.receive({ payload: { what: 'dialogs' } });
+        assert.strictEqual(await done, undefined);
+
+        // dialogs takes no entity, so the shape of the call changes with it.
+        assert.strictEqual(client.recorded.method, 'iterDialogs');
+        assert.deepStrictEqual(client.recorded.args, [{ limit: 100 }]);
+    });
+
+    it('switches the output mode from the message', async () => {
+        const client = createFakeClient(['a', 'b'], 2);
+        const { n1, sent } = await load({ what: 'messages', peer: 'somechat', mode: 'stream' }, client);
+
+        const done = whenDone(n1);
+        n1.receive({ payload: { mode: 'array' } });
+        assert.strictEqual(await done, undefined);
+
+        assert.strictEqual(sent.length, 1, 'array mode sends one message, not one per item');
+        assert.deepStrictEqual(sent[0].payload, ['a', 'b']);
+        assert.strictEqual(sent[0].parts, undefined, 'there is nothing for a join node to do');
+    });
+
+    it('takes the peer from the payload when the node has none', async () => {
+        // What the ReadHistory example does, and what used to stop with "No chat".
+        const client = createFakeClient(['a'], 1);
+        const { n1 } = await load({ what: 'messages', peer: '' }, client);
+
+        const done = whenDone(n1);
+        n1.receive({ payload: { peer: 'me', limit: 5 } });
+        assert.strictEqual(await done, undefined);
+
+        assert.deepStrictEqual(client.recorded.args, ['me', { limit: 5 }]);
+    });
+
+    it('names all three ways to give a peer when none was given', async () => {
+        const client = createFakeClient([], 0);
+        const { n1 } = await load({ what: 'messages', peer: '' }, client);
+
+        const done = whenDone(n1);
+        n1.receive({ payload: 'go' });
+        const error = await done;
+
+        assert.match(String(error), /msg\.payload\.peer/);
+    });
+
+    it('refuses an output mode it does not know instead of guessing', async () => {
+        // Anything other than stream used to read as array, so a typo silently changed the output shape.
+        const client = createFakeClient(['a'], 1);
+        const { n1, sent } = await load({ what: 'messages', peer: 'somechat' }, client);
+
+        const done = whenDone(n1);
+        n1.receive({ payload: { mode: 'steam' } });
+        const error = await done;
+
+        assert.match(String(error), /Unknown output mode: steam/);
+        assert.match(String(error), /stream, array/, 'the message has to say what is accepted');
+        assert.strictEqual(sent.length, 0, 'nothing may be emitted');
+    });
+
+    it('refuses a read type it does not know, naming what came in', async () => {
+        const client = createFakeClient(['a'], 1);
+        const { n1 } = await load({ what: 'messages', peer: 'somechat' }, client);
+
+        const done = whenDone(n1);
+        n1.receive({ payload: { what: 'stories' } });
+        const error = await done;
+
+        assert.match(String(error), /Unknown read type: stories/);
+    });
+
+    it('searches with what the message supplied', async () => {
+        const client = createFakeClient(['a'], 1);
+        const { n1 } = await load({ what: 'messages', peer: 'somechat', search: 'configured' }, client);
+
+        const done = whenDone(n1);
+        n1.receive({ payload: { search: 'from the message' } });
+        assert.strictEqual(await done, undefined);
+
+        assert.deepStrictEqual(client.recorded.args, ['somechat', { limit: 100, search: 'from the message' }]);
     });
 });

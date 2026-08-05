@@ -3,7 +3,14 @@
 
 const { FloodWaitError } = require('teleproto/errors');
 
-const { LIST_KINDS, resolveLimit, buildListArgs, emitCount } = require('../lib/list-request');
+const {
+    LIST_KINDS,
+    LIST_MODES,
+    resolveLimit,
+    buildListArgs,
+    emitCount,
+    resolveListSettings,
+} = require('../lib/list-request');
 const { hideClientReferences } = require('../lib/hide-client');
 const {
     CONNECTED,
@@ -99,7 +106,7 @@ module.exports = function (RED) {
                         break;
                     }
 
-                    if (node.mode === 'stream') {
+                    if (request.mode === 'stream') {
                         // `total` is only known once the first batch has been fetched, which has just
                         // happened — the first `next()` loads a chunk before it yields anything.
                         if (count === undefined) {
@@ -117,7 +124,7 @@ module.exports = function (RED) {
                     }
                 }
 
-                if (node.mode === 'array') {
+                if (request.mode === 'array') {
                     msg.payload = collected;
                     msg.total = iterator.total;
                     nodeSend(hideClientReferences(msg));
@@ -138,35 +145,49 @@ module.exports = function (RED) {
             }
         };
 
+        // Every setting the dialog offers can also arrive with the message, so one configured node can
+        // serve a flow that reads different things — see lib/list-request.js for where each value comes
+        // from and which wins.
         this.on('input', async function (msg, nodeSend, nodeDone) {
-            const kind = LIST_KINDS[node.what];
-            const peer = msg.peer !== undefined && msg.peer !== '' ? msg.peer : node.peer;
+            const settings = resolveListSettings(node, msg);
+            const kind = LIST_KINDS[settings.what];
             const request = {
                 method: kind === undefined ? undefined : kind.method,
-                limit: resolveLimit(msg.limit !== undefined ? msg.limit : node.limit),
+                limit: resolveLimit(settings.limit),
+                mode: settings.mode,
                 args: undefined,
             };
 
             if (kind !== undefined) {
-                if (!kind.needsPeer || peer !== '') {
-                    if (node.config) {
-                        const client = await node.config.getTelegramClient(node);
-                        if (client) {
-                            const search = msg.search !== undefined ? msg.search : node.search;
-                            request.args = buildListArgs(node.what, peer, request.limit, search);
-                            await node.readAll(client, request, msg, nodeSend, nodeDone);
+                if (LIST_MODES.includes(settings.mode)) {
+                    if (!kind.needsPeer || settings.peer !== '') {
+                        if (node.config) {
+                            const client = await node.config.getTelegramClient(node);
+                            if (client) {
+                                request.args = buildListArgs(
+                                    settings.what,
+                                    settings.peer,
+                                    request.limit,
+                                    settings.search
+                                );
+                                await node.readAll(client, request, msg, nodeSend, nodeDone);
+                            } else {
+                                node.status(DISCONNECTED);
+                                nodeDone('No telegram client: check the config node and login first.');
+                            }
                         } else {
-                            node.status(DISCONNECTED);
-                            nodeDone('No telegram client: check the config node and login first.');
+                            nodeDone('No telegram client config node configured.');
                         }
                     } else {
-                        nodeDone('No telegram client config node configured.');
+                        nodeDone('No chat: set "Read from" on the node, msg.peer or msg.payload.peer.');
                     }
                 } else {
-                    nodeDone('No chat: set "Read from" on the node or msg.peer.');
+                    nodeDone('Unknown output mode: ' + settings.mode + '. Expected one of ' + LIST_MODES.join(', '));
                 }
             } else {
-                nodeDone('Unknown read type: ' + node.what + '. Expected one of ' + Object.keys(LIST_KINDS).join(', '));
+                nodeDone(
+                    'Unknown read type: ' + settings.what + '. Expected one of ' + Object.keys(LIST_KINDS).join(', ')
+                );
             }
         });
 

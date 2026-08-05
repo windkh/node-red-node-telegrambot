@@ -68,10 +68,55 @@ function emitCount(limit, total) {
     return count;
 }
 
+// The two ways a read can leave the node. Anything else is a mistake worth reporting rather than
+// silently reading as one of them.
+const LIST_MODES = ['stream', 'array'];
+
+// Which settings a message may override, and what they are called on the node.
+const OVERRIDABLE = ['what', 'peer', 'limit', 'search', 'mode'];
+
+// What this read should do: the node's configuration, with anything the message supplied on top.
+//
+// Two ways in, both supported on purpose. `msg.payload` as an object is the one to reach for — it says
+// "this is the request" and carries every setting in one place, which is what a Function node in front of
+// the node wants to build. The flat `msg.peer` / `msg.limit` / `msg.search` predate it and stay: they are
+// documented and in use, so removing them would break flows for a tidier surface.
+//
+// `msg.payload` wins over a flat field. Setting both is a contradiction, and the more specific mechanism
+// is the one that reads as deliberate.
+//
+// A payload that is not a plain object contributes nothing. That is not defensiveness about types: the
+// node is normally triggered by an inject, whose payload is a timestamp or a string, and reading fields
+// off that would turn every such trigger into a request full of `undefined`.
+function resolveListSettings(configured, msg) {
+    const settings = {};
+    const payload = msg.payload;
+    const fromPayload = typeof payload === 'object' && payload !== null && !Array.isArray(payload) ? payload : {};
+
+    for (const name of OVERRIDABLE) {
+        let value = configured[name];
+
+        if (msg[name] !== undefined && msg[name] !== '') {
+            value = msg[name];
+        }
+
+        if (fromPayload[name] !== undefined && fromPayload[name] !== '') {
+            value = fromPayload[name];
+        }
+
+        settings[name] = value;
+    }
+
+    return settings;
+}
+
 module.exports = {
     LIST_KINDS,
+    LIST_MODES,
+    OVERRIDABLE,
     DEFAULT_LIMIT,
     resolveLimit,
     buildListArgs,
     emitCount,
+    resolveListSettings,
 };

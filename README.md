@@ -308,14 +308,35 @@ available, but it has to be asked for — the same convention as **Max size** on
 
 #### Inputs
 
+Every setting the dialog offers can also arrive with the message, so one configured node can serve a flow
+that reads different things. Send `msg.payload` as an object:
+
+```javascript
+msg.payload = {
+    what: 'messages', // Read:      messages | dialogs | participants
+    peer: 'me', // Read from: a username, a chat id, or "me" for Saved Messages
+    limit: 50, // Limit:     0 means everything
+    mode: 'stream', // Output:    stream | array
+    search: 'invoice', // only messages and participants can be searched
+};
+```
+
+Leave a field out to keep what the node has configured. The `ReadHistory` example ships a Function node
+that does exactly this.
+
+The flat properties came first and still work:
+
 | Property     | Effect                                                                        |
 | ------------ | ----------------------------------------------------------------------------- |
 | `msg.peer`   | overrides **Read from**. Ignored for dialogs.                                 |
 | `msg.limit`  | overrides **Limit**.                                                          |
 | `msg.search` | overrides **Search**. Ignored for dialogs, which Telegram cannot search here. |
 
-Any message triggers a read; its payload is not used, and its other properties are carried through to
-every emitted message.
+`msg.payload` wins where both are given. A payload that is **not** an object — a timestamp from an inject,
+a string — contributes nothing and simply triggers the read, so existing flows are unaffected. An unknown
+`what` or `mode` is reported as an error rather than guessed at.
+
+Any message triggers a read, and its other properties are carried through to every emitted message.
 
 The node shows `read n` while it works, so a long read does not look like a hang. A redeploy stops it at
 the next item rather than continuing to pull from Telegram.

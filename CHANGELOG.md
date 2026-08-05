@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+# [2.1.0] - 2026-08-04
+
+### added `msg.payload` as the list node's request: **Read**, **Read from**, **Limit**, **Output** and **Search** can all arrive with the message and override what is configured, so one node can serve a flow that reads different things. `what` and `mode` were not overridable at all before; `msg.peer`, `msg.limit` and `msg.search` keep working and `msg.payload` wins where both are given
+
+### a payload that is not an object - a timestamp from an inject, a string - contributes nothing and simply triggers the read, so existing flows are unaffected
+
+### changed an unknown **Output** value from silently reading as `array` to an error naming what is accepted. Anything that was not `stream` used to change the shape of the output without saying so
+
+### the `ReadHistory` example now ships a Function node in front of the list node that builds that payload, with each field commented
+
 # [2.0.2] - 2026-08-04
 
 ### fixed four examples failing on the first inject. `ReadHistory`, `UploadFile` and `UploadAlbum` shipped an empty **peer** and stopped with `No chat: set "Read from" on the node or msg.peer.`, and `Api.messages.SendMessage` shipped the placeholder `"to username"`, which can never resolve because a username has no space in it. All four now address `me` - your own Saved Messages, which exists on every account, needs no access hash and touches nobody else. The tab notes say how to point them elsewhere
@@ -242,7 +252,7 @@ All notable changes to this project will be documented in this file.
 
 ### changed minimum nodejs version to 20
 
-### split the monolithic node file into telegrambot/nodes/ and telegrambot/lib/ â€” no behaviour change
+### split the monolithic node file into telegrambot/nodes/ and telegrambot/lib/ — no behaviour change
 
 ### added a test suite (node:test + node-red-node-test-helper) and architecture docs
 
