@@ -4,7 +4,7 @@
         "type": "tab",
         "label": "Read history",
         "disabled": false,
-        "info": "Reads the last 50 messages of a chat and joins them back into one array.\n\nThe list node streams one message per item, so a large history never has to fit in memory at once. The join node in automatic mode uses msg.parts, which the list node sets — count comes from Telegram's own total for the query, capped at the limit.\n\nSet the Bot to your telegram client config node and enter a username under \"Read from\".\n\nMind the limit: 0 means no limit, which on a busy channel reads it back to the first message and can earn a FLOOD_WAIT."
+        "info": "Reads the last 50 messages of a chat and joins them back into one array.\n\nThe list node streams one message per item, so a large history never has to fit in memory at once. The join node in automatic mode uses msg.parts, which the list node sets â€” count comes from Telegram's own total for the query, capped at the limit.\n\nSet the Bot to your telegram client config node and inject. It reads your own Saved Messages, which every account has - put a username or a chat id under \"Read from\" to read something else.\n\nMind the limit: 0 means no limit, which on a busy channel reads it back to the first message and can earn a FLOOD_WAIT."
     },
     {
         "id": "history_trigger",
@@ -34,7 +34,7 @@
         "name": "last 50 messages",
         "bot": "",
         "what": "messages",
-        "peer": "",
+        "peer": "me",
         "limit": "50",
         "search": "",
         "mode": "stream",

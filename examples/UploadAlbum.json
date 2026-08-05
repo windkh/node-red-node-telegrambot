@@ -4,7 +4,7 @@
         "type": "tab",
         "label": "Upload an album",
         "disabled": false,
-        "info": "Sends three files as one Telegram album.\n\nAn array in msg.payload becomes an album. Every Buffer in it needs its own name, so msg.filename is an array aligned by index — a path in the array needs no entry, which is why the middle slot is empty here.\n\nIf any item is wrong the whole album is refused and the error names the position, e.g. \"msg.filename[2] is required when msg.payload[2] is a Buffer.\"\n\nSet the Bot to your telegram client config node and \"Send to\" to a username. Replace the paths with real ones.\n\nThe node status shows uploading n% while the files go up."
+        "info": "Sends three files as one Telegram album.\n\nAn array in msg.payload becomes an album. Every Buffer in it needs its own name, so msg.filename is an array aligned by index — a path in the array needs no entry, which is why the middle slot is empty here.\n\nIf any item is wrong the whole album is refused and the error names the position, e.g. \"msg.filename[2] is required when msg.payload[2] is a Buffer.\"\n\nSet the Bot to your telegram client config node and replace the paths with real ones. It sends to your own Saved Messages; put a username under \"Send to\" to send somewhere else.\n\nThe node status shows uploading n% while the files go up."
     },
     {
         "id": "album_trigger",
@@ -49,7 +49,7 @@
         "z": "upload_album_tab",
         "name": "upload the album",
         "bot": "",
-        "peer": "",
+        "peer": "me",
         "caption": "",
         "forcedocument": false,
         "silent": false,

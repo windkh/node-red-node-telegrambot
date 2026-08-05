@@ -4,14 +4,18 @@
         "type": "tab",
         "label": "Upload a file",
         "disabled": false,
-        "info": "Reads a file from disk and sends it to a chat.\n\n`file in` produces a Buffer in msg.payload and the path in msg.filename, which is exactly what the upload node needs — a Buffer carries no name of its own, so msg.filename is required.\n\nFor large files send the path instead of the Buffer: set `file in` to output a filename only, or put the path straight into msg.payload. Telegram then streams it from disk rather than the flow holding the whole file in memory."
+        "info": "Reads a file from disk and sends it to a chat.\n\n`file in` produces a Buffer in msg.payload and the path in msg.filename, which is exactly what the upload node needs — a Buffer carries no name of its own, so msg.filename is required.\n\nFor large files send the path instead of the Buffer: set `file in` to output a filename only, or put the path straight into msg.payload. Telegram then streams it from disk rather than the flow holding the whole file in memory.\n\nIt sends to your own Saved Messages; put a username under \"Send to\" to send somewhere else."
     },
     {
         "id": "upload_trigger",
         "type": "inject",
         "z": "upload_file_tab",
         "name": "send it",
-        "props": [{ "p": "payload" }],
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
         "repeat": "",
         "once": false,
         "topic": "",
@@ -66,7 +70,7 @@
         "z": "upload_file_tab",
         "name": "upload",
         "bot": "",
-        "peer": "",
+        "peer": "me",
         "caption": "Here is the report",
         "forcedocument": true,
         "x": 680,
