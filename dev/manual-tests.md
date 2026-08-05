@@ -26,7 +26,7 @@ Tick as you go:
 
 Nothing else works until this does.
 
-- [ ] **1.1 Fresh config, phone-code login.** New _telegram client config_, enter ApiID and ApiHash, Login
+- [x] **1.1 Fresh config, phone-code login.** New _telegram client config_, enter ApiID and ApiHash, Login
       Mode `user`, Phone-Number. Expect: **no Password field yet** — nothing has asked for one. Click
       **Login**. Expect: the tip says `Step 1 of 2` and how to submit the code. Type the code into
       **Phone-Code** and click outside the field. Expect: the tip goes to `Step 2 of 2` and the **Password**
@@ -35,10 +35,10 @@ Nothing else works until this does.
 - [ ] **1.2 Two-step verification.** If the account has it, enter the password in step 2 and leave the field.
       Expect: Session fills. Then repeat and leave the password **empty**: expect the login to abort with a
       message rather than hang.
-- [ ] **1.3 Secrets are not shown back.** Reopen the config node. Expect: ApiHash, Session, Bot-Token and
+- [x] **1.3 Secrets are not shown back.** Reopen the config node. Expect: ApiHash, Session, Bot-Token and
       Password show `__PWRD__`, not their values. Click Done without touching them and Deploy. Expect: the
       login still works, i.e. nothing was overwritten with the placeholder.
-- [ ] **1.3a Re-login with a stored password.** ⚠ The bug fixed in 1.7.7. On a config node that already has
+- [x] **1.3a Re-login with a stored password.** ⚠ The bug fixed in 1.7.7. On a config node that already has
       a two-step-verification password stored, click **Login** without clearing the Password field (it shows
       `__PWRD__`). Expect: after the code, the tip says the stored password is being used, the Password field
       stays hidden, and the login succeeds. Before the fix this always ended in `AUTH_USER_CANCEL`.
@@ -54,9 +54,9 @@ Nothing else works until this does.
       where Telegram Desktop is installed. Expect: the same login completes.
 - [ ] **1.6 QR replaces a running attempt.** Click **Login with QR** twice in a row. Expect: the second code
       works; the first is abandoned without leaving an error on screen.
-- [ ] **1.7 Bot mode.** Login Mode `bot`, a token from @BotFather, **Login**. Expect: Phone-Number and
+- [x] **1.7 Bot mode.** Login Mode `bot`, a token from @BotFather, **Login**. Expect: Phone-Number and
       Password hide, Bot-Token shows, and a session comes back without any code.
-- [ ] **1.8 Verbose logging.** Tick it and Deploy. Expect: noticeably more from teleproto in the log.
+- [x] **1.8 Verbose logging.** Tick it and Deploy. Expect: noticeably more from teleproto in the log.
 - [ ] **1.9 Device fields.** Set Device Model / System Version / App Version, Deploy, then check the session
       in Telegram → _Settings, Devices_. Expect: the entry shows what you typed. Clear them and expect your
       host's real values instead.
@@ -65,7 +65,7 @@ Nothing else works until this does.
 
 The part most likely to be quietly wrong, and now the part that tells you why.
 
-- [ ] **2.1 Green.** With a valid session deployed, every telegram node shows a green ring `connected`.
+- [x] **2.1 Green.** With a valid session deployed, every telegram node shows a green ring `connected`.
 - [ ] **2.2 No session.** New config node, no login, wired to a sender. Expect a **red dot**
       `no session: login first` — not a generic `disconnected`.
 - [ ] **2.3 Wrong credentials.** Put a wrong ApiID or ApiHash in a config node and Deploy. Expect a red dot
@@ -75,20 +75,20 @@ The part most likely to be quietly wrong, and now the part that tells you why.
       phone.** A code here would mean the deploy-time login is back (ADR 0022).
 - [ ] **2.5 Recovery is green again.** Log in again from the editor and Deploy. Expect green, and the failure
       text gone rather than lingering.
-- [ ] **2.6 Connection drop.** Pull the network for a minute. Expect a red **ring** `disconnected` — a ring,
+- [x] **2.6 Connection drop.** Pull the network for a minute. Expect a red **ring** `disconnected` — a ring,
       because this one heals itself — then green when it comes back.
 
 ## 3 · Receiver
 
 Import **EchoMessage** from Import → Examples for a working starting point.
 
-- [ ] **3.1 New messages.** Tick _New messages_ only. Send yourself a message from another account. Expect
+- [x] **3.1 New messages.** Tick _New messages_ only. Send yourself a message from another account. Expect
       one `msg.payload` with `type`, `message`, `sender`, `chat`.
-- [ ] **3.2 Edited messages.** Tick _Edited messages_, edit a message. Expect an event.
-- [ ] **3.3 Deleted messages.** Tick _Deleted messages_, delete one. Expect an event.
+- [x] **3.2 Edited messages.** Tick _Edited messages_, edit a message. Expect an event.
+- [x] **3.3 Deleted messages.** Tick _Deleted messages_, delete one. Expect an event.
 - [ ] **3.4 Albums.** Tick _Albums_, send several photos as one group. Expect **one** event with the group,
       not one per photo.
-- [ ] **3.5 Raw events.** Tick _Raw events_. Expect a much noisier stream, in the same shape as every other
+- [x] **3.5 Raw events.** Tick _Raw events_. Expect a much noisier stream, in the same shape as every other
       event: `msg.payload.type` is `Raw` and `msg.payload.event` is the update. ⚠ Changed in 2.0.0 — before
       it, the update sat directly in `msg.payload`. `msg.type` is still `Raw` as well.
 - [ ] **3.6 Callback query.** Only reachable in **bot** mode — see 5.6. In user mode this stays silent by
@@ -103,18 +103,18 @@ Import **EchoMessage** from Import → Examples for a working starting point.
 - [ ] **3.11 Filter: Pattern.** A regex like `^report`. Expect only matching text.
 - [ ] **3.12 Bad pattern.** Enter `[unclosed`. Expect a red `invalid filter` status and an error in the log —
       not a crash, and not silent acceptance.
-- [ ] **3.13 Redeploy leaves nothing behind.** With the receiver running, Deploy several times, then send one
+- [x] **3.13 Redeploy leaves nothing behind.** With the receiver running, Deploy several times, then send one
       message. Expect it **once**, not once per deploy. (This is what ADR 0003 is about.)
 
 ## 4 · Sender
 
 Import **Client.sendMessage** and **Api.messages.SendMessage**.
 
-- [ ] **4.1 Client method.** `msg.payload = { func: 'sendMessage', args: ['<username>', { message: 'hi' }] }`.
+- [x] **4.1 Client method.** `msg.payload = { func: 'sendMessage', args: ['<username>', { message: 'hi' }] }`.
       Expect the message to arrive and `msg.payload` to come back as the sent Message — **not** a pending
       Promise.
-- [ ] **4.2 Raw API.** The SendMessage example, with `peer` set to a real username. Note it needs `randomId`.
-- [ ] **4.3 Placeholder left in.** Run the SendMessage example **unedited**, with `peer: "to username"`.
+- [x] **4.2 Raw API.** The SendMessage example, with `peer` set to a real username. Note it needs `randomId`.
+- [x] **4.3 Placeholder left in.** Run the SendMessage example **unedited**, with `peer: "to username"`.
       Expect an error _and_ a hint saying Telegram does not know that username — mentioning that a space is
       not part of a username. This is the case that had no hint before 1.7.1.
 - [ ] **4.4 Numeric id, fresh restart.** Address a peer by numeric id, confirm it works, then restart
@@ -253,10 +253,10 @@ Only if you have one.
 - [ ] **12.1 All eight examples import.** Import → Examples → node-red-node-telegrambot. Expect
       Api.account.CheckUsername, Api.messages.SendMessage, Client.sendMessage, DownloadMedia, EchoMessage,
       ReadHistory, UploadAlbum, UploadFile.
-- [ ] **12.2 Node help.** Open the help sidebar for each of the six node types. Expect no empty panes.
+- [x] **12.2 Node help.** Open the help sidebar for each of the six node types. Expect no empty panes.
 - [ ] **12.3 Two config nodes at once.** Two accounts, two config nodes, one flow. Expect both to work and
       neither to steal the other's session.
-- [ ] **12.4 Removing a node.** Delete a receiver and Deploy. Expect no leftover event handlers — messages
+- [x] **12.4 Removing a node.** Delete a receiver and Deploy. Expect no leftover event handlers — messages
       for it stop.
 
 ---
