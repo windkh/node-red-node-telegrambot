@@ -1,6 +1,8 @@
 // Created by Karl-Heinz Wind
 'use strict';
 
+const { buildProxy } = require('./proxy');
+
 // Builds the TelegramClient constructor options.
 //
 // `connectionRetries` is deliberately not set. The library defaults it to Infinity, which is what a
@@ -33,8 +35,10 @@ function parseOptionalSeconds(value) {
 }
 
 function buildClientParams(options) {
+    // Through ./proxy rather than straight across: the two login routes take theirs from the editor,
+    // which posts every proxy field at once, and teleproto reads that as an MTProxy. See ./proxy.
     const clientParams = {
-        proxy: options.proxy,
+        proxy: buildProxy(options.proxy),
     };
 
     // How long the library silently sleeps through a FLOOD_WAIT before giving up and throwing. Omitted

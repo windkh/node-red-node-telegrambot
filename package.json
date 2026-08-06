@@ -1,6 +1,6 @@
 {
     "name": "node-red-node-telegrambot",
-    "version": "2.1.1",
+    "version": "2.1.2",
     "description": "Telegram userbot nodes for Node-RED",
     "files": [
         "telegrambot/",

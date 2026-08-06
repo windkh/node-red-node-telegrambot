@@ -60,6 +60,32 @@ describe('telegram client nodes', () => {
         assert.strictEqual(proxy.port, 1080);
         assert.strictEqual(proxy.socksType, 5);
         assert.strictEqual(proxy.timeout, 2);
+        // Not merely false: the editor's `mtproxy` default puts the key on every config, and teleproto
+        // decides it has an MTProxy from the key being there at all. See lib/proxy.js.
+        assert.ok(!('MTProxy' in proxy), 'a SOCKS config must not carry the MTProxy discriminant');
+    });
+
+    it('builds an MTProxy when the config asks for one', async () => {
+        const flow = [
+            {
+                ...configNode,
+                useproxy: true,
+                mtproxy: true,
+                host: '127.0.0.1',
+                port: '443',
+                sockstype: '5',
+                secret: '0123456789abcdef0123456789abcdef',
+                timeout: '2',
+            },
+        ];
+        await helper.load(telegramBotNode, flow);
+
+        const proxy = helper.getNode('c1').proxy;
+        assert.strictEqual(proxy.MTProxy, true);
+        assert.strictEqual(proxy.secret, '0123456789abcdef0123456789abcdef');
+        // `sockstype` keeps its editor default even when it means nothing, so the other arm of the
+        // union has to be dropped rather than passed along.
+        assert.ok(!('socksType' in proxy), 'an MTProxy config must not carry the SOCKS fields');
     });
 
     it('exposes the bot token and the two-step-verification password from credentials', async () => {

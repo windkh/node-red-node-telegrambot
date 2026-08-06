@@ -4,6 +4,7 @@
 const { UpdateConnectionState } = require('teleproto/network');
 
 const { createTelegramClient } = require('../lib/telegram-client');
+const { buildProxy } = require('../lib/proxy');
 const { describeSessionStore } = require('../lib/session-store');
 const { updateStatePath, readUpdateState, writeUpdateState } = require('../lib/update-state');
 
@@ -80,7 +81,9 @@ module.exports = function (RED) {
         }
 
         if (this.useProxy) {
-            this.proxy = {
+            // buildProxy keeps the two proxy types apart: teleproto decides which one it has from the
+            // presence of the `MTProxy` key, so the fields of the other one must not be there at all.
+            this.proxy = buildProxy({
                 ip: n.host,
                 socksType: Number(n.sockstype),
                 port: Number(n.port),
@@ -91,7 +94,7 @@ module.exports = function (RED) {
                 secret: n.secret,
                 MTProxy: n.mtproxy,
                 timeout: Number(n.timeout),
-            };
+            });
         }
 
         // Constant for the node's lifetime, like the device fields above, so it is a closure value
