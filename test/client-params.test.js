@@ -8,10 +8,24 @@ const { buildClientParams } = require('../telegrambot/lib/client-params');
 
 describe('buildClientParams', () => {
     it('passes the proxy through', () => {
-        const proxy = { ip: '127.0.0.1', port: 1080 };
+        const proxy = { ip: '127.0.0.1', port: 1080, socksType: 5 };
         const params = buildClientParams({ proxy: proxy });
 
-        assert.strictEqual(params.proxy, proxy);
+        assert.strictEqual(params.proxy.ip, '127.0.0.1');
+        assert.strictEqual(params.proxy.port, 1080);
+        assert.strictEqual(params.proxy.socksType, 5);
+    });
+
+    it('normalises what the editor posts, which is both proxy types at once', () => {
+        // The login routes take their proxy straight from the browser, where every field is filled in
+        // and `MTProxy` is a checkbox — so it arrives as `false` rather than absent, and teleproto
+        // reads the mere presence of that key as "this is an MTProxy". See lib/proxy.js.
+        const params = buildClientParams({
+            proxy: { ip: '127.0.0.1', port: 1080, socksType: 5, secret: '', MTProxy: false },
+        });
+
+        assert.ok(!('MTProxy' in params.proxy), 'a SOCKS proxy must not reach teleproto with the key set');
+        assert.strictEqual(params.proxy.socksType, 5);
     });
 
     it('never passes useWSS, which teleproto does not have', () => {

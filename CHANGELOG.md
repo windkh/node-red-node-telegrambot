@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+# [2.1.2] - 2026-08-06
+
+### fixed SOCKS proxies never connecting. teleproto tells its two proxy types apart by asking whether the `MTProxy` **key exists**, not whether it is true - and the config node and the login panel both built one flat object carrying every field, `MTProxy: false` included. Every SOCKS proxy therefore looked like an MTProxy: teleproto selected the MTProxy connection, parsed the empty secret and failed with `MTProxy: secret is required`, while the SOCKS tunnel - guarded by the same check inverted - was never opened at all. The node showed a failure naming a proxy type that had not been configured
+
+### the new `telegrambot/lib/proxy.js` emits one arm of that union and nothing of the other, for the runtime path and for both login routes. An MTProxy config no longer carries the SOCKS fields either
+
+### `test/proxy.test.js` holds teleproto itself to the branch that made this a bug, rather than restating it: it asserts which connection class the library picks for each shape, the flat object included
+
 # [2.1.1] - 2026-08-04
 
 ### the published package now contains only what a Node-RED installation needs. `package.json` had no `files` field and there was no `.npmignore`, so every release shipped the test suite, the ADRs, the manual test plan and the editor settings as well - 109 files and 209 kB, now 40 files and 84 kB. Nothing a flow uses was removed: the runtime, all eight examples, the editor html, the icon, README, MIGRATION and CHANGELOG are all in
