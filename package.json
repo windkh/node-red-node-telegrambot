@@ -23,6 +23,10 @@
         "coverage:check": "c8 --check-coverage npm test"
     },
     "c8": {
+        "reporter": [
+            "text",
+            "lcov"
+        ],
         "include": [
             "telegrambot/**/*.js"
         ],
