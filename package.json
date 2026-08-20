@@ -20,7 +20,9 @@
         "format:check": "prettier --check .",
         "test": "node --test --test-force-exit --test-timeout=30000 --test-concurrency=1",
         "coverage": "c8 npm test",
-        "coverage:check": "c8 --check-coverage npm test"
+        "coverage:check": "c8 --check-coverage npm test",
+        "standards:audit": "nrstd audit",
+        "standards:sync": "nrstd sync"
     },
     "c8": {
         "reporter": [
@@ -67,6 +69,7 @@
         "globals": "^17.0.0",
         "node-red": "^5.0.1",
         "node-red-node-test-helper": "^0.3.4",
+        "node-red-standards": "github:windkh/node-red-standards",
         "prettier": "^3.0.0"
     }
 }
