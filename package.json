@@ -1,6 +1,6 @@
 {
     "name": "node-red-node-telegrambot",
-    "version": "3.0.0",
+    "version": "3.0.1",
     "description": "Telegram userbot nodes for Node-RED",
     "files": [
         "telegrambot/",
@@ -18,7 +18,7 @@
         "lint:fix": "eslint . --fix",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
-        "test": "node --test --test-force-exit --test-timeout=30000 --test-concurrency=1",
+        "test": "node --test --test-timeout=30000 --test-concurrency=1",
         "coverage": "c8 npm test",
         "coverage:check": "c8 --check-coverage npm test",
         "standards:audit": "nrstd audit",

@@ -53,14 +53,31 @@ function describeToken(token, expires) {
 // lazily because an account without two-step verification never needs it.
 //
 // Failures go to `error`, never by rejecting: the caller is an HTTP route that has already answered.
-async function loginWithQrCode(parameters, getPassword, qrCreated, sessionCreated, error, abortSignal) {
+// The client is built through `createClient` so the teardown below can be held to it without an
+// account: everything past `connect()` needs a real one, which is why this path had no coverage and
+// could leak a connection unnoticed. Production passes nothing and gets the real constructor.
+function createTelegramClient(apiId, apiHash, clientParams) {
+    const client = new TelegramClient(new StringSession(''), apiId, apiHash, clientParams);
+    client.setLogLevel('warn');
+    return client;
+}
+
+async function loginWithQrCode(
+    parameters,
+    getPassword,
+    qrCreated,
+    sessionCreated,
+    error,
+    abortSignal,
+    createClient = createTelegramClient
+) {
+    // Declared out here so the `finally` can reach it: the parameter check below leaves without one.
+    let client;
     try {
         const apiId = Number(parameters.apiId);
         const apiHash = parameters.apiHash;
 
         if (Number.isFinite(apiId) && apiId > 0 && apiHash !== undefined && apiHash !== '') {
-            const stringSession = new StringSession('');
-
             const clientParams = buildClientParams({
                 proxy: parameters.proxy,
                 deviceModel: parameters.devicemodel,
@@ -68,8 +85,7 @@ async function loginWithQrCode(parameters, getPassword, qrCreated, sessionCreate
                 appVersion: parameters.appversion,
             });
 
-            const client = new TelegramClient(stringSession, apiId, apiHash, clientParams);
-            client.setLogLevel('warn');
+            client = createClient(apiId, apiHash, clientParams);
 
             await client.connect();
 
@@ -92,10 +108,26 @@ async function loginWithQrCode(parameters, getPassword, qrCreated, sessionCreate
         }
     } catch (err) {
         error(describeAuthError(err));
+    } finally {
+        // Every exit closes the connection: a success, an aborted login (the editor starting a second
+        // one, or the five-minute backstop in ../lib/qr-session) and a failure all leave a connected
+        // client behind otherwise. In a long-running Node-RED those accumulate against Telegram.
+        //
+        // A teardown failure must not overwrite the outcome the caller was just given -- `error` sets
+        // the status the editor polls, and reporting a disconnect problem there would replace a real
+        // session with a message about cleanup.
+        if (client !== undefined) {
+            try {
+                await client.destroy();
+            } catch {
+                // nothing left to do with it
+            }
+        }
     }
 }
 
 module.exports = {
+    createTelegramClient,
     loginUrl,
     qrCodeSvg,
     describeToken,

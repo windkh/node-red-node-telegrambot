@@ -26,7 +26,10 @@ const { createQrSession } = require('../lib/qr-session');
 // __PWRD__ placeholder for one whose secrets are stored. resolveLoginSecrets swaps the placeholder for
 // the stored credential, which is what lets those credentials be `password`-typed — the runtime never
 // hands them back to the browser at all.
-module.exports = function (RED) {
+// `runQrLogin` is a parameter for the same reason ../lib/qr-session takes one: it is the only part
+// that talks to Telegram, so a test can drive the routes without opening a connection. Production
+// passes nothing and gets the real login.
+module.exports = function (RED, runQrLogin = loginWithQrCode) {
     RED.httpAdmin.post('/node-red-node-telegrambot-setphonecode', function (req, res) {
         const parameters = req.body || {};
 
@@ -46,7 +49,7 @@ module.exports = function (RED) {
     // `-loginqr` starts the login and answers at once; the editor then polls `-loginqrstatus`. That is
     // what lets a *replacement* token be delivered when Telegram expires the old one, which the single
     // held response of the phone-code flow cannot do. ../lib/qr-session owns the rules.
-    const qrSession = createQrSession(loginWithQrCode);
+    const qrSession = createQrSession(runQrLogin);
 
     RED.httpAdmin.post('/node-red-node-telegrambot-loginqr', function (req, res) {
         const posted = req.body || {};
