@@ -6,6 +6,27 @@ const assert = require('node:assert');
 
 const { loginUrl, qrCodeSvg, describeToken, loginWithQrCode } = require('../telegrambot/lib/login-qr');
 
+// A client that records what was called on it. Everything past `connect()` needs a real account, so
+// the constructor is injected rather than the network faked -- see lib/login-qr.
+function fakeClient(behaviour) {
+    const calls = { connected: false, destroyed: 0 };
+    return {
+        calls: calls,
+        async connect() {
+            calls.connected = true;
+        },
+        async signInUserWithQrCode(auth, handlers) {
+            return behaviour(handlers);
+        },
+        session: { save: () => 'a-session-string' },
+        async destroy() {
+            calls.destroyed += 1;
+        },
+    };
+}
+
+const CREDENTIALS = { apiId: 12345, apiHash: 'hash' };
+
 // Not a real login token — any bytes will do, and they must not be a real one.
 const A_TOKEN = Buffer.from([0x01, 0x02, 0x03, 0xfb, 0xfc, 0xfd, 0xfe, 0xff]);
 
@@ -116,5 +137,97 @@ describe('loginWithQrCode parameter validation', () => {
         const { errors } = await run({ apiId: '12345' });
 
         assert.deepStrictEqual(errors, ['Parameters are missing: apiId, apiHash']);
+    });
+});
+
+describe('loginWithQrCode closes the connection it opened', () => {
+    // The defect this covers: the client was connected and never torn down, so an abandoned or
+    // replaced QR login left a socket open against Telegram for as long as Node-RED ran. It also kept
+    // the test suite from ever exiting, which `--test-force-exit` hid.
+    it('destroys the client after a successful sign-in', async () => {
+        let created;
+        const results = [];
+
+        await loginWithQrCode(
+            CREDENTIALS,
+            undefined,
+            () => {},
+            (session) => results.push(['session', session]),
+            (message) => results.push(['error', message]),
+            undefined,
+            () => (created = fakeClient(async () => undefined))
+        );
+
+        assert.strictEqual(created.calls.connected, true);
+        assert.deepStrictEqual(results, [['session', 'a-session-string']]);
+        assert.strictEqual(created.calls.destroyed, 1, 'a finished login must not stay connected');
+    });
+
+    it('destroys the client when the login fails', async () => {
+        let created;
+        const results = [];
+
+        await loginWithQrCode(
+            CREDENTIALS,
+            undefined,
+            () => {},
+            () => {},
+            (m) => results.push(m),
+            undefined,
+            () => {
+                created = fakeClient(async () => {
+                    throw new Error('AUTH_TOKEN_EXPIRED');
+                });
+                return created;
+            }
+        );
+
+        assert.strictEqual(results.length, 1);
+        assert.strictEqual(created.calls.destroyed, 1, 'a failed login must not stay connected either');
+    });
+
+    it('reports the login result even when the teardown fails', async () => {
+        // A disconnect problem must not overwrite the status the editor polls: replacing a real session
+        // with a message about cleanup would lose the login the user just completed.
+        const results = [];
+
+        await loginWithQrCode(
+            CREDENTIALS,
+            undefined,
+            () => {},
+            (session) => results.push(['session', session]),
+            (message) => results.push(['error', message]),
+            undefined,
+            () => {
+                const client = fakeClient(async () => undefined);
+                client.destroy = async () => {
+                    throw new Error('socket already gone');
+                };
+                return client;
+            }
+        );
+
+        assert.deepStrictEqual(results, [['session', 'a-session-string']]);
+    });
+
+    it('builds no client at all when the parameters are missing', async () => {
+        let built = 0;
+        const results = [];
+
+        await loginWithQrCode(
+            {},
+            undefined,
+            () => {},
+            () => {},
+            (m) => results.push(m),
+            undefined,
+            () => {
+                built += 1;
+                return fakeClient(async () => undefined);
+            }
+        );
+
+        assert.deepStrictEqual(results, ['Parameters are missing: apiId, apiHash']);
+        assert.strictEqual(built, 0, 'nothing to tear down, so nothing may be built');
     });
 });

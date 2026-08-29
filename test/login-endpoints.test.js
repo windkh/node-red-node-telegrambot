@@ -9,21 +9,27 @@ const { PLACEHOLDER, resolveLoginSecrets } = require('../telegrambot/lib/login-c
 
 // Captures the route handlers so they can be invoked without an HTTP server. `storedCredentials` stands
 // in for what RED.nodes.getCredentials would return.
-function loadRoutes(storedCredentials) {
+// `runQrLogin` defaults to the real one, which never reaches Telegram while the parameter check
+// rejects the request. A test that gets past that check must pass a stand-in -- the suite runs
+// offline, and a login left connected is what kept it from exiting at all.
+function loadRoutes(storedCredentials, runQrLogin) {
     const routes = {};
 
-    loginEndpoints({
-        httpAdmin: {
-            post(route, handler) {
-                routes[route] = handler;
+    loginEndpoints(
+        {
+            httpAdmin: {
+                post(route, handler) {
+                    routes[route] = handler;
+                },
+            },
+            nodes: {
+                getCredentials() {
+                    return storedCredentials;
+                },
             },
         },
-        nodes: {
-            getCredentials() {
-                return storedCredentials;
-            },
-        },
-    });
+        runQrLogin
+    );
 
     return routes;
 }
@@ -200,7 +206,16 @@ describe('QR login admin endpoints', () => {
     });
 
     it('replaces a running login instead of racing it', async () => {
-        const routes = loadRoutes();
+        // A stand-in that never settles, which is what a login waiting for a scan looks like. It also
+        // keeps this test offline: the second request below carries credentials that pass the parameter
+        // check, so the real login would build a client and connect. It used to — and the connection it
+        // left open is why the suite could not exit without `--test-force-exit`.
+        const aborts = [];
+        const neverSettles = (parameters, getPassword, qrCreated, sessionCreated, error, abortSignal) => {
+            aborts.push(abortSignal);
+            return new Promise(() => {});
+        };
+        const routes = loadRoutes(undefined, neverSettles);
 
         routes['/node-red-node-telegrambot-loginqr']({ body: {} }, createResponse());
         await settled();
@@ -213,6 +228,9 @@ describe('QR login admin endpoints', () => {
         routes['/node-red-node-telegrambot-loginqrstatus']({ body: {} }, res);
 
         assert.strictEqual(res.body[0].type, 'waiting', 'the stale error must not survive a restart');
+        assert.strictEqual(aborts.length, 2, 'both attempts ran');
+        assert.strictEqual(aborts[0].aborted, true, 'the replaced attempt must be aborted, not left running');
+        assert.strictEqual(aborts[1].aborted, false);
     });
 
     it('survives a request with no body at all', () => {

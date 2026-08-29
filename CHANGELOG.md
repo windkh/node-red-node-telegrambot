@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+# [3.0.1] - 2026-08-29
+
+### fixed the QR login never closing the connection it opened. `loginWithQrCode` connected a `TelegramClient` and tore it down on none of its three exits — a completed sign-in, an aborted one (the editor starting a second attempt, or the five-minute backstop in `lib/qr-session.js`) and a failure all left a socket open against Telegram. In a long-running Node-RED those accumulate: every abandoned or replaced QR login costs one. The teardown now happens in a `finally`, so no path can skip it
+
+### a teardown failure can no longer overwrite the login result. `error` sets the status the editor polls, so reporting a disconnect problem there would have replaced a real session with a message about cleanup
+
+### **the test suite no longer connects to Telegram.** One test in `test/login-endpoints.test.js` posted credentials that passed the parameter check, so the real login ran and dialled out — against the rule in AGENTS.md that keeps the suite offline. `login-endpoints` now takes the QR login as a parameter, the way `lib/qr-session.js` already did, and that test passes a stand-in
+
+### **removed `--test-force-exit` from the test script.** It called `process.exit()` the moment the last test finished, which raced libuv's teardown and, on Windows, aborted the process _after_ the results were in — marking whole files failed while every test in them passed. It also hid the leak above: a suite that exits on its own has proved it leaks no handles. It now does, in 17s
+
+### `test/login-qr.test.js` holds the fix to each exit — success, failure, and a teardown that itself throws — by injecting the client constructor, which is what made a path that needs a real account testable at all
+
 # [3.0.0] - 2026-08-29
 
 ### **Breaking: requires Node.js >= 22.13.** Node 20 reached EOL on 2026-04-30, and `node-red@5` declares `engines: { node: ">=22.9" }` — so the old `>=20.0.0` promised a configuration our own host runtime rules out, while costing a CI leg and a veto over dependency upgrades. The floor is 22.13, not 22.9, because that is ESLint 10's floor on the 22 line (`^20.19.0 || ^22.13.0 || >=24`): the package used to promise `>=20.0.0` while its mandated linter refused to install below 20.19, so a contributor on 20.0–20.18 got an `EBADENGINE` warning from a floor we had set ourselves. See [ADR 0028](doc/architecture/adr/0028-require-node-22.md) and [MIGRATION.md](/MIGRATION.md)
