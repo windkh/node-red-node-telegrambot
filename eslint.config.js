@@ -7,6 +7,12 @@ const globals = require('globals');
 const prettier = require('eslint-config-prettier');
 
 module.exports = [
+    {
+        // c8 writes coverage/ on every `npm run coverage`, and linting generated output is
+        // noise at best. A repo adds its own ignores here (vendored code, device scripts that
+        // do not run on Node); keep those in the same block rather than a second one.
+        ignores: ['coverage/**'],
+    },
     js.configs.recommended,
     {
         languageOptions: {

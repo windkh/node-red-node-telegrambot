@@ -37,11 +37,11 @@ Or run the following command in the root directory of your Node-RED installation
 
     npm install node-red-node-telegrambot --save
 
-Note that the minimum node-red version 1.3.7 and minimum nodejs version is 20.x.
+Note that the minimum node-red version is 1.3.7 and the minimum nodejs version is 22.13.
 
 # Dependencies
 
-The nodes are tested with `Node.js v18.12.1` and `Node-RED v3.0.2`.
+The nodes are tested on `Node.js 22.x` and `24.x` against `Node-RED v5`.
 
 - [teleproto docs](https://docs.teleproto.dev/)
 - [teleproto API reference](https://ref.teleproto.dev/classes/TelegramClient.html)

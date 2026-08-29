@@ -1,5 +1,36 @@
 # Migration guide
 
+## 3.0.0 — requires Node.js >= 22.13
+
+One change, and it is not in the nodes: **3.0.0 raises the minimum Node.js version to 22.13.**
+No node types, credentials, config properties, payload shapes or status texts changed. Your stored
+session keeps working and you do not have to log in again.
+
+### Do I have to do anything?
+
+Run `node -v`.
+
+- **v22.13 or newer** — nothing to do. Upgrade normally.
+- **older** — upgrade Node first, then this package. npm otherwise refuses the install with
+  `EBADENGINE`, which is deliberate: better than a package that fails at runtime.
+
+If you run **Node-RED 5** you are already fine — it requires Node >= 22.9 itself. The group that has
+to act is **Node-RED 4 on Node 20**.
+
+### Why
+
+Node 20 reached end of life on 2026-04-30, and `node-red@5` declares `engines: { node: ">=22.9" }` —
+so the old `>=20.0.0` promised a configuration our own host runtime rules out. The floor is 22.13
+rather than 22.9 because that is ESLint 10's floor on the 22 line, which removes a mismatch this
+package used to carry between what it promised and what its own toolchain would install.
+
+Full reasoning: [ADR 0028](doc/architecture/adr/0028-require-node-22.md).
+
+### Rollback
+
+`npm install node-red-node-telegrambot@2.1.2` then restart Node-RED. 2.1.2 is identical apart from
+the floor.
+
 ## 2.0.0 — raw events use the same payload shape as the rest
 
 One change, and only if your flow handles **raw events**. Nothing else about 2.0.0 is breaking: node types,
