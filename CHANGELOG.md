@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+# [3.0.0] - 2026-08-29
+
+### **Breaking: requires Node.js >= 22.13.** Node 20 reached EOL on 2026-04-30, and `node-red@5` declares `engines: { node: ">=22.9" }` — so the old `>=20.0.0` promised a configuration our own host runtime rules out, while costing a CI leg and a veto over dependency upgrades. The floor is 22.13, not 22.9, because that is ESLint 10's floor on the 22 line (`^20.19.0 || ^22.13.0 || >=24`): the package used to promise `>=20.0.0` while its mandated linter refused to install below 20.19, so a contributor on 20.0–20.18 got an `EBADENGINE` warning from a floor we had set ourselves. See [ADR 0028](doc/architecture/adr/0028-require-node-22.md) and [MIGRATION.md](/MIGRATION.md)
+
+### CI matrix `[20.x, 22.x]` → `[22.x, 24.x]`. **Node 24 is covered for the first time.** The publish workflow's `verify` job moved with it — it would otherwise have verified a release on Node 20, the runtime this version drops — and `standards-check.yml` now runs on 22.x. All four files the standard owns (`node.js.yml`, `npm-publish.yml`, `standards-check.yml`, `eslint.config.js`) are adopted verbatim, which clears the template drift `nrstd audit` reports; the `eslint.config.js` gap was a missing `ignores: ['coverage/**']`, so `npm run lint` had been linting c8's generated output
+
+### corrected two stale README claims: the minimum Node version (said 20.x) and "tested with `Node.js v18.12.1` and `Node-RED v3.0.2`", which had been wrong for years. It now says what CI actually runs
+
+### no code changes. Nothing in `telegrambot/` uses an API newer than Node 20 — this is a support statement, not a rewrite. Users below the floor get `EBADENGINE` from npm and stay on `2.1.2`; anyone on a supported Node-RED 5 already satisfies it
+
 # [2.1.2] - 2026-08-06
 
 ### fixed SOCKS proxies never connecting. teleproto tells its two proxy types apart by asking whether the `MTProxy` **key exists**, not whether it is true - and the config node and the login panel both built one flat object carrying every field, `MTProxy: false` included. Every SOCKS proxy therefore looked like an MTProxy: teleproto selected the MTProxy connection, parsed the empty secret and failed with `MTProxy: secret is required`, while the SOCKS tunnel - guarded by the same check inverted - was never opened at all. The node showed a failure naming a proxy type that had not been configured

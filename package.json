@@ -1,6 +1,6 @@
 {
     "name": "node-red-node-telegrambot",
-    "version": "2.1.2",
+    "version": "3.0.0",
     "description": "Telegram userbot nodes for Node-RED",
     "files": [
         "telegrambot/",
@@ -44,7 +44,7 @@
         }
     },
     "engines": {
-        "node": ">=20.0.0"
+        "node": ">=22.13.0"
     },
     "keywords": [
         "node-red",
