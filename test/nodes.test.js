@@ -358,8 +358,12 @@ describe('telegram client nodes', () => {
         // A Function node can only produce JSON — teleproto Button objects are not requireable from one — so
         // the node has to do the conversion on the way through.
         const sentButtons = calls[0][1].buttons;
-        assert.strictEqual(sentButtons[0][0].className, 'KeyboardButtonUrl', 'the client must receive real buttons');
-        assert.strictEqual(sentButtons[0][0].url, 'https://x.dev');
+        assert.strictEqual(
+            sentButtons[0][0].type.className,
+            'InlineButtonTypeUrl',
+            'the client must receive real buttons'
+        );
+        assert.strictEqual(sentButtons[0][0].type.url, 'https://x.dev');
     });
 
     it('reaches the account inspection methods through the generic path', async () => {

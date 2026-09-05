@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+# [3.1.0] - 2026-09-05
+
+### moved to `teleproto@^1.229.0`, which restructured inline buttons and dropped the custom getters on `Api.Message`. No change to what a flow sends: buttons are still described as `{ type: "url", text, url }`, and `lib/reply-markup.js` still builds them through `Button.url()` / `Button.inline()`. What changed is the object those helpers return — a `KeyboardButtonUrl` with `text` and `url` at the top level became a `KeyboardInlineButton` carrying `type: { url, className: "InlineButtonTypeUrl" }`
+
+### **worth knowing if a Function node reads incoming messages:** `Api.Message` lost its getters in 1.229. `msg.payload.message.text` and `.client` now read `undefined`; the text is in `.message`. Nothing this package ships used them — not the nodes, not the examples, not the README — but a flow that did will need the raw field
+
+### the session is still kept out of `msg`. teleproto attaches the client as `_client` exactly as before, so `hideClientReferences` hides what it always hid and [ADR 0025](doc/architecture/adr/0025-keep-the-client-out-of-msg.md) holds. Verified against the library rather than assumed
+
+### the declared range moves from `^1.228.5` to `^1.229.0` so the tests and a fresh install agree on one shape. `^1.228.5` already resolved to 1.229.0 for anyone installing today, while CI kept testing 1.228.5 from the lockfile — the tests were green against a version users were no longer getting
+
 # [3.0.1] - 2026-08-29
 
 ### fixed the QR login never closing the connection it opened. `loginWithQrCode` connected a `TelegramClient` and tore it down on none of its three exits — a completed sign-in, an aborted one (the editor starting a second attempt, or the five-minute backstop in `lib/qr-session.js`) and a failure all left a socket open against Telegram. In a long-running Node-RED those accumulate: every abandoned or replaced QR login costs one. The teardown now happens in a `finally`, so no path can skip it
