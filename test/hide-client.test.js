@@ -143,8 +143,12 @@ describe('hideClientReferences', () => {
 
         hideClientReferences({ payload: message });
 
-        assert.strictEqual(message.client, client, 'the `client` getter is public API on a Message');
-        assert.strictEqual(message.text, 'hello', 'the text getter reads _client.parseMode');
+        // Not the `client` getter any more: teleproto 1.229 removed it from Message. What this test is
+        // really about survives that — the library still attaches the client as `_client`
+        // (events/common.js), so hiding it still keeps the session out of `msg`, and the machinery that
+        // reads it from the inside still finds it.
+        assert.strictEqual(message._client, client, 'hiding must not detach the client, only stop it enumerating');
+        assert.strictEqual(message.message, 'hello', 'the message itself must survive being walked');
         assert.ok(!asInspected(message).includes(SECRET));
     });
 });

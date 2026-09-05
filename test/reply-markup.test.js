@@ -13,25 +13,29 @@ function tlObject(button) {
     return button.button !== undefined ? button.button : button;
 }
 
-function classNames(rows) {
-    return rows.map((row) => row.map((button) => tlObject(button).className));
+// What kind of button this is. teleproto 1.229 moved the discriminator: a url button used to *be* a
+// `KeyboardButtonUrl`, and is now a `KeyboardInlineButton` whose `type` says which one it is. The payload
+// moved with it — `button.url` became `button.type.url`. Read through `type` rather than pinning the outer
+// class name again: that name is what changed, and it is the one part of the shape we do not choose.
+function buttonTypes(rows) {
+    return rows.map((row) => row.map((button) => tlObject(button).type.className));
 }
 
 describe('buildButtons', () => {
     it('builds a url button', () => {
         const rows = buildButtons([[{ type: 'url', text: 'Open', url: 'https://example.com' }]]);
 
-        assert.deepStrictEqual(classNames(rows), [['KeyboardButtonUrl']]);
+        assert.deepStrictEqual(buttonTypes(rows), [['InlineButtonTypeUrl']]);
         assert.strictEqual(tlObject(rows[0][0]).text, 'Open');
-        assert.strictEqual(tlObject(rows[0][0]).url, 'https://example.com');
+        assert.strictEqual(tlObject(rows[0][0]).type.url, 'https://example.com');
     });
 
     it('builds a callback button with its data as bytes', () => {
         const rows = buildButtons([[{ type: 'callback', text: 'Yes', data: 'yes' }]]);
 
-        assert.deepStrictEqual(classNames(rows), [['KeyboardButtonCallback']]);
+        assert.deepStrictEqual(buttonTypes(rows), [['InlineButtonTypeCallback']]);
         // Telegram carries callback data as bytes, so a JSON string has to be encoded.
-        assert.strictEqual(tlObject(rows[0][0]).data.toString(), 'yes');
+        assert.strictEqual(tlObject(rows[0][0]).type.data.toString(), 'yes');
     });
 
     it('keeps the row and column layout', () => {
@@ -97,7 +101,7 @@ describe('convertButtonsInArgs', () => {
 
         assert.strictEqual(converted[0], 'someone', 'the entity is untouched');
         assert.strictEqual(converted[1].message, 'hi', 'the other options survive');
-        assert.strictEqual(tlObject(converted[1].buttons[0][0]).className, 'KeyboardButtonUrl');
+        assert.strictEqual(tlObject(converted[1].buttons[0][0]).type.className, 'InlineButtonTypeUrl');
     });
 
     it('leaves args without buttons exactly as they were', () => {
